@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="JumpStart.DemoApp/JumpStart.DemoApp.csproj" />
+  <Project Path="JumpStart/JumpStart.csproj" />
+</Solution>

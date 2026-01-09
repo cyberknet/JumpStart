@@ -1,14 +1,15 @@
-using System.Net.Http;
+using System;
 using System.Threading.Tasks;
 using JumpStart.Api.DTOs;
 using JumpStart.Api.DTOs.Advanced;
 using JumpStart.Repositories;
+using Refit;
 
 namespace JumpStart.Api.Clients.Advanced;
 
 /// <summary>
 /// Defines the contract for API clients that interact with DTO-based HTTP endpoints for entities with custom key types.
-/// This interface provides standard CRUD operations using DTOs for type-safe API communication.
+/// This interface provides standard CRUD operations using DTOs for type-safe API communication via Refit.
 /// </summary>
 /// <typeparam name="TDto">The data transfer object type for read operations. Must inherit from <see cref="EntityDto{TKey}"/>.</typeparam>
 /// <typeparam name="TCreateDto">The data transfer object type for create operations. Must implement <see cref="ICreateDto"/>.</typeparam>
@@ -20,7 +21,7 @@ namespace JumpStart.Api.Clients.Advanced;
 /// For applications using Guid identifiers, use <see cref="Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/> instead.
 /// </para>
 /// <para>
-/// The interface provides type-safe HTTP communication with RESTful API endpoints:
+/// The interface uses Refit attributes for declarative HTTP API definitions:
 /// - GET operations return DTOs (read-only data)
 /// - POST operations accept CreateDTOs (no Id/audit fields)
 /// - PUT operations accept UpdateDTOs (includes Id, excludes audit fields)
@@ -28,19 +29,27 @@ namespace JumpStart.Api.Clients.Advanced;
 /// </para>
 /// <para>
 /// All operations are asynchronous and handle HTTP status codes appropriately.
-/// Network errors will throw <see cref="HttpRequestException"/>.
+/// Refit automatically handles serialization, deserialization, and error responses.
 /// </para>
 /// </remarks>
 /// <example>
 /// <code>
+/// // Define your API client interface
 /// public interface IProductApiClient : IAdvancedApiClient&lt;ProductDto, CreateProductDto, UpdateProductDto, int&gt;
 /// {
 ///     // Custom operations specific to products
-///     Task&lt;IEnumerable&lt;ProductDto&gt;&gt; GetByPriceRangeAsync(decimal min, decimal max);
+///     [Get("/api/products/featured")]
+///     Task&lt;IEnumerable&lt;ProductDto&gt;&gt; GetFeaturedAsync();
 /// }
+/// 
+/// // Register in DI
+/// services.AddRefitClient&lt;IProductApiClient&gt;()
+///     .ConfigureHttpClient(c =&gt; c.BaseAddress = new Uri("https://api.example.com"));
+/// 
+/// // Use in your code
+/// var product = await productClient.GetByIdAsync(123);
 /// </code>
 /// </example>
-/// <seealso cref="AdvancedApiClientBase{TDto, TCreateDto, TUpdateDto, TKey}"/>
 /// <seealso cref="Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>
 public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     where TDto : EntityDto<TKey>
@@ -56,13 +65,14 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// A task that represents the asynchronous operation.
     /// The task result contains the entity DTO if found, or null if not found (HTTP 404).
     /// </returns>
-    /// <exception cref="HttpRequestException">
-    /// Thrown when the HTTP request fails with a non-success status code (except 404).
+    /// <exception cref="ApiException">
+    /// Thrown when the HTTP request fails. Check StatusCode property for details.
+    /// Returns null for 404 Not Found responses.
     /// </exception>
     /// <remarks>
     /// This method performs an HTTP GET request to the API endpoint.
-    /// Returns null for 404 Not Found responses.
-    /// Throws for other error status codes.
+    /// Refit automatically handles 404 responses by returning null.
+    /// Other error status codes will throw ApiException.
     /// </remarks>
     /// <example>
     /// <code>
@@ -73,6 +83,7 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// }
     /// </code>
     /// </example>
+    [Get("/{id}")]
     Task<TDto?> GetByIdAsync(TKey id);
 
     /// <summary>
@@ -87,13 +98,13 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// The task result contains a <see cref="PagedResult{T}"/> with the requested page of entities
     /// and pagination metadata (page number, page size, total count).
     /// </returns>
-    /// <exception cref="HttpRequestException">
-    /// Thrown when the HTTP request fails with a non-success status code.
+    /// <exception cref="ApiException">
+    /// Thrown when the HTTP request fails. Check StatusCode property for details.
     /// </exception>
     /// <remarks>
     /// <para>
     /// This method performs an HTTP GET request with query string parameters.
-    /// The query string is built from the provided <paramref name="options"/>.
+    /// Refit automatically serializes the <paramref name="options"/> object to query string parameters.
     /// </para>
     /// <para>
     /// If <paramref name="options"/> is null or pagination is not specified,
@@ -112,7 +123,8 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// Console.WriteLine($"Total: {result.TotalCount}, Page {result.PageNumber}");
     /// </code>
     /// </example>
-    Task<PagedResult<TDto>> GetAllAsync(QueryOptions? options = null);
+    [Get("")]
+    Task<PagedResult<TDto>> GetAllAsync([Query] QueryOptions? options = null);
 
     /// <summary>
     /// Creates a new entity by sending a create DTO to the API.
@@ -129,16 +141,14 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="createDto"/> is null.
     /// </exception>
-    /// <exception cref="HttpRequestException">
-    /// Thrown when the HTTP request fails with a non-success status code.
+    /// <exception cref="ApiException">
+    /// Thrown when the HTTP request fails. Check StatusCode property for details.
     /// This includes validation errors (HTTP 400) and server errors (HTTP 500).
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the server response cannot be deserialized to <typeparamref name="TDto"/>.
     /// </exception>
     /// <remarks>
     /// <para>
     /// This method performs an HTTP POST request with the <paramref name="createDto"/> as JSON body.
+    /// Refit automatically serializes the DTO and handles the response.
     /// The server validates the DTO, creates the entity, and returns the complete entity with
     /// all server-generated fields populated.
     /// </para>
@@ -161,7 +171,8 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// Console.WriteLine($"Created product with Id: {created.Id}");
     /// </code>
     /// </example>
-    Task<TDto> CreateAsync(TCreateDto createDto);
+    [Post("")]
+    Task<TDto> CreateAsync([Body] TCreateDto createDto);
 
     /// <summary>
     /// Updates an existing entity by sending an update DTO to the API.
@@ -179,17 +190,15 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="updateDto"/> is null.
     /// </exception>
-    /// <exception cref="HttpRequestException">
-    /// Thrown when the HTTP request fails with a non-success status code.
+    /// <exception cref="ApiException">
+    /// Thrown when the HTTP request fails. Check StatusCode property for details.
     /// This includes 404 Not Found if the entity doesn't exist.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the server response cannot be deserialized to <typeparamref name="TDto"/>.
     /// </exception>
     /// <remarks>
     /// <para>
     /// This method performs an HTTP PUT request with the <paramref name="updateDto"/> as JSON body.
     /// The entity Id from the DTO is used in the URL path.
+    /// Refit automatically serializes the DTO and handles the response.
     /// The server validates the DTO, updates the entity, and returns the complete updated entity.
     /// </para>
     /// <para>
@@ -212,50 +221,52 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// Console.WriteLine($"Updated at: {updated.ModifiedOn}");
     /// </code>
     /// </example>
-    Task<TDto> UpdateAsync(TUpdateDto updateDto);
+    [Put("/{id}")]
+    Task<TDto> UpdateAsync(TKey id, [Body] TUpdateDto updateDto);
 
-    /// <summary>
-    /// Deletes an entity by its unique identifier.
-    /// Performs a soft delete if the entity supports it (implements <see cref="Data.Advanced.Auditing.IDeletable{T}"/>).
-    /// </summary>
-    /// <param name="id">The unique identifier of the entity to delete.</param>
-    /// <returns>
-    /// A task that represents the asynchronous operation.
-    /// The task result is true if the entity was successfully deleted,
-    /// or false if the entity was not found (HTTP 404).
-    /// </returns>
-    /// <exception cref="HttpRequestException">
-    /// Thrown when the HTTP request fails with a non-success status code (except 404).
-    /// </exception>
-    /// <remarks>
-    /// <para>
-    /// This method performs an HTTP DELETE request to the API endpoint.
-    /// Returns false for 404 Not Found responses (entity already deleted or doesn't exist).
-    /// Returns true for successful deletion (HTTP 204 No Content).
-    /// </para>
-    /// <para>
-    /// If the entity implements IDeletable, the API performs a soft delete:
-    /// - Sets DeletedOn to the current UTC timestamp
-    /// - Sets DeletedById to the current user's identifier
-    /// - The entity remains in the database but is excluded from standard queries
-    /// </para>
-    /// <para>
-    /// If the entity does not implement IDeletable, a hard delete is performed
-    /// and the entity is permanently removed from the database.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// bool deleted = await client.DeleteAsync(123);
-    /// if (deleted)
-    /// {
-    ///     Console.WriteLine("Product deleted successfully");
-    /// }
-    /// else
-    /// {
-    ///     Console.WriteLine("Product not found");
-    /// }
-    /// </code>
-    /// </example>
-    Task<bool> DeleteAsync(TKey id);
-}
+        /// <summary>
+        /// Deletes an entity by its unique identifier.
+        /// Performs a soft delete if the entity supports it (implements <see cref="Data.Advanced.Auditing.IDeletable{T}"/>).
+        /// </summary>
+        /// <param name="id">The unique identifier of the entity to delete.</param>
+        /// <returns>
+        /// A task that represents the asynchronous operation.
+        /// The task result is true if the entity was successfully deleted,
+        /// or false if the entity was not found (HTTP 404).
+        /// </returns>
+        /// <exception cref="ApiException">
+        /// Thrown when the HTTP request fails (except for 404 which returns false).
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// This method performs an HTTP DELETE request to the API endpoint.
+        /// Returns false for 404 Not Found responses (entity already deleted or doesn't exist).
+        /// Returns true for successful deletion (HTTP 204 No Content).
+        /// </para>
+        /// <para>
+        /// If the entity implements IDeletable, the API performs a soft delete:
+        /// - Sets DeletedOn to the current UTC timestamp
+        /// - Sets DeletedById to the current user's identifier
+        /// - The entity remains in the database but is excluded from standard queries
+        /// </para>
+        /// <para>
+        /// If the entity does not implement IDeletable, a hard delete is performed
+        /// and the entity is permanently removed from the database.
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// bool deleted = await client.DeleteAsync(123);
+        /// if (deleted)
+        /// {
+        ///     Console.WriteLine("Product deleted successfully");
+        /// }
+        /// else
+        /// {
+        ///     Console.WriteLine("Product not found");
+        /// }
+        /// </code>
+        /// </example>
+        [Delete("/{id}")]
+        Task<bool> DeleteAsync(TKey id);
+    }

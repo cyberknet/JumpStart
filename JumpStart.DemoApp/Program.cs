@@ -45,15 +45,11 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new() { Title = "JumpStart DemoApp API", Version = "v1" });
 });
 
-// Add API clients for Blazor components
-builder.Services.AddJumpStartApiClients(client =>
-{
-    // Configure HttpClient to call the same app's API
-    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7001");
-});
+// Register API clients using Refit
+// The base address will be set dynamically based on the app URL
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7001";
 
-// Register specific API clients
-builder.Services.AddScoped<IProductApiClient, ProductApiClient>();
+builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products");
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();

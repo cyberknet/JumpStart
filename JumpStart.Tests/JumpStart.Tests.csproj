@@ -27,8 +27,8 @@
     <ProjectReference Include="..\JumpStart\JumpStart.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Using Include="Xunit" />
-  </ItemGroup>
+    <ItemGroup>
+      <Using Include="Xunit" />
+    </ItemGroup>
 
-</Project>
+  </Project>

@@ -1,3 +1,4 @@
+using JumpStart.DemoApp.Clients;
 using JumpStart.DemoApp.Components;
 using JumpStart.DemoApp.Components.Account;
 using JumpStart.DemoApp.Data;
@@ -25,6 +26,31 @@ builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
     });
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+// Add Controllers for API endpoints
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configure JSON serialization for entities
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
+
+// Add API Explorer and Swagger for development
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new() { Title = "JumpStart DemoApp API", Version = "v1" });
+});
+
+// Add API clients for Blazor components
+builder.Services.AddJumpStartApiClients(client =>
+{
+    // Configure HttpClient to call the same app's API
+    client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7001");
+});
+
+// Register specific API clients
+builder.Services.AddScoped<IProductApiClient, ProductApiClient>();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
@@ -55,6 +81,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 else
 {
@@ -70,6 +98,9 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// Map API controllers
+app.MapControllers();
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();

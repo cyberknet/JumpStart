@@ -3,6 +3,8 @@
 * Write clear, concise comments for complex logic.
 * Prioritize maintainability and handle edge cases with clear exception handling.
 * Follow the project's existing architectural patterns and naming conventions.
+* When creating new code always consider if the problem can be solved using existing libraries or frameworks before implementing a custom solution. Simple problems can be solved with a custom solution, but a large, complex problem should be solved using existing libraries or frameworks, for example object mapping and rest clients.
+* When adding an external dependency, consider if we should abstract it so we can replace it with a different implementation later. (For example, if we consume Newtonsoft JSON, we may later want to consume Json.Net - an abstraction for serialize/deserialize may be helpful)
 * When creating classes, members, or variable names, never abbreviate.
 * Use meaningful names that clearly convey purpose and intent.
 * When names contain acronyms, any acronym longer than two letters should be in PascalCase (e.g., XmlParser, not XMLParser).

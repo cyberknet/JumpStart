@@ -27,6 +27,9 @@ builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+// Add AutoMapper with all profiles from DemoApp
+builder.Services.AddJumpStartAutoMapper(typeof(Program).Assembly);
+
 // Add Controllers for API endpoints
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

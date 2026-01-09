@@ -1,6 +1,7 @@
 @page "/products"
 @using JumpStart.DemoApp.Clients
-@using JumpStart.DemoApp.Data
+@using JumpStart.DemoApp.DTOs
+@using JumpStart.Api.Clients.Advanced
 @using JumpStart.Repositories
 @inject IProductApiClient ProductClient
 @rendermode InteractiveServer
@@ -60,8 +61,8 @@ else if (products != null)
 }
 
 @code {
-    private List<Product>? products;
-    private PagedResult<Product>? pagedResult;
+    private List<ProductDto>? products;
+    private PagedResult<ProductDto>? pagedResult;
     private bool loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -74,13 +75,13 @@ else if (products != null)
         loading = true;
         try
         {
-            // Call API client instead of repository directly
-            var options = new QueryOptions<Product>
+            // Call API client with simple query options (no generic type parameter)
+            var options = new QueryOptions
             {
                 PageNumber = 1,
                 PageSize = 20
             };
-            
+
             pagedResult = await ProductClient.GetAllAsync(options);
             products = pagedResult.Items.ToList();
         }
@@ -126,7 +127,7 @@ else if (products != null)
         // For now, just a placeholder
     }
 
-    private void EditProduct(Product product)
+    private void EditProduct(ProductDto product)
     {
         // Navigate to edit page or show modal
         // For now, just a placeholder

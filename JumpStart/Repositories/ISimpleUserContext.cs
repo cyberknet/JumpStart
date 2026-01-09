@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
-using JumpStart.Repository.Advanced;
+using JumpStart.Repositories.Advanced;
 
-namespace JumpStart.Repository;
+namespace JumpStart.Repositories;
 
 /// <summary>
 /// Provides access to the current authenticated user's Guid identifier for audit tracking.

@@ -7,7 +7,7 @@ using JumpStart.Data.Advanced;
 using JumpStart.Data.Advanced.Auditing;
 using Microsoft.EntityFrameworkCore;
 
-namespace JumpStart.Repository.Advanced;
+namespace JumpStart.Repositories.Advanced;
 
 /// <summary>
 /// Provides an abstract base implementation of the repository pattern using Entity Framework Core for performing CRUD operations with custom key types.

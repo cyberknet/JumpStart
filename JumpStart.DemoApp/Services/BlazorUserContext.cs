@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using JumpStart.Repository;
+using JumpStart.Repositories;
 using Microsoft.AspNetCore.Components.Authorization;
 
 namespace JumpStart.DemoApp.Services;

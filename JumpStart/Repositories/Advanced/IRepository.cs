@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using JumpStart.Data.Advanced;
 using JumpStart.Data.Advanced.Auditing;
 
-namespace JumpStart.Repository.Advanced;
+namespace JumpStart.Repositories.Advanced;
 
 /// <summary>
 /// Defines a generic repository interface for performing CRUD operations on entities with custom key types.

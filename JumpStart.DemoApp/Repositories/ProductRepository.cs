@@ -1,5 +1,5 @@
 using JumpStart.DemoApp.Data;
-using JumpStart.Repository;
+using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace JumpStart.DemoApp.Services;

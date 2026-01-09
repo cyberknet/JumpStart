@@ -1,7 +1,7 @@
 using System;
 using System.Linq.Expressions;
 
-namespace JumpStart.Repository;
+namespace JumpStart.Repositories;
 
 /// <summary>
 /// Represents options for querying entities, including pagination and sorting parameters.

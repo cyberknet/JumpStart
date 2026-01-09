@@ -1,11 +1,11 @@
 ﻿using JumpStart.Data;
-using JumpStart.Repository.Advanced;
+using JumpStart.Repositories.Advanced;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace JumpStart.Repository;
+namespace JumpStart.Repositories;
 
 /// <summary>
 /// Provides an abstract base implementation of the repository pattern using Entity Framework Core for performing CRUD operations on entities with Guid identifiers.

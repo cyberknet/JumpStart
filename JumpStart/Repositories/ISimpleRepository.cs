@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using JumpStart.Data;
-using JumpStart.Repository.Advanced;
+using JumpStart.Repositories.Advanced;
 
-namespace JumpStart.Repository;
+namespace JumpStart.Repositories;
 
 /// <summary>
 /// Defines a repository interface for performing CRUD operations on entities with Guid identifiers.

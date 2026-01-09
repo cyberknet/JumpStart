@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JumpStart.Repository.Advanced;
+namespace JumpStart.Repositories.Advanced;
 
 /// <summary>
 /// Provides access to the current authenticated user's identifier for audit tracking with custom key types.

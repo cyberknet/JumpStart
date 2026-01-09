@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using JumpStart.Data;
 using JumpStart.Extensions;
-using JumpStart.Repository;
+using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -109,6 +109,6 @@ public static class JumpStartServiceCollectionExtensions
             var genericTypeDef = type.GetGenericTypeDefinition();
 
             return genericTypeDef == typeof(ISimpleRepository<>) ||
-                   genericTypeDef == typeof(JumpStart.Repository.Advanced.IRepository<,>);
+                   genericTypeDef == typeof(JumpStart.Repositories.Advanced.IRepository<,>);
         }
     }

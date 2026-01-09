@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace JumpStart.Repository;
+namespace JumpStart.Repositories;
 
 /// <summary>
 /// Represents the result of a paginated query, containing the items for the current page and pagination metadata.

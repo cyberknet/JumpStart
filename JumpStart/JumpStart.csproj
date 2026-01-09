@@ -4,10 +4,29 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    
+    <!-- NuGet Package Properties -->
+    <PackageId>JumpStart</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Scott Blomfield</Authors>
+    <Company>JumpStart</Company>
+    <Description>A Blazor framework providing entity base classes, repository pattern implementation, and audit tracking for rapid application development.</Description>
+    <PackageTags>blazor;entity-framework;repository;audit;framework</PackageTags>
+    <PackageProjectUrl>https://github.com/yourusername/jumpstart</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/yourusername/jumpstart</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
+  </ItemGroup>
+
+  <!-- Optional: Include README in package -->
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\README.md')" />
   </ItemGroup>
 
 </Project>

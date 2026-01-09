@@ -1,9 +1,35 @@
+using JumpStart.DemoApp.Data;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace JumpStart.DemoApp.Data
+namespace JumpStart.DemoApp.Data;
+
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
-    public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : IdentityDbContext<ApplicationUser>(options)
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
     {
+    }
+
+    // Add DbSet for Product
+    public DbSet<Product> Products { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        // Configure Product entity
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasIndex(e => e.SKU).IsUnique();
+            entity.Property(e => e.Price).HasPrecision(18, 2);
+        });
+
+        // Configure ApplicationUser if needed
+        modelBuilder.Entity<ApplicationUser>(entity =>
+        {
+            // Add any custom configuration for ApplicationUser
+        });
     }
 }

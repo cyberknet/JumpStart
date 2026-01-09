@@ -3,5 +3,6 @@
     <File Path=".github/copilot-instructions.md" />
   </Folder>
   <Project Path="JumpStart.DemoApp/JumpStart.DemoApp.csproj" />
+  <Project Path="JumpStart.Tests/JumpStart.Tests.csproj" />
   <Project Path="JumpStart/JumpStart.csproj" />
 </Solution>

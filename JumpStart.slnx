@@ -2,9 +2,44 @@
   <Folder Name="/.github/">
     <File Path=".github/copilot-instructions.md" />
   </Folder>
+  <Folder Name="/Documentation/architecture/">
+    <File Path="docs/architecture/index.md" />
+  </Folder>
+  <Folder Name="/Documentation/architecture/adr/">
+    <File Path="docs/architecture/adr/index.md" />
+  </Folder>
+  <Folder Name="/Documentation/architecture/how-to/">
+    <File Path="docs/how-to/custom-repository.md" />
+    <File Path="docs/how-to/index.md" />
+    <File Path="docs/how-to/pagination.md" />
+    <File Path="docs/how-to/secure-endpoints.md" />
+  </Folder>
   <Folder Name="/Governance/">
     <File Path="LICENSE.txt" />
     <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Documentation/">
+    <File Path="docs/index.md" />
+    <File Path="docs/getting-started.md" />
+    <File Path="docs/core-concepts.md" />
+    <File Path="docs/audit-tracking.md" />
+    <File Path="docs/api-development.md" />
+    <File Path="docs/authentication.md" />
+    <File Path="docs/samples.md" />
+    <File Path="docs/faq.md" />
+    <File Path="docs/troubleshooting.md" />
+    <Folder Name="how-to/">
+      <File Path="docs/how-to/index.md" />
+      <File Path="docs/how-to/custom-repository.md" />
+      <File Path="docs/how-to/pagination.md" />
+      <File Path="docs/how-to/secure-endpoints.md" />
+    </Folder>
+    <Folder Name="architecture/">
+      <File Path="docs/architecture/index.md" />
+      <Folder Name="adr/">
+        <File Path="docs/architecture/adr/index.md" />
+      </Folder>
+    </Folder>
   </Folder>
   <Project Path="JumpStart.DemoApp.Api/JumpStart.DemoApp.Api.csproj" />
   <Project Path="JumpStart.DemoApp/JumpStart.DemoApp.csproj" />

@@ -64,7 +64,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, consider using:
 /// - <see cref="AuditableEntity{T}"/> - Implements IAuditable (includes IDeletable)
-/// - <see cref="SimpleAuditableEntity"/> - For Guid-based identifiers
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - For Guid-based identifiers
 /// - Custom base classes that implement IDeletable for specific scenarios
 /// </para>
 /// <para>

@@ -63,7 +63,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// </para>
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
-/// - Use <see cref="SimpleAuditableNamedEntity"/> for Guid identifiers (simpler, recommended for new apps)
+/// - Use <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> for Guid identifiers (simpler, recommended for new apps)
 /// - Use <see cref="AuditableEntity{T}"/> if naming is not a core requirement
 /// - Use <see cref="Advanced.NamedEntity{T}"/> for named entities without audit tracking
 /// - Use <see cref="SimpleNamedEntity"/> for Guid-based named entities without audit
@@ -167,7 +167,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// </example>
 /// <seealso cref="AuditableEntity{T}"/>
 /// <seealso cref="INamed"/>
-/// <seealso cref="SimpleAuditableNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/>
 public abstract class AuditableNamedEntity<T> : AuditableEntity<T>, INamed
     where T : struct
 {

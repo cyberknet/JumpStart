@@ -185,7 +185,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// </example>
 /// <seealso cref="Entity{T}"/>
 /// <seealso cref="IAuditable{T}"/>
-/// <seealso cref="SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
 public abstract class AuditableEntity<T> : Entity<T>, IAuditable<T>
     where T : struct
 {

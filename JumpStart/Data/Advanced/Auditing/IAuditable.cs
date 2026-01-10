@@ -64,9 +64,9 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, use one of these base classes:
 /// - <see cref="AuditableEntity{T}"/> - Full audit tracking with custom key types
-/// - <see cref="SimpleAuditableEntity"/> - Full audit tracking with Guid identifiers (recommended)
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Full audit tracking with Guid identifiers (recommended)
 /// - <see cref="AuditableNamedEntity{T}"/> - Adds Name property to auditable entities
-/// - <see cref="SimpleAuditableNamedEntity"/> - Named auditable entities with Guid identifiers
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Named auditable entities with Guid identifiers
 /// </para>
 /// <para>
 /// <strong>Soft Delete Pattern:</strong>
@@ -233,7 +233,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <seealso cref="IModifiable{T}"/>
 /// <seealso cref="IDeletable{T}"/>
 /// <seealso cref="AuditableEntity{T}"/>
-/// <seealso cref="SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
 public interface IAuditable<T> 
     : ICreatable<T>, IModifiable<T>, IDeletable<T>
     where T : struct

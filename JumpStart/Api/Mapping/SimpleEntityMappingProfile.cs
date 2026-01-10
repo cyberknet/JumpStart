@@ -52,7 +52,7 @@ namespace JumpStart.Api.Mapping;
 /// <para>
 /// <strong>Audit Field Handling:</strong>
 /// If your entity implements <see cref="Data.Advanced.Auditing.IAuditable{T}"/> or inherits from
-/// <see cref="SimpleAuditableEntity"/>, audit fields (CreatedById, CreatedOn, ModifiedById, ModifiedOn,
+/// <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>, audit fields (CreatedById, CreatedOn, ModifiedById, ModifiedOn,
 /// DeletedById, DeletedOn) are automatically excluded from create and update mappings. These fields
 /// are managed by the repository layer based on the current user context.
 /// </para>

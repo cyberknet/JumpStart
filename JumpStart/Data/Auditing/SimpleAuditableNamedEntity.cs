@@ -262,13 +262,13 @@ namespace JumpStart.Data.Auditing;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="SimpleAuditableEntity"/>
-/// <seealso cref="SimpleNamedEntity"/>
-/// <seealso cref="SimpleEntity"/>
-/// <seealso cref="INamed"/>
-/// <seealso cref="ISimpleAuditable"/>
-/// <seealso cref="Advanced.Auditing.AuditableNamedEntity{T}"/>
-/// <seealso cref="Repositories.SimpleRepository{TEntity}"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.SimpleNamedEntity"/>
+/// <seealso cref="JumpStart.Data.SimpleEntity"/>
+/// <seealso cref="JumpStart.Data.INamed"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleAuditable"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/>
+/// <seealso cref="JumpStart.Repositories.SimpleRepository{TEntity}"/>
 public abstract class SimpleAuditableNamedEntity : SimpleAuditableEntity, INamed
 {
     /// <summary>

@@ -217,11 +217,11 @@ namespace JumpStart.Data.Advanced;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IEntity{T}"/>
-/// <seealso cref="SimpleEntity"/>
-/// <seealso cref="Auditing.AuditableEntity{T}"/>
-/// <seealso cref="SimpleAuditableEntity"/>
-/// <seealso cref="NamedEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.IEntity{T}"/>
+/// <seealso cref="JumpStart.Data.SimpleEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.NamedEntity{T}"/>
 public abstract class Entity<T> : IEntity<T> where T : struct
 {
     /// <summary>

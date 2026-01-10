@@ -241,12 +241,12 @@ namespace JumpStart.Data.Advanced;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IEntity{T}"/>
-/// <seealso cref="Data.IUser"/>
-/// <seealso cref="SimpleUser"/>
-/// <seealso cref="Auditing.ICreatable{T}"/>
-/// <seealso cref="Auditing.IModifiable{T}"/>
-/// <seealso cref="Auditing.IDeletable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.IEntity{T}"/>
+/// <seealso cref="JumpStart.Data.ISimpleUser"/>
+/// <seealso cref="JumpStart.Data.ISimpleUser"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/>
 public interface IUser<TKey> : IEntity<TKey> where TKey : struct
 {
     // This interface intentionally contains no members beyond those inherited from IEntity<TKey>.

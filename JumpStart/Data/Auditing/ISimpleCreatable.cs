@@ -23,13 +23,13 @@ namespace JumpStart.Data.Auditing;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This interface extends <see cref="ICreatable{T}"/> with Guid as the user identifier type, providing
+/// This interface extends <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/> with Guid as the user identifier type, providing
 /// a simplified API for the common case of Guid-based user identities. It tracks who created an entity
 /// and when the creation occurred, which is fundamental for audit trails and compliance requirements.
 /// </para>
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
-/// Unlike the generic <see cref="ICreatable{T}"/> which requires specifying a type parameter, this interface
+/// Unlike the generic <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/> which requires specifying a type parameter, this interface
 /// uses Guid throughout. This simplifies the API and is recommended for new applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern identity systems (ASP.NET Core Identity) use Guid by default
@@ -61,27 +61,27 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Related Interfaces:</strong>
 /// This interface is often combined with other simple audit interfaces:
-/// - <see cref="ISimpleModifiable"/> - Adds modification tracking (who/when modified)
-/// - <see cref="ISimpleDeletable"/> - Adds soft deletion tracking (who/when deleted)
-/// - <see cref="ISimpleAuditable"/> - Combines all three for complete audit tracking
+/// - <see cref="JumpStart.Data.Auditing.ISimpleModifiable"/> - Adds modification tracking (who/when modified)
+/// - <see cref="JumpStart.Data.Auditing.ISimpleDeletable"/> - Adds soft deletion tracking (who/when deleted)
+/// - <see cref="JumpStart.Data.Auditing.ISimpleAuditable"/> - Combines all three for complete audit tracking
 /// </para>
 /// <para>
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, consider using:
-/// - <see cref="SimpleAuditableEntity"/> - Implements ISimpleAuditable (includes ISimpleCreatable)
-/// - <see cref="SimpleAuditableNamedEntity"/> - Adds Name property to auditable entities
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Implements ISimpleAuditable (includes ISimpleCreatable)
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Adds Name property to auditable entities
 /// - Custom base classes that implement ISimpleCreatable for specific scenarios
 /// </para>
 /// <para>
 /// <strong>User Entity Reference:</strong>
-/// The CreatedById property should reference entities implementing <see cref="IUser"/>, which represents
+/// The CreatedById property should reference entities implementing <see cref="JumpStart.Data.Advanced.IUser{TKey}"/>, which represents
 /// user accounts in the system. This enables navigation properties in Entity Framework Core for
 /// establishing relationships between entities and the users who created them.
 /// </para>
 /// <para>
 /// <strong>Alternative for Custom Key Types:</strong>
 /// If your application uses custom key types (int, long, custom struct) instead of Guid, use the
-/// Advanced namespace generic interface <see cref="ICreatable{T}"/> directly.
+/// Advanced namespace generic interface <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/> directly.
 /// </para>
 /// </remarks>
 /// <example>
@@ -229,13 +229,13 @@ namespace JumpStart.Data.Auditing;
 ///     .ToListAsync();
 /// </code>
 /// </example>
-/// <seealso cref="ICreatable{T}"/>
-/// <seealso cref="ISimpleModifiable"/>
-/// <seealso cref="ISimpleDeletable"/>
-/// <seealso cref="ISimpleAuditable"/>
-/// <seealso cref="SimpleAuditableEntity"/>
-/// <seealso cref="IUser"/>
-/// <seealso cref="Repositories.ISimpleUserContext"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleModifiable"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleDeletable"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleAuditable"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.IUser{TKey}"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleUserContext"/>
 public interface ISimpleCreatable : ICreatable<Guid>
 {
     // This interface intentionally contains no members beyond those inherited from ICreatable<Guid>.

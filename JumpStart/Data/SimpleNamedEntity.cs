@@ -260,10 +260,10 @@ namespace JumpStart.Data;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="SimpleEntity"/>
-/// <seealso cref="INamed"/>
-/// <seealso cref="Auditing.SimpleAuditableNamedEntity"/>
-/// <seealso cref="Advanced.NamedEntity{T}"/>
+/// <seealso cref="JumpStart.Data.SimpleEntity"/>
+/// <seealso cref="JumpStart.Data.INamed"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.NamedEntity{T}"/>
 public abstract class SimpleNamedEntity : SimpleEntity, INamed
 {
     /// <summary>

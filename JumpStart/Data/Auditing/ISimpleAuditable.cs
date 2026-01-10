@@ -256,13 +256,13 @@ namespace JumpStart.Data.Auditing;
 ///     .OnDelete(DeleteBehavior.Restrict);
 /// </code>
 /// </example>
-/// <seealso cref="ISimpleCreatable"/>
-/// <seealso cref="ISimpleModifiable"/>
-/// <seealso cref="ISimpleDeletable"/>
-/// <seealso cref="SimpleAuditableEntity"/>
-/// <seealso cref="SimpleAuditableNamedEntity"/>
-/// <seealso cref="Repositories.ISimpleUserContext"/>
-/// <seealso cref="Advanced.Auditing.IAuditable{T}"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleCreatable"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleModifiable"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleDeletable"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleUserContext"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/>
 public interface ISimpleAuditable : ISimpleCreatable, ISimpleModifiable, ISimpleDeletable
 {
     // This interface intentionally contains no members beyond those inherited.

@@ -230,10 +230,10 @@ namespace JumpStart.Data.Advanced;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="Entity{T}"/>
-/// <seealso cref="SimpleEntity"/>
-/// <seealso cref="Auditing.AuditableEntity{T}"/>
-/// <seealso cref="SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.Entity{T}"/>
+/// <seealso cref="JumpStart.Data.SimpleEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
 public interface IEntity<T> where T : struct
 {
     /// <summary>

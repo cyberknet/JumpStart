@@ -197,11 +197,11 @@ namespace JumpStart.Data;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IEntity{T}"/>
-/// <seealso cref="SimpleEntity"/>
-/// <seealso cref="SimpleNamedEntity"/>
-/// <seealso cref="Auditing.SimpleAuditableEntity"/>
-/// <seealso cref="Auditing.SimpleAuditableNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.IEntity{T}"/>
+/// <seealso cref="JumpStart.Data.SimpleEntity"/>
+/// <seealso cref="JumpStart.Data.SimpleNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/>
 public interface ISimpleEntity : IEntity<Guid>
 {
     // This interface intentionally contains no members beyond those inherited from IEntity<Guid>.

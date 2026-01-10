@@ -225,11 +225,11 @@ namespace JumpStart.Data;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="Entity{T}"/>
-/// <seealso cref="ISimpleEntity"/>
-/// <seealso cref="SimpleNamedEntity"/>
-/// <seealso cref="Auditing.SimpleAuditableEntity"/>
-/// <seealso cref="Auditing.SimpleAuditableNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.Entity{T}"/>
+/// <seealso cref="JumpStart.Data.ISimpleEntity"/>
+/// <seealso cref="JumpStart.Data.SimpleNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/>
 public abstract class SimpleEntity : Entity<Guid>, ISimpleEntity
 {
     // This class intentionally contains no members beyond those inherited from Entity<Guid>.

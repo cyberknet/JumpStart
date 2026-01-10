@@ -274,11 +274,11 @@ namespace JumpStart.Data.Auditing;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IDeletable{T}"/>
-/// <seealso cref="ISimpleCreatable"/>
-/// <seealso cref="ISimpleModifiable"/>
-/// <seealso cref="ISimpleAuditable"/>
-/// <seealso cref="SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleCreatable"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleModifiable"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleAuditable"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
 /// <seealso cref="Repositories.ISimpleUserContext"/>
 public interface ISimpleDeletable : IDeletable<Guid>
 {

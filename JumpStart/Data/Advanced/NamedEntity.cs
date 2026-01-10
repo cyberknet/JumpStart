@@ -249,10 +249,10 @@ namespace JumpStart.Data.Advanced;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="Entity{T}"/>
-/// <seealso cref="INamed"/>
-/// <seealso cref="SimpleNamedEntity"/>
-/// <seealso cref="Auditing.AuditableNamedEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Entity{T}"/>
+/// <seealso cref="JumpStart.Data.INamed"/>
+/// <seealso cref="JumpStart.Data.SimpleNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/>
 public abstract class NamedEntity<T> : Entity<T>, INamed
     where T : struct
 {

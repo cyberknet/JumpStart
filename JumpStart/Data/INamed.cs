@@ -229,10 +229,10 @@ namespace JumpStart.Data;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="SimpleNamedEntity"/>
-/// <seealso cref="Advanced.NamedEntity{T}"/>
-/// <seealso cref="Auditing.SimpleAuditableNamedEntity"/>
-/// <seealso cref="Advanced.Auditing.AuditableNamedEntity{T}"/>
+/// <seealso cref="JumpStart.Data.SimpleNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.NamedEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/>
 public interface INamed
 {
     /// <summary>

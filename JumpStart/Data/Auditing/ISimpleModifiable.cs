@@ -275,11 +275,11 @@ namespace JumpStart.Data.Auditing;
 ///     .ToListAsync();
 /// </code>
 /// </example>
-/// <seealso cref="IModifiable{T}"/>
-/// <seealso cref="ISimpleCreatable"/>
-/// <seealso cref="ISimpleDeletable"/>
-/// <seealso cref="ISimpleAuditable"/>
-/// <seealso cref="SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleCreatable"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleDeletable"/>
+/// <seealso cref="JumpStart.Data.Auditing.ISimpleAuditable"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
 /// <seealso cref="Repositories.ISimpleUserContext"/>
 public interface ISimpleModifiable : IModifiable<Guid>
 {

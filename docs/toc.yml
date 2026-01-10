@@ -1,20 +1,20 @@
 - name: Home
-  href: docs/index.md
+  href: index.md
 - name: Getting Started
-  href: docs/getting-started.md
+  href: getting-started.md
 - name: Core Concepts
-  href: docs/core-concepts.md
+  href: core-concepts.md
 - name: How-To Guides
-  href: docs/how-to/index.md
+  href: how-to/index.md
 - name: Architecture
-  href: docs/architecture/index.md
+  href: architecture/index.md
 - name: API Reference
-  href: docs/api/index.md
+  href: api/index.md
 - name: Samples
-  href: docs/samples.md
+  href: samples.md
 - name: FAQ
-  href: docs/faq.md
+  href: faq.md
 - name: Troubleshooting
-  href: docs/troubleshooting.md
+  href: troubleshooting.md
 - name: GitHub
   href: https://github.com/cyberknet/JumpStart

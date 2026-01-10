@@ -54,9 +54,9 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// </para>
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
-/// - Use <see cref="SimpleAuditableEntity"/> for Guid identifiers (simpler, recommended for new apps)
+/// - Use <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> for Guid identifiers (simpler, recommended for new apps)
 /// - Use <see cref="Entity{T}"/> if no audit tracking is needed
-/// - Use <see cref="../SimpleEntity"/> for Guid identifiers without audit tracking
+/// - Use <see cref="JumpStart.Data.SimpleEntity"/> for Guid identifiers without audit tracking
 /// </para>
 /// </remarks>
 /// <example>

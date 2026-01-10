@@ -1,3 +1,17 @@
+// Copyright ©2026 Scott Blomfield
+/*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>. 
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,40 +24,277 @@ using Microsoft.EntityFrameworkCore;
 namespace JumpStart.Repositories.Advanced;
 
 /// <summary>
-/// Provides an abstract base implementation of the repository pattern using Entity Framework Core for performing CRUD operations with custom key types.
+/// Provides an abstract base implementation of the repository pattern using Entity Framework Core 
+/// for performing CRUD operations with custom key types and automatic audit tracking.
 /// This class must be inherited by concrete repository classes for specific entity types.
 /// </summary>
-/// <typeparam name="TEntity">The entity type that implements <see cref="IEntity{T}"/>.</typeparam>
-/// <typeparam name="TKey">The type of the entity's primary key. Must be a value type (int, Guid, long, etc.).</typeparam>
+/// <typeparam name="TEntity">
+/// The entity type that implements <see cref="IEntity{TKey}"/>. Must be a reference type (class).
+/// </typeparam>
+/// <typeparam name="TKey">
+/// The type of the entity's primary key. Must be a value type (struct) such as int, long, Guid, or custom structs.
+/// </typeparam>
 /// <remarks>
-/// This is part of the Advanced namespace functionality for applications requiring custom key types.
-/// For most applications using Guid identifiers, consider using simpler repository classes without generic type parameters.
+/// <para>
+/// This abstract base class provides a complete, production-ready implementation of the repository pattern
+/// with Entity Framework Core. It includes automatic audit tracking, soft delete support, pagination,
+/// and follows best practices for data access patterns.
+/// </para>
+/// <para>
+/// <strong>Key Features:</strong>
+/// - Complete CRUD operations implementation
+/// - Automatic audit tracking (Created, Modified, Deleted fields)
+/// - Soft delete support with automatic filtering
+/// - Pagination with sorting
+/// - User context integration for audit fields
+/// - Entity Framework Core optimizations
+/// - Async/await throughout
+/// - Null safety and validation
+/// </para>
+/// <para>
+/// <strong>Audit Tracking:</strong>
+/// When entities implement audit interfaces (ICreatable, IModifiable, IDeletable), this repository
+/// automatically populates audit fields:
+/// - CreatedOn, CreatedById on Add
+/// - ModifiedOn, ModifiedById on Update  
+/// - DeletedOn, DeletedById on Delete (soft delete)
+/// </para>
+/// <para>
+/// <strong>Soft Delete:</strong>
+/// Entities implementing <see cref="IDeletable{TKey}"/> are soft-deleted (marked as deleted) rather
+/// than permanently removed. Soft-deleted entities are automatically excluded from all queries.
+/// </para>
+/// <para>
+/// <strong>For Guid Keys:</strong>
+/// For most applications using Guid identifiers (recommended), use the SimpleRepository base class
+/// which provides the same functionality without generic type parameters for a simpler API.
+/// </para>
+/// <para>
+/// <strong>When to Use:</strong>
+/// Use this base class when:
+/// - Your application requires int, long, or custom struct keys instead of Guid
+/// - You want automatic audit tracking with custom key types
+/// - You need soft delete functionality
+/// - You want pagination and sorting capabilities
+/// - You follow the repository pattern with EF Core
+/// </para>
+/// <para>
+/// <strong>Thread Safety:</strong>
+/// This class is designed to be used with scoped lifetime (one instance per request).
+/// The DbContext should also be scoped. Do not use as singleton.
+/// </para>
 /// </remarks>
+/// <example>
+/// <code>
+/// // Example 1: Simple repository implementation
+/// public class ProductRepository : Repository&lt;Product, int&gt;
+/// {
+///     public ProductRepository(ApplicationDbContext context, IUserContext&lt;int&gt; userContext)
+///         : base(context, userContext)
+///     {
+///     }
+///     
+///     // Add custom methods
+///     public async Task&lt;IEnumerable&lt;Product&gt;&gt; GetByCategoryAsync(int categoryId)
+///     {
+///         return await _dbSet
+///             .Where(p => p.CategoryId == categoryId)
+///             .ToListAsync();
+///     }
+/// }
+/// 
+/// // Example 2: Entity with audit tracking
+/// public class Product : IEntity&lt;int&gt;, ICreatable&lt;int&gt;, IModifiable&lt;int&gt;, IDeletable&lt;int&gt;
+/// {
+///     public int Id { get; set; }
+///     public string Name { get; set; } = string.Empty;
+///     public decimal Price { get; set; }
+///     public int CategoryId { get; set; }
+///     
+///     // Audit fields - automatically populated by repository
+///     public DateTime CreatedOn { get; set; }
+///     public int? CreatedById { get; set; }
+///     public DateTime? ModifiedOn { get; set; }
+///     public int? ModifiedById { get; set; }
+///     public DateTime? DeletedOn { get; set; }
+///     public int? DeletedById { get; set; }
+/// }
+/// 
+/// // Example 3: Using repository in a service
+/// public class ProductService
+/// {
+///     private readonly ProductRepository _repository;
+///     
+///     public ProductService(ProductRepository repository)
+///     {
+///         _repository = repository;
+///     }
+///     
+///     public async Task&lt;Product&gt; CreateProductAsync(string name, decimal price, int categoryId)
+///     {
+///         var product = new Product
+///         {
+///             Name = name,
+///             Price = price,
+///             CategoryId = categoryId
+///         };
+///         
+///         // Repository automatically sets CreatedOn and CreatedById
+///         return await _repository.AddAsync(product);
+///     }
+///     
+///     public async Task&lt;PagedResult&lt;Product&gt;&gt; GetProductsAsync(int page, int pageSize, string sortBy = "Name")
+///     {
+///         var options = new QueryOptions&lt;Product&gt;
+///         {
+///             PageNumber = page,
+///             PageSize = pageSize,
+///             SortBy = p => EF.Property&lt;object&gt;(p, sortBy)
+///         };
+///         
+///         return await _repository.GetAllAsync(options);
+///     }
+///     
+///     public async Task&lt;bool&gt; DeleteProductAsync(int id)
+///     {
+///         // Soft delete - sets DeletedOn and DeletedById
+///         return await _repository.DeleteAsync(id);
+///     }
+/// }
+/// 
+/// // Example 4: Registration in DI container
+/// public void ConfigureServices(IServiceCollection services)
+/// {
+///     services.AddDbContext&lt;ApplicationDbContext&gt;(options =>
+///         options.UseSqlServer(connectionString));
+///     
+///     services.AddScoped&lt;IUserContext&lt;int&gt;, HttpUserContext&gt;();
+///     services.AddScoped&lt;ProductRepository&gt;();
+/// }
+/// 
+/// // Example 5: Repository with additional query methods
+/// public class OrderRepository : Repository&lt;Order, long&gt;
+/// {
+///     public OrderRepository(ApplicationDbContext context, IUserContext&lt;long&gt; userContext)
+///         : base(context, userContext)
+///     {
+///     }
+///     
+///     public async Task&lt;IEnumerable&lt;Order&gt;&gt; GetRecentOrdersAsync(int count = 10)
+///     {
+///         var query = ApplySoftDeleteFilter(_dbSet);
+///         return await query
+///             .OrderByDescending(o => o.CreatedOn)
+///             .Take(count)
+///             .ToListAsync();
+///     }
+///     
+///     public async Task&lt;decimal&gt; GetTotalRevenueAsync()
+///     {
+///         var query = ApplySoftDeleteFilter(_dbSet);
+///         return await query.SumAsync(o => o.TotalAmount);
+///     }
+/// }
+/// 
+/// // Example 6: Using without user context (no audit tracking)
+/// public class ReadOnlyRepository : Repository&lt;Product, int&gt;
+/// {
+///     public ReadOnlyRepository(ApplicationDbContext context)
+///         : base(context, userContext: null) // No user context
+///     {
+///     }
+/// }
+/// 
+/// // Example 7: Generic service using repository
+/// public class GenericService&lt;TEntity, TKey&gt;
+///     where TEntity : class, IEntity&lt;TKey&gt;
+///     where TKey : struct
+/// {
+///     private readonly Repository&lt;TEntity, TKey&gt; _repository;
+///     
+///     public GenericService(Repository&lt;TEntity, TKey&gt; repository)
+///     {
+///         _repository = repository;
+///     }
+///     
+///     public async Task&lt;TEntity?&gt; GetAsync(TKey id)
+///     {
+///         return await _repository.GetByIdAsync(id);
+///     }
+///     
+///     public async Task&lt;PagedResult&lt;TEntity&gt;&gt; SearchAsync(int page, int pageSize)
+///     {
+///         var options = new QueryOptions&lt;TEntity&gt;
+///         {
+///             PageNumber = page,
+///             PageSize = pageSize
+///         };
+///         
+///         return await _repository.GetAllAsync(options);
+///     }
+/// }
+/// </code>
+/// </example>
+/// <seealso cref="IRepository{TEntity, TKey}"/>
+/// <seealso cref="IUserContext{TKey}"/>
+/// <seealso cref="ICreatable{TKey}"/>
+/// <seealso cref="IModifiable{TKey}"/>
+/// <seealso cref="IDeletable{TKey}"/>
 public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntity : class, IEntity<TKey>
                                                                       where TKey : struct
 {
     /// <summary>
-    /// The Entity Framework Core database context.
+    /// The Entity Framework Core database context used for data access operations.
     /// </summary>
+    /// <remarks>
+    /// This context is used for all database operations including querying, adding, updating,
+    /// and deleting entities. It should be injected via the constructor and have a scoped lifetime.
+    /// </remarks>
     protected readonly DbContext _context;
 
     /// <summary>
-    /// The DbSet for the entity type.
+    /// The DbSet for the entity type, providing access to entity querying and manipulation.
     /// </summary>
+    /// <remarks>
+    /// This DbSet is initialized from the context and provides strongly-typed access to the
+    /// entity collection. Use this for custom queries in derived classes.
+    /// </remarks>
     protected readonly DbSet<TEntity> _dbSet;
 
     /// <summary>
-    /// The user context for retrieving the current authenticated user's identifier.
-    /// Optional - if null, audit user fields will not be automatically populated.
+    /// The user context for retrieving the current authenticated user's identifier for audit tracking.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Optional - if null, audit user fields (CreatedById, ModifiedById, DeletedById) will not be
+    /// automatically populated. The timestamp fields (CreatedOn, ModifiedOn, DeletedOn) will still
+    /// be set regardless.
+    /// </para>
+    /// <para>
+    /// When provided, this context is used to populate the user ID fields on create, update, and
+    /// delete operations for entities that implement the corresponding audit interfaces.
+    /// </para>
+    /// </remarks>
     protected readonly IUserContext<TKey>? _userContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Repository{TEntity, TKey}"/> class.
     /// </summary>
-    /// <param name="context">The Entity Framework Core database context.</param>
-    /// <param name="userContext">Optional. The user context for audit tracking. If null, audit user IDs will use default values.</param>
-    /// <exception cref="ArgumentNullException">Thrown when the context is null.</exception>
+    /// <param name="context">
+    /// The Entity Framework Core database context. Must not be null.
+    /// Should have a scoped lifetime matching the repository's lifetime.
+    /// </param>
+    /// <param name="userContext">
+    /// Optional. The user context for audit tracking. If provided, user ID fields (CreatedById,
+    /// ModifiedById, DeletedById) will be automatically populated from the current authenticated user.
+    /// If null, only timestamp fields will be populated.
+    /// </param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is null.</exception>
+    /// <remarks>
+    /// The context should be registered with a scoped lifetime in the dependency injection container
+    /// to ensure proper disposal and unit of work behavior. The userContext is optional and can be
+    /// null for scenarios where audit tracking is not required or user information is not available.
+    /// </remarks>
     public Repository(DbContext context, IUserContext<TKey>? userContext = null)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
@@ -52,10 +303,24 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     }
 
     /// <summary>
-    /// Applies a filter to exclude soft-deleted entities if the entity type implements <see cref="IDeletable{T}"/>.
+    /// Applies a filter to exclude soft-deleted entities if the entity type implements <see cref="IDeletable{TKey}"/>.
     /// </summary>
-    /// <param name="query">The query to apply the filter to.</param>
-    /// <returns>The filtered query.</returns>
+    /// <param name="query">The queryable to apply the soft delete filter to.</param>
+    /// <returns>
+    /// The filtered queryable with soft-deleted entities excluded if the entity implements IDeletable;
+    /// otherwise, the original queryable unchanged.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// This method checks if the entity type implements <see cref="IDeletable{TKey}"/> and, if so,
+    /// adds a filter to exclude entities where DeletedOn is not null. This ensures soft-deleted
+    /// entities are automatically hidden from query results.
+    /// </para>
+    /// <para>
+    /// This method is virtual and can be overridden in derived classes to customize the soft delete
+    /// filtering behavior or add additional global filters.
+    /// </para>
+    /// </remarks>
     protected virtual IQueryable<TEntity> ApplySoftDeleteFilter(IQueryable<TEntity> query)
     {
         if (typeof(IDeletable<TKey>).IsAssignableFrom(typeof(TEntity)))
@@ -67,12 +332,31 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// This implementation uses Entity Framework's FindAsync method for optimal performance.
+    /// The method returns null if no entity with the specified ID is found.
+    /// </para>
+    /// <para>
+    /// <strong>Note:</strong> This method does NOT apply soft delete filtering. Soft-deleted entities
+    /// can be retrieved by ID. Use GetAllAsync if you need soft delete filtering.
+    /// </para>
+    /// </remarks>
     public virtual async Task<TEntity?> GetByIdAsync(TKey id)
     {
         return await _dbSet.FindAsync(id);
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// This method automatically applies soft delete filtering, excluding any entities marked as deleted.
+    /// </para>
+    /// <para>
+    /// <strong>Performance Warning:</strong> This method loads ALL entities into memory. For large datasets,
+    /// use the paginated GetAllAsync(QueryOptions) overload instead.
+    /// </para>
+    /// </remarks>
     public virtual async Task<IEnumerable<TEntity>> GetAllAsync()
     {
         IQueryable<TEntity> query = _dbSet;
@@ -81,6 +365,19 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// This method provides efficient pagination with sorting and automatic soft delete filtering.
+    /// Use this overload for retrieving large datasets in user interfaces or APIs.
+    /// </para>
+    /// <para>
+    /// The method handles invalid pagination parameters gracefully:
+    /// - PageNumber less than 1 defaults to 1
+    /// - PageSize less than 1 defaults to 10
+    /// - If pagination is not specified (null values), all items are returned
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
     public virtual async Task<PagedResult<TEntity>> GetAllAsync(QueryOptions<TEntity> options)
     {
         if (options == null)
@@ -138,6 +435,18 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// This method automatically populates audit fields if the entity implements <see cref="ICreatable{TKey}"/>:
+    /// - CreatedOn: Set to current UTC time
+    /// - CreatedById: Set to current user ID from user context (if available)
+    /// </para>
+    /// <para>
+    /// The method saves changes to the database immediately. The entity's ID will be populated
+    /// by the database (for auto-increment keys) or should be set before calling (for Guid keys).
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="entity"/> is null.</exception>
     public virtual async Task<TEntity> AddAsync(TEntity entity)
     {
         if (entity == null)
@@ -164,6 +473,21 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// This method automatically populates audit fields if the entity implements <see cref="IModifiable{TKey}"/>:
+    /// - ModifiedOn: Set to current UTC time
+    /// - ModifiedById: Set to current user ID from user context (if available)
+    /// </para>
+    /// <para>
+    /// The method first verifies the entity exists in the database, then updates all properties
+    /// using SetValues, and finally saves changes. Only modified properties are sent to the database.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="entity"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the entity with the specified ID is not found in the database.
+    /// </exception>
     public virtual async Task<TEntity> UpdateAsync(TEntity entity)
     {
         if (entity == null)
@@ -196,6 +520,29 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// <para>
+    /// <strong>Soft Delete vs Hard Delete:</strong>
+    /// This method automatically determines whether to perform a soft delete or hard delete:
+    /// </para>
+    /// <para>
+    /// <strong>Soft Delete (entity implements IDeletable):</strong>
+    /// - Sets DeletedOn to current UTC time
+    /// - Sets DeletedById to current user ID (if user context available)
+    /// - Entity remains in database but is excluded from queries
+    /// - Allows audit trail and potential recovery
+    /// </para>
+    /// <para>
+    /// <strong>Hard Delete (entity does not implement IDeletable):</strong>
+    /// - Permanently removes the entity from the database
+    /// - Cannot be recovered without database backups
+    /// - May fail if foreign key constraints exist
+    /// </para>
+    /// <para>
+    /// The method returns false if the entity with the specified ID is not found, which is not
+    /// considered an error condition.
+    /// </para>
+    /// </remarks>
     public virtual async Task<bool> DeleteAsync(TKey id)
     {
         var entity = await _dbSet.FindAsync(id);

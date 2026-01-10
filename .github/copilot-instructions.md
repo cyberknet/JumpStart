@@ -25,12 +25,23 @@
 * Document any third-party code usage and its associated license in the project's documentation.
 * Avoid using code or libraries with restrictive licenses that may impose limitations on the project's distribution or usage.
 * Each code file should have a copyright statement on the very first line in the format of:
-  Copyright ©2026 Scott Blomfield
+  ```
+  // Copyright ©2026 Scott Blomfield
+  ```
 * Immediately following the copyright statement, include the license information in the format of:
-    This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. 
+  ```
+  /*
+   *  This program is free software: you can redistribute it and/or modify it under the terms of the
+   *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+   *  License, or (at your option) any later version.
+   *
+   *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+   *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+   *  General Public License for more details.
+   *
+   *  You should have received a copy of the GNU General Public License along with this program. If not,
+   *  see <https://www.gnu.org/licenses/>. 
+   */
+  ```
 * If copyright or licensing information is missing from a file, add it as the first lines of the file.
 * Do not ever remove or alter existing license information in any code files.

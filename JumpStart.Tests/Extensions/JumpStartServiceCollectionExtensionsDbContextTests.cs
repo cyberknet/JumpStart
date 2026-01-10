@@ -1,0 +1,456 @@
+// Copyright ©2026 Scott Blomfield
+/*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>. 
+ */
+
+using System;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
+using JumpStart.Data;
+using JumpStart.Extensions;
+using JumpStart.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Xunit;
+
+namespace JumpStart.Tests.Extensions;
+
+/// <summary>
+/// Unit tests for the <see cref="JumpStartServiceCollectionExtensionsDbContext"/> class.
+/// Tests DbContext integration with JumpStart framework registration.
+/// </summary>
+public class JumpStartServiceCollectionExtensionsDbContextTests
+{
+    #region Test Classes
+
+    /// <summary>
+    /// Mock entity for testing.
+    /// </summary>
+    public class TestEntity : SimpleEntity
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Mock DbContext for testing.
+    /// </summary>
+    public class TestDbContext : DbContext
+    {
+        public TestDbContext(DbContextOptions<TestDbContext> options)
+            : base(options)
+        {
+        }
+
+        public DbSet<TestEntity> TestEntities { get; set; } = null!;
+    }
+
+    /// <summary>
+    /// Mock user context for testing.
+    /// </summary>
+    public class TestUserContext : ISimpleUserContext
+    {
+        public Guid UserId => Guid.NewGuid();
+        public Task<Guid?> GetCurrentUserIdAsync() => Task.FromResult<Guid?>(UserId);
+    }
+
+    #endregion
+
+    #region Method Signature Tests
+
+    [Fact]
+    public void AddJumpStartWithDbContext_HasCorrectSignature()
+    {
+        // Arrange
+        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+        var method = extensionType.GetMethod(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext));
+
+        // Act & Assert
+        Assert.NotNull(method);
+        Assert.True(method!.IsPublic);
+        Assert.True(method.IsStatic);
+        Assert.True(method.IsGenericMethod);
+        Assert.Equal(typeof(IServiceCollection), method.ReturnType);
+    }
+
+    [Fact]
+    public void AddJumpStartWithDbContext_IsExtensionMethod()
+    {
+        // Arrange
+        var method = typeof(JumpStartServiceCollectionExtensionsDbContext)
+            .GetMethod(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext));
+
+        // Act & Assert
+        Assert.True(method!.IsStatic);
+        Assert.True(method.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false)
+            || method.DeclaringType!.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false));
+    }
+
+    #endregion
+
+    #region Class Structure Tests
+
+    [Fact]
+    public void JumpStartServiceCollectionExtensionsDbContext_IsPublicStaticClass()
+    {
+        // Arrange
+        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+
+        // Act & Assert
+        Assert.True(extensionType.IsPublic);
+        Assert.True(extensionType.IsClass);
+        Assert.True(extensionType.IsAbstract); // Static class
+        Assert.True(extensionType.IsSealed);   // Static class
+    }
+
+    [Fact]
+    public void JumpStartServiceCollectionExtensionsDbContext_IsInCorrectNamespace()
+    {
+        // Arrange
+        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+
+        // Act & Assert
+        Assert.Equal("Microsoft.Extensions.DependencyInjection", extensionType.Namespace);
+    }
+
+    #endregion
+
+    #region Generic Constraint Tests
+
+    [Fact]
+    public void AddJumpStartWithDbContext_RequiresDbContextConstraint()
+    {
+        // Arrange
+        var method = typeof(JumpStartServiceCollectionExtensionsDbContext)
+            .GetMethod(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext));
+
+        // Act
+        var genericParameter = method!.GetGenericArguments()[0];
+        var constraints = genericParameter.GetGenericParameterConstraints();
+
+        // Assert
+        Assert.Contains(constraints, c => c == typeof(DbContext));
+    }
+
+    #endregion
+
+    #region Basic Registration Tests
+
+    [Fact]
+    public void AddJumpStartWithDbContext_WithConfiguration_ReturnsServiceCollection()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        var result = services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action - not invoked in test */ },
+            jumpStart => jumpStart.RegisterUserContext<TestUserContext>());
+
+        // Assert
+        Assert.Same(services, result);
+    }
+
+    [Fact]
+    public void AddJumpStartWithDbContext_WithNullConfiguration_DoesNotThrow()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act & Assert
+        var exception = Record.Exception(() => 
+            services.AddJumpStartWithDbContext<TestDbContext>(
+                options => { /* Options action - not invoked in test */ },
+                null));
+
+        Assert.Null(exception);
+    }
+
+    #endregion
+
+    #region DbContext Registration Tests
+
+    [Fact]
+    public void AddJumpStartWithDbContext_RegistersDbContext()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ });
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(TestDbContext));
+        Assert.NotNull(serviceDescriptor);
+    }
+
+    [Fact]
+    public void AddJumpStartWithDbContext_RegistersDbContextAsScoped()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ });
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(TestDbContext));
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor!.Lifetime);
+    }
+
+    #endregion
+
+    #region User Context Registration Tests
+
+    [Fact]
+    public void AddJumpStartWithDbContext_RegistersUserContext_WhenConfigured()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ },
+            jumpStart => jumpStart.RegisterUserContext<TestUserContext>());
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(ISimpleUserContext));
+        Assert.NotNull(serviceDescriptor);
+        Assert.Equal(typeof(TestUserContext), serviceDescriptor!.ImplementationType);
+    }
+
+    [Fact]
+    public void AddJumpStartWithDbContext_DoesNotRegisterUserContext_WhenNotConfigured()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ });
+
+        // Assert
+        var serviceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(ISimpleUserContext));
+        Assert.Null(serviceDescriptor);
+    }
+
+    #endregion
+
+    #region Fluent API Chaining Tests
+
+    [Fact]
+    public void AddJumpStartWithDbContext_CanBeChainedWithOtherExtensions()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        var result = services
+            .AddJumpStartWithDbContext<TestDbContext>(
+                options => { /* Options action */ },
+                jumpStart => jumpStart.RegisterUserContext<TestUserContext>())
+            .AddSingleton<string>("test");
+
+        // Assert
+        Assert.Same(services, result);
+        Assert.Contains(services, s => s.ServiceType == typeof(string));
+        Assert.Contains(services, s => s.ServiceType == typeof(TestDbContext));
+        Assert.Contains(services, s => s.ServiceType == typeof(ISimpleUserContext));
+    }
+
+    #endregion
+
+    #region Configuration Action Tests
+
+    [Fact]
+    public void AddJumpStartWithDbContext_InvokesConfigurationAction_WhenProvided()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        var configurationInvoked = false;
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ },
+            jumpStart =>
+            {
+                configurationInvoked = true;
+            });
+
+        // Assert
+        Assert.True(configurationInvoked);
+    }
+
+    [Fact]
+    public void AddJumpStartWithDbContext_PassesOptionsToConfigurationAction()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        JumpStartOptions? capturedOptions = null;
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ },
+            jumpStart =>
+            {
+                capturedOptions = jumpStart;
+            });
+
+        // Assert
+        Assert.NotNull(capturedOptions);
+        Assert.IsType<JumpStartOptions>(capturedOptions);
+    }
+
+    #endregion
+
+    #region Assembly Scanning Tests
+
+    [Fact]
+    public void AddJumpStartWithDbContext_AutomaticallyScansDbContextAssembly()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        System.Collections.Generic.List<Assembly>? scannedAssemblies = null;
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ },
+            jumpStart =>
+            {
+                scannedAssemblies = jumpStart.RepositoryAssemblies;
+            });
+
+        // Assert
+        Assert.NotNull(scannedAssemblies);
+        Assert.Contains(typeof(TestDbContext).Assembly, scannedAssemblies);
+    }
+
+    #endregion
+
+    #region Method Count Tests
+
+    [Fact]
+    public void JumpStartServiceCollectionExtensionsDbContext_HasOnePublicMethod()
+    {
+        // Arrange
+        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+        var publicMethods = extensionType.GetMethods(BindingFlags.Public | BindingFlags.Static)
+            .Where(m => m.DeclaringType == extensionType)
+            .ToArray();
+
+        // Act & Assert
+        Assert.Single(publicMethods);
+        Assert.Equal(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext), publicMethods[0].Name);
+    }
+
+    #endregion
+
+    #region Integration Scenario Tests
+
+    [Fact]
+    public void Scenario_MinimalSetup()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ });
+
+        // Assert
+        Assert.Contains(services, s => s.ServiceType == typeof(TestDbContext));
+    }
+
+    [Fact]
+    public void Scenario_WithUserContext()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ },
+            jumpStart => jumpStart.RegisterUserContext<TestUserContext>());
+
+        // Assert
+        Assert.Contains(services, s => s.ServiceType == typeof(TestDbContext));
+        Assert.Contains(services, s => s.ServiceType == typeof(ISimpleUserContext));
+    }
+
+    [Fact]
+    public void Scenario_WithAdditionalConfiguration()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddJumpStartWithDbContext<TestDbContext>(
+            options => { /* Options action */ },
+            jumpStart => jumpStart
+                .RegisterUserContext<TestUserContext>()
+                .UseRepositoryLifetime(ServiceLifetime.Scoped));
+
+        // Assert
+        Assert.Contains(services, s => s.ServiceType == typeof(TestDbContext));
+        Assert.Contains(services, s => s.ServiceType == typeof(ISimpleUserContext));
+    }
+
+    [Fact]
+    public void Scenario_ChainedWithAutoMapper()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services
+            .AddJumpStartWithDbContext<TestDbContext>(
+                options => { /* Options action */ },
+                jumpStart => jumpStart.RegisterUserContext<TestUserContext>())
+            .AddJumpStartAutoMapper(typeof(TestDbContext));
+
+        // Assert
+        Assert.Contains(services, s => s.ServiceType == typeof(TestDbContext));
+        Assert.Contains(services, s => s.ServiceType == typeof(ISimpleUserContext));
+    }
+
+    #endregion
+
+    #region Documentation Tests
+
+    [Fact]
+    public void JumpStartServiceCollectionExtensionsDbContext_IsProperlyNamed()
+    {
+        // Arrange
+        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+
+        // Act & Assert
+        Assert.Equal("JumpStartServiceCollectionExtensionsDbContext", extensionType.Name);
+        Assert.True(extensionType.Name.StartsWith("JumpStart"));
+        Assert.True(extensionType.Name.EndsWith("DbContext"));
+    }
+
+    [Fact]
+    public void AddJumpStartWithDbContext_ReturnsIServiceCollection()
+    {
+        // Arrange
+        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+        var method = extensionType.GetMethod(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext));
+
+        // Act & Assert
+        Assert.Equal(typeof(IServiceCollection), method!.ReturnType);
+    }
+
+        #endregion
+    }

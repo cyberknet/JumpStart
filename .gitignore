@@ -363,6 +363,6 @@ MigrationBackup/
 FodyWeavers.xsd
 # DocFX generated files
 _site/
-api/
+/api/
 obj/.optemp/
 .cache/

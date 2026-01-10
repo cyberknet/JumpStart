@@ -191,6 +191,10 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// <summary>
     /// Updates an existing entity by sending an update DTO to the API.
     /// </summary>
+    /// <param name="id">
+    /// The unique identifier of the entity to update.
+    /// Must match the Id property in the updateDto for validation.
+    /// </param>
     /// <param name="updateDto">
     /// The data transfer object containing the updated data.
     /// Must include the entity Id to identify which entity to update.

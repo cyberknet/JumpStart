@@ -32,7 +32,7 @@ namespace JumpStart.Api.DTOs.Advanced;
 /// to prevent clients from manipulating audit data.
 /// </para>
 /// <para>
-/// For entities with Guid identifiers, use <see cref="AuditableSimpleEntityDto"/> instead,
+/// For entities with Guid identifiers, use <see cref="JumpStart.Api.DTOs.SimpleAuditableEntityDto"/> instead,
 /// which provides a simpler interface without the generic key parameter.
 /// </para>
 /// </remarks>
@@ -61,7 +61,7 @@ namespace JumpStart.Api.DTOs.Advanced;
 /// </code>
 /// </example>
 /// <seealso cref="EntityDto{TKey}"/>
-/// <seealso cref="AuditableSimpleEntityDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.SimpleAuditableEntityDto"/>
 public abstract class AuditableEntityDto<TKey> : EntityDto<TKey> where TKey : struct
 {
     /// <summary>

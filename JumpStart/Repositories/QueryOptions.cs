@@ -104,45 +104,44 @@ namespace JumpStart.Repositories;
 /// var result = await repository.GetAllAsync(options);
 /// 
 /// // Example 5: Using in a Blazor component
-/// @code {
-///     private PagedResult&lt;Product&gt; _products;
-///     private int _currentPage = 1;
-///     private int _pageSize = 10;
-///     private bool _sortDescending = false;
-///     
-///     protected override async Task OnInitializedAsync()
+/// // In your Blazor component's code section:
+/// private PagedResult&lt;Product&gt; _products;
+/// private int _currentPage = 1;
+/// private int _pageSize = 10;
+/// private bool _sortDescending = false;
+/// 
+/// protected override async Task OnInitializedAsync()
+/// {
+///     await LoadProductsAsync();
+/// }
+/// 
+/// private async Task LoadProductsAsync()
+/// {
+///     var options = new QueryOptions&lt;Product&gt;
 ///     {
+///         PageNumber = _currentPage,
+///         PageSize = _pageSize,
+///         SortBy = p => p.Name,
+///         SortDescending = _sortDescending
+///     };
+///     
+///     _products = await ProductService.GetProductsAsync(options);
+/// }
+/// 
+/// private async Task NextPageAsync()
+/// {
+///     if (_products.HasNextPage)
+///     {
+///         _currentPage++;
 ///         await LoadProductsAsync();
 ///     }
-///     
-///     private async Task LoadProductsAsync()
-///     {
-///         var options = new QueryOptions&lt;Product&gt;
-///         {
-///             PageNumber = _currentPage,
-///             PageSize = _pageSize,
-///             SortBy = p => p.Name,
-///             SortDescending = _sortDescending
-///         };
-///         
-///         _products = await ProductService.GetProductsAsync(options);
-///     }
-///     
-///     private async Task NextPageAsync()
-///     {
-///         if (_products.HasNextPage)
-///         {
-///             _currentPage++;
-///             await LoadProductsAsync();
-///         }
-///     }
-///     
-///     private async Task ToggleSortAsync()
-///     {
-///         _sortDescending = !_sortDescending;
-///         _currentPage = 1; // Reset to first page
-///         await LoadProductsAsync();
-///     }
+/// }
+/// 
+/// private async Task ToggleSortAsync()
+/// {
+///     _sortDescending = !_sortDescending;
+///     _currentPage = 1; // Reset to first page
+///     await LoadProductsAsync();
 /// }
 /// 
 /// // Example 6: Using in a service layer
@@ -238,7 +237,7 @@ namespace JumpStart.Repositories;
 ///     
 ///     if (maxPrice.HasValue)
 ///     {
-///         query = query.Where(p => p.Price <= maxPrice.Value);
+///         query = query.Where(p => p.Price &lt;= maxPrice.Value);
 ///     }
 ///     
 ///     var options = new QueryOptions&lt;Product&gt;

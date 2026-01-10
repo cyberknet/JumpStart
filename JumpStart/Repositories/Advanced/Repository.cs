@@ -326,7 +326,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
         if (typeof(IDeletable<TKey>).IsAssignableFrom(typeof(TEntity)))
         {
             // Use a generic constraint helper method
-            return query.Where(e => EF.Property<DateTime?>(e, nameof(IDeletable<TKey>.DeletedOn)) == null);
+            return query.Where(e => EF.Property<DateTimeOffset?>(e, nameof(IDeletable<TKey>.DeletedOn)) == null);
         }
         return query;
     }
@@ -455,7 +455,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
         // Set creation audit fields if entity supports it
         if (entity is ICreatable<TKey> creatableEntity)
         {
-            creatableEntity.CreatedOn = DateTime.UtcNow;
+            creatableEntity.CreatedOn = DateTimeOffset.UtcNow;
 
             if (_userContext != null)
             {
@@ -501,7 +501,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
         // Set modification audit fields if entity supports it
         if (entity is IModifiable<TKey> modifiableEntity)
         {
-            modifiableEntity.ModifiedOn = DateTime.UtcNow;
+            modifiableEntity.ModifiedOn = DateTimeOffset.UtcNow;
 
             if (_userContext != null)
             {
@@ -553,7 +553,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
         // Perform soft delete if entity implements IDeletable
         if (entity is IDeletable<TKey> deletableEntity)
         {
-            deletableEntity.DeletedOn = DateTime.UtcNow;
+            deletableEntity.DeletedOn = DateTimeOffset.UtcNow;
 
             if (_userContext != null)
             {

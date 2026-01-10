@@ -38,7 +38,7 @@ public class IDeletableTests
         public string Name { get; set; } = string.Empty;
         
         public int? DeletedById { get; set; }
-        public DateTime? DeletedOn { get; set; }
+        public DateTimeOffset? DeletedOn { get; set; }
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ public class IDeletableTests
         public string Title { get; set; } = string.Empty;
         
         public Guid? DeletedById { get; set; }
-        public DateTime? DeletedOn { get; set; }
+        public DateTimeOffset? DeletedOn { get; set; }
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public class IDeletableTests
         public string Description { get; set; } = string.Empty;
         
         public long? DeletedById { get; set; }
-        public DateTime? DeletedOn { get; set; }
+        public DateTimeOffset? DeletedOn { get; set; }
     }
 
     #endregion
@@ -636,7 +636,7 @@ public class IDeletableTests
         entity.DeletedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.DeletedOn.Value.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.DeletedOn.Value.Offset);
     }
 
     #endregion

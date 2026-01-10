@@ -449,7 +449,7 @@ public class SimpleAuditableEntityTests
         entity.CreatedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.CreatedOn.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.CreatedOn.Offset);
     }
 
     [Fact]
@@ -463,7 +463,7 @@ public class SimpleAuditableEntityTests
         entity.ModifiedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.ModifiedOn!.Value.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.ModifiedOn!.Value.Offset);
     }
 
     [Fact]
@@ -477,7 +477,7 @@ public class SimpleAuditableEntityTests
         entity.DeletedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.DeletedOn!.Value.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.DeletedOn!.Value.Offset);
     }
 
     #endregion

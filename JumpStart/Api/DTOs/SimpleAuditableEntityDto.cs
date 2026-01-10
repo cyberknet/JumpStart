@@ -130,7 +130,7 @@ public abstract class SimpleAuditableEntityDto : SimpleEntityDto
     /// Gets or sets the date and time (in UTC) when this entity was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when the entity was created.
+    /// A <see cref="DateTimeOffset"/> in UTC representing when the entity was created.
     /// This value is set by the system during entity creation and should not be modified by clients.
     /// </value>
     /// <remarks>
@@ -138,7 +138,7 @@ public abstract class SimpleAuditableEntityDto : SimpleEntityDto
     /// It corresponds to the CreatedOn field in entities implementing <see cref="Data.Advanced.Auditing.ICreatable{T}"/>.
     /// The value is stored in UTC to ensure consistency across time zones.
     /// </remarks>
-    public DateTime CreatedOn { get; set; }
+    public DateTimeOffset CreatedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the identifier of the user who last modified this entity.
@@ -156,19 +156,19 @@ public abstract class SimpleAuditableEntityDto : SimpleEntityDto
     /// </remarks>
     public Guid? ModifiedById { get; set; }
 
-    /// <summary>
-    /// Gets or sets the date and time (in UTC) when this entity was last modified.
-    /// </summary>
-    /// <value>
-    /// A nullable <see cref="DateTime"/> in UTC representing when the entity was last modified,
-    /// or null if never modified.
-    /// This value is set by the system during entity updates and should not be modified by clients.
-    /// </value>
-    /// <remarks>
-    /// This field is automatically populated by the repository when the entity is updated.
-    /// It corresponds to the ModifiedOn field in entities implementing <see cref="Data.Advanced.Auditing.IModifiable{T}"/>.
-    /// A null value indicates the entity has been created but never modified.
-    /// The value is stored in UTC to ensure consistency across time zones.
-    /// </remarks>
-    public DateTime? ModifiedOn { get; set; }
-}
+        /// <summary>
+        /// Gets or sets the date and time (in UTC) when this entity was last modified.
+        /// </summary>
+        /// <value>
+        /// A nullable <see cref="DateTimeOffset"/> in UTC representing when the entity was last modified,
+        /// or null if never modified.
+        /// This value is set by the system during entity updates and should not be modified by clients.
+        /// </value>
+        /// <remarks>
+        /// This field is automatically populated by the repository when the entity is updated.
+        /// It corresponds to the ModifiedOn field in entities implementing <see cref="Data.Advanced.Auditing.IModifiable{T}"/>.
+        /// A null value indicates the entity has been created but never modified.
+        /// The value is stored in UTC to ensure consistency across time zones.
+        /// </remarks>
+        public DateTimeOffset? ModifiedOn { get; set; }
+    }

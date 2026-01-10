@@ -39,7 +39,7 @@ public class ISimpleCreatableTests
         public string Name { get; set; } = string.Empty;
         
         public Guid CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
     }
 
     #endregion
@@ -367,7 +367,7 @@ public class ISimpleCreatableTests
         entity.CreatedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.CreatedOn.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.CreatedOn.Offset);
     }
 
     #endregion

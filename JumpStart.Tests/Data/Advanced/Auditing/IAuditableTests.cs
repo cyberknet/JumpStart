@@ -39,15 +39,15 @@ public class IAuditableTests
         
         // ICreatable properties
         public int CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
-        
+        public DateTimeOffset CreatedOn { get; set; }
+
         // IModifiable properties
         public int? ModifiedById { get; set; }
-        public DateTime? ModifiedOn { get; set; }
-        
+        public DateTimeOffset? ModifiedOn { get; set; }
+
         // IDeletable properties
         public int? DeletedById { get; set; }
-        public DateTime? DeletedOn { get; set; }
+        public DateTimeOffset? DeletedOn { get; set; }
     }
 
     /// <summary>
@@ -59,11 +59,11 @@ public class IAuditableTests
         public string Title { get; set; } = string.Empty;
         
         public Guid CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
         public Guid? ModifiedById { get; set; }
-        public DateTime? ModifiedOn { get; set; }
+        public DateTimeOffset? ModifiedOn { get; set; }
         public Guid? DeletedById { get; set; }
-        public DateTime? DeletedOn { get; set; }
+        public DateTimeOffset? DeletedOn { get; set; }
     }
 
     #endregion

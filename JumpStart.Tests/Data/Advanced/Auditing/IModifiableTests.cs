@@ -38,10 +38,10 @@ public class IModifiableTests
         public string Name { get; set; } = string.Empty;
         
         public int CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
-        
+        public DateTimeOffset CreatedOn { get; set; }
+
         public int? ModifiedById { get; set; }
-        public DateTime? ModifiedOn { get; set; }
+        public DateTimeOffset? ModifiedOn { get; set; }
     }
 
     /// <summary>
@@ -53,10 +53,10 @@ public class IModifiableTests
         public string Title { get; set; } = string.Empty;
         
         public Guid CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
-        
+        public DateTimeOffset CreatedOn { get; set; }
+
         public Guid? ModifiedById { get; set; }
-        public DateTime? ModifiedOn { get; set; }
+        public DateTimeOffset? ModifiedOn { get; set; }
     }
 
     /// <summary>
@@ -68,10 +68,10 @@ public class IModifiableTests
         public string Description { get; set; } = string.Empty;
         
         public long CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
-        
+        public DateTimeOffset CreatedOn { get; set; }
+
         public long? ModifiedById { get; set; }
-        public DateTime? ModifiedOn { get; set; }
+        public DateTimeOffset? ModifiedOn { get; set; }
     }
 
     #endregion
@@ -670,7 +670,7 @@ public class IModifiableTests
         entity.ModifiedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.ModifiedOn.Value.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.ModifiedOn.Value.Offset);
     }
 
     [Fact]

@@ -39,7 +39,7 @@ public class ISimpleDeletableTests
         public string Name { get; set; } = string.Empty;
         
         public Guid? DeletedById { get; set; }
-        public DateTime? DeletedOn { get; set; }
+        public DateTimeOffset? DeletedOn { get; set; }
     }
 
     #endregion
@@ -513,7 +513,7 @@ public class ISimpleDeletableTests
         entity.DeletedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.DeletedOn!.Value.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.DeletedOn!.Value.Offset);
     }
 
     #endregion

@@ -38,11 +38,11 @@ public class ISimpleAuditableTests
         public string Name { get; set; } = string.Empty;
         
         public Guid CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
         public Guid? ModifiedById { get; set; }
-        public DateTime? ModifiedOn { get; set; }
+        public DateTimeOffset? ModifiedOn { get; set; }
         public Guid? DeletedById { get; set; }
-        public DateTime? DeletedOn { get; set; }
+        public DateTimeOffset? DeletedOn { get; set; }
     }
 
     #endregion

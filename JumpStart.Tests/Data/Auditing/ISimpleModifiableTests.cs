@@ -39,10 +39,10 @@ public class ISimpleModifiableTests
         public string Name { get; set; } = string.Empty;
         
         public Guid CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
         
         public Guid? ModifiedById { get; set; }
-        public DateTime? ModifiedOn { get; set; }
+        public DateTimeOffset? ModifiedOn { get; set; }
     }
 
     #endregion
@@ -542,7 +542,7 @@ public class ISimpleModifiableTests
         entity.ModifiedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.ModifiedOn!.Value.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.ModifiedOn!.Value.Offset);
     }
 
     [Fact]

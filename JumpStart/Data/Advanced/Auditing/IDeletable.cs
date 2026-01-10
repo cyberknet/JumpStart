@@ -92,7 +92,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///     
 ///     // IDeletable properties
 ///     public int? DeletedById { get; set; }
-///     public DateTime? DeletedOn { get; set; }
+///     public DateTimeOffset? DeletedOn { get; set; }
 /// }
 /// 
 /// // Example 2: Repository with soft delete support
@@ -108,7 +108,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///         {
 ///             // Soft delete - mark as deleted
 ///             document.DeletedById = _currentUserService.GetUserId&lt;int&gt;();
-///             document.DeletedOn = DateTime.UtcNow;
+///             document.DeletedOn = DateTimeOffset.UtcNow;
 ///             
 ///             _context.Documents.Update(document);
 ///             await _context.SaveChangesAsync();
@@ -172,7 +172,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// // Get recently deleted documents (last 30 days)
 /// var recentlyDeleted = await dbContext.Documents
 ///     .Where(d => d.DeletedOn != null)
-///     .Where(d => d.DeletedOn &gt; DateTime.UtcNow.AddDays(-30))
+///     .Where(d => d.DeletedOn &gt; DateTimeOffset.UtcNow.AddDays(-30))
 ///     .OrderByDescending(d => d.DeletedOn)
 ///     .ToListAsync();
 /// 
@@ -198,7 +198,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// {
 ///     public string EntityName { get; set; } = string.Empty;
 ///     public int DeletedBy { get; set; }
-///     public DateTime DeletedOn { get; set; }
+///     public DateTimeOffset DeletedOn { get; set; }
 /// }
 /// 
 /// public IEnumerable&lt;DeletionAuditReport&gt; GenerateDeletionReport&lt;T&gt;(
@@ -267,14 +267,14 @@ public interface IDeletable<T> where T : struct
     /// Gets or sets the date and time (in UTC) when this entity was deleted (soft delete).
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when the entity was deleted, or null if the
+    /// A <see cref="DateTimeOffset"/> in UTC representing when the entity was deleted, or null if the
     /// entity is active (not deleted). This value is automatically set by the repository layer
     /// during soft delete operations.
     /// </value>
     /// <remarks>
     /// <para>
     /// This property is populated by the repository layer during soft delete operations using
-    /// DateTime.UtcNow. It should never be set manually in application code; use repository
+    /// DateTimeOffset.UtcNow. It should never be set manually in application code; use repository
     /// soft delete methods instead. Always stored in UTC to ensure consistency across time zones.
     /// </para>
     /// <para>
@@ -283,7 +283,7 @@ public interface IDeletable<T> where T : struct
     /// </para>
     /// <para>
     /// Best practices:
-    /// - Always use UTC for audit timestamps (DateTime.UtcNow)
+    /// - Always use UTC for audit timestamps (DateTimeOffset.UtcNow)
     /// - Use for filtering active vs deleted entities
     /// - Filter with "DeletedOn == null" in normal queries
     /// - Include deleted entities only for audit reports or admin functions
@@ -293,8 +293,8 @@ public interface IDeletable<T> where T : struct
     /// <para>
     /// Recovery/Restore:
     /// To restore a soft-deleted entity, set both DeletedById and DeletedOn back to null.
-    /// This should be done through a repository method to ensure proper audit trail logging.
-    /// </para>
-    /// </remarks>
-    DateTime? DeletedOn { get; set; }
-}
+        /// This should be done through a repository method to ensure proper audit trail logging.
+        /// </para>
+        /// </remarks>
+        DateTimeOffset? DeletedOn { get; set; }
+    }

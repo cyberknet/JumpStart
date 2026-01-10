@@ -150,7 +150,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///     public string EntityName { get; set; }
 ///     public string Action { get; set; }
 ///     public int UserId { get; set; }
-///     public DateTime Timestamp { get; set; }
+///     public DateTimeOffset Timestamp { get; set; }
 /// }
 /// 
 /// var auditTrail = products.Select(p => new[]
@@ -206,14 +206,14 @@ public abstract class AuditableEntity<T> : Entity<T>, IAuditable<T>
     /// Gets or sets the date and time (in UTC) when this entity was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when the entity was created. This is automatically
+    /// A <see cref="DateTimeOffset"/> in UTC representing when the entity was created. This is automatically
     /// set by the repository during entity creation and should not be modified afterward.
     /// </value>
     /// <remarks>
-    /// This field is populated by the repository layer during AddAsync operations using DateTime.UtcNow.
+    /// This field is populated by the repository layer during AddAsync operations using DateTimeOffset.UtcNow.
     /// Always stored in UTC to ensure consistency across different time zones.
     /// </remarks>
-    public DateTime CreatedOn { get; set; }
+    public DateTimeOffset CreatedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the identifier of the user who last modified this entity.
@@ -232,14 +232,14 @@ public abstract class AuditableEntity<T> : Entity<T>, IAuditable<T>
     /// Gets or sets the date and time (in UTC) when this entity was last modified.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when the entity was last modified, or null if never
+    /// A <see cref="DateTimeOffset"/> in UTC representing when the entity was last modified, or null if never
     /// modified after creation. This is automatically set by the repository during update operations.
     /// </value>
     /// <remarks>
-    /// This field is populated by the repository layer during UpdateAsync operations using DateTime.UtcNow.
+    /// This field is populated by the repository layer during UpdateAsync operations using DateTimeOffset.UtcNow.
     /// A null value indicates the entity has been created but never modified. Always stored in UTC.
     /// </remarks>
-    public DateTime? ModifiedOn { get; set; }
+    public DateTimeOffset? ModifiedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the identifier of the user who deleted this entity (soft delete).
@@ -264,12 +264,12 @@ public abstract class AuditableEntity<T> : Entity<T>, IAuditable<T>
     /// Gets or sets the date and time (in UTC) when this entity was deleted (soft delete).
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when the entity was deleted, or null if not deleted.
+    /// A <see cref="DateTimeOffset"/> in UTC representing when the entity was deleted, or null if not deleted.
     /// This is automatically set by the repository during soft delete operations.
     /// </value>
     /// <remarks>
     /// <para>
-    /// This field is populated by the repository layer during soft delete operations using DateTime.UtcNow.
+    /// This field is populated by the repository layer during soft delete operations using DateTimeOffset.UtcNow.
     /// A null value indicates the entity has not been deleted. Always stored in UTC.
     /// </para>
     /// <para>
@@ -277,5 +277,5 @@ public abstract class AuditableEntity<T> : Entity<T>, IAuditable<T>
     /// but can be included for audit reporting or recovery scenarios.
     /// </para>
     /// </remarks>
-    public DateTime? DeletedOn { get; set; }
+    public DateTimeOffset? DeletedOn { get; set; }
 }

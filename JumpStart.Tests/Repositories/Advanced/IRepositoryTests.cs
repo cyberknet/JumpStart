@@ -56,7 +56,7 @@ public class IRepositoryTests
     public class SoftDeletableEntity : IEntity<int>, IDeletable<int>
     {
         public int Id { get; set; }
-        public DateTime? DeletedOn { get; set; }
+        public DateTimeOffset? DeletedOn { get; set; }
         public int? DeletedById { get; set; }
     }
 

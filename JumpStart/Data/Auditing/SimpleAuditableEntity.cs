@@ -268,14 +268,14 @@ public abstract class SimpleAuditableEntity : SimpleEntity, ISimpleAuditable
     /// Gets or sets the UTC date and time when this entity was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC format.
-    /// Automatically set to <see cref="DateTime.UtcNow"/> during create operations.
+    /// A <see cref="DateTimeOffset"/> in UTC format.
+    /// Automatically set to <see cref="DateTimeOffset.UtcNow"/> during create operations.
     /// </value>
     /// <remarks>
     /// Always stored in UTC to ensure consistency across time zones.
     /// Automatically populated by the repository during AddAsync operations.
     /// </remarks>
-    public DateTime CreatedOn { get; set; }
+    public DateTimeOffset CreatedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the identifier of the user who last modified this entity.
@@ -295,15 +295,15 @@ public abstract class SimpleAuditableEntity : SimpleEntity, ISimpleAuditable
     /// Gets or sets the UTC date and time when this entity was last modified.
     /// </summary>
     /// <value>
-    /// A nullable <see cref="DateTime"/> in UTC format, or null if never modified.
-    /// Automatically set to <see cref="DateTime.UtcNow"/> during update operations.
+    /// A nullable <see cref="DateTimeOffset"/> in UTC format, or null if never modified.
+    /// Automatically set to <see cref="DateTimeOffset.UtcNow"/> during update operations.
     /// </value>
     /// <remarks>
     /// This property is null when the entity has never been modified after creation.
     /// Always stored in UTC to ensure consistency across time zones.
     /// Automatically populated by the repository during UpdateAsync operations.
     /// </remarks>
-    public DateTime? ModifiedOn { get; set; }
+    public DateTimeOffset? ModifiedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the identifier of the user who soft-deleted this entity.
@@ -326,24 +326,24 @@ public abstract class SimpleAuditableEntity : SimpleEntity, ISimpleAuditable
     /// </remarks>
     public Guid? DeletedById { get; set; }
 
-    /// <summary>
-    /// Gets or sets the UTC date and time when this entity was soft-deleted.
-    /// </summary>
-    /// <value>
-    /// A nullable <see cref="DateTime"/> in UTC format, or null if not deleted.
-    /// Automatically set to <see cref="DateTime.UtcNow"/> during delete operations.
-    /// </value>
-    /// <remarks>
-    /// <para>
-    /// This property is null for active (non-deleted) entities.
-    /// When populated, the entity is considered "soft deleted" and will be excluded
-    /// from standard queries by the repository's soft delete filter.
-    /// </para>
-    /// <para>
-    /// Soft deletion allows entities to be recovered and maintains audit history.
-    /// Always stored in UTC to ensure consistency across time zones.
-    /// Automatically populated by the repository during DeleteAsync operations.
-    /// </para>
-    /// </remarks>
-    public DateTime? DeletedOn { get; set; }
-}
+        /// <summary>
+        /// Gets or sets the UTC date and time when this entity was soft-deleted.
+        /// </summary>
+        /// <value>
+        /// A nullable <see cref="DateTimeOffset"/> in UTC format, or null if not deleted.
+        /// Automatically set to <see cref="DateTimeOffset.UtcNow"/> during delete operations.
+        /// </value>
+        /// <remarks>
+        /// <para>
+        /// This property is null for active (non-deleted) entities.
+        /// When populated, the entity is considered "soft deleted" and will be excluded
+        /// from standard queries by the repository's soft delete filter.
+        /// </para>
+        /// <para>
+        /// Soft deletion allows entities to be recovered and maintains audit history.
+        /// Always stored in UTC to ensure consistency across time zones.
+        /// Automatically populated by the repository during DeleteAsync operations.
+        /// </para>
+        /// </remarks>
+        public DateTimeOffset? DeletedOn { get; set; }
+    }

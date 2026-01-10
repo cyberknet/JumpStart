@@ -79,7 +79,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///     
 ///     // ICreatable properties
 ///     public int CreatedById { get; set; }
-///     public DateTime CreatedOn { get; set; }
+///     public DateTimeOffset CreatedOn { get; set; }
 /// }
 /// 
 /// // Example 2: Repository automatically populates creation audit fields
@@ -114,14 +114,14 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///         where TEntity : ICreatable&lt;TKey&gt;
 ///         where TKey : notnull
 ///     {
-///         var cutoffDate = DateTime.UtcNow.AddDays(-daysBack);
+///         var cutoffDate = DateTimeOffset.UtcNow.AddDays(-daysBack);
 ///         return query.Where(e => e.CreatedOn &gt;= cutoffDate).ToList();
 ///     }
 /// }
 /// 
 /// // Example 4: Filtering by creation date
 /// var recentArticles = await dbContext.Articles
-///     .Where(a => a.CreatedOn &gt; DateTime.UtcNow.AddDays(-30))
+///     .Where(a => a.CreatedOn &gt; DateTimeOffset.UtcNow.AddDays(-30))
 ///     .OrderByDescending(a => a.CreatedOn)
 ///     .ToListAsync();
 /// 
@@ -136,7 +136,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// {
 ///     string EntityType { get; }
 ///     string CreatorName { get; }
-///     DateTime CreationDate { get; }
+///     DateTimeOffset CreationDate { get; }
 /// }
 /// 
 /// public class CreationReportGenerator
@@ -159,7 +159,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// {
 ///     public T Id { get; set; } = default!;
 ///     public T CreatedById { get; set; } = default!;
-///     public DateTime CreatedOn { get; set; }
+///     public DateTimeOffset CreatedOn { get; set; }
 ///     
 ///     public virtual void ValidateCreationAudit()
 ///     {
@@ -169,7 +169,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///         if (CreatedOn == default)
 ///             throw new InvalidOperationException("CreatedOn must be set");
 ///             
-///         if (CreatedOn &gt; DateTime.UtcNow)
+///         if (CreatedOn &gt; DateTimeOffset.UtcNow)
 ///             throw new InvalidOperationException("CreatedOn cannot be in the future");
 ///     }
 /// }
@@ -212,12 +212,12 @@ public interface ICreatable<T> where T : notnull
     /// Gets or sets the date and time (in UTC) when this entity was created.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when the entity was created. This value is
+    /// A <see cref="DateTimeOffset"/> in UTC representing when the entity was created. This value is
     /// automatically set by the repository layer during entity creation and should not be modified afterward.
     /// </value>
     /// <remarks>
     /// <para>
-    /// This property is populated by the repository layer during AddAsync operations using DateTime.UtcNow.
+    /// This property is populated by the repository layer during AddAsync operations using DateTimeOffset.UtcNow.
     /// It should never be set manually in application code. Always stored in UTC to ensure consistency
     /// across different time zones.
     /// </para>
@@ -227,11 +227,11 @@ public interface ICreatable<T> where T : notnull
     /// </para>
     /// <para>
     /// Best practices:
-    /// - Always use UTC for audit timestamps (DateTime.UtcNow)
+    /// - Always use UTC for audit timestamps (DateTimeOffset.UtcNow)
     /// - Convert to local time in presentation layer if needed
     /// - Use for sorting, filtering, and reporting purposes
     /// - Index this column in database for query performance
     /// </para>
     /// </remarks>
-    DateTime CreatedOn { get; set; }
+    DateTimeOffset CreatedOn { get; set; }
 }

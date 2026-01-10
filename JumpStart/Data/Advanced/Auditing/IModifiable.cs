@@ -88,11 +88,11 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///     
 ///     // ICreatable properties
 ///     public int CreatedById { get; set; }
-///     public DateTime CreatedOn { get; set; }
+///     public DateTimeOffset CreatedOn { get; set; }
 ///     
 ///     // IModifiable properties
 ///     public int? ModifiedById { get; set; }
-///     public DateTime? ModifiedOn { get; set; }
+///     public DateTimeOffset? ModifiedOn { get; set; }
 /// }
 /// 
 /// // Example 2: Repository automatically populates modification audit fields
@@ -105,7 +105,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///     {
 ///         // Repository sets modification audit fields automatically
 ///         post.ModifiedById = _currentUserService.GetUserId&lt;int&gt;();
-///         post.ModifiedOn = DateTime.UtcNow;
+///         post.ModifiedOn = DateTimeOffset.UtcNow;
 ///         
 ///         _context.BlogPosts.Update(post);
 ///         await _context.SaveChangesAsync();
@@ -115,7 +115,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///     // Get recently modified posts
 ///     public IQueryable&lt;BlogPost&gt; GetRecentlyModified(int daysBack = 7)
 ///     {
-///         var cutoffDate = DateTime.UtcNow.AddDays(-daysBack);
+///         var cutoffDate = DateTimeOffset.UtcNow.AddDays(-daysBack);
 ///         return _context.BlogPosts
 ///             .Where(p => p.ModifiedOn != null &amp;&amp; p.ModifiedOn &gt; cutoffDate)
 ///             .OrderByDescending(p => p.ModifiedOn);
@@ -148,7 +148,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///     public TimeSpan? GetTimeSinceLastModification&lt;T&gt;(IModifiable&lt;T&gt; entity) where T : struct
 ///     {
 ///         return entity.ModifiedOn.HasValue 
-///             ? DateTime.UtcNow - entity.ModifiedOn.Value 
+///             ? DateTimeOffset.UtcNow - entity.ModifiedOn.Value 
 ///             : null;
 ///     }
 /// }
@@ -156,7 +156,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// // Example 4: Filtering and querying by modification status
 /// // Get posts modified in the last week
 /// var recentlyModified = await dbContext.BlogPosts
-///     .Where(p => p.ModifiedOn != null &amp;&amp; p.ModifiedOn &gt; DateTime.UtcNow.AddDays(-7))
+///     .Where(p => p.ModifiedOn != null &amp;&amp; p.ModifiedOn &gt; DateTimeOffset.UtcNow.AddDays(-7))
 ///     .OrderByDescending(p => p.ModifiedOn)
 ///     .ToListAsync();
 /// 
@@ -199,7 +199,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///         
 ///         // Update modification audit
 ///         post.ModifiedById = _currentUserService.GetUserId&lt;int&gt;();
-///         post.ModifiedOn = DateTime.UtcNow;
+///         post.ModifiedOn = DateTimeOffset.UtcNow;
 ///         
 ///         _context.Entry(original).CurrentValues.SetValues(post);
 ///         await _context.SaveChangesAsync();
@@ -217,7 +217,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// {
 ///     public string EntityName { get; set; } = string.Empty;
 ///     public string ModifiedBy { get; set; } = string.Empty;
-///     public DateTime ModificationDate { get; set; }
+///     public DateTimeOffset ModificationDate { get; set; }
 ///     public int DaysSinceModification { get; set; }
 /// }
 /// 
@@ -232,7 +232,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 ///             EntityName = e.GetType().Name,
 ///             ModifiedBy = userNameResolver(e.ModifiedById!.Value),
 ///             ModificationDate = e.ModifiedOn!.Value,
-///             DaysSinceModification = (DateTime.UtcNow - e.ModifiedOn.Value).Days
+///             DaysSinceModification = (DateTimeOffset.UtcNow - e.ModifiedOn.Value).Days
 ///         })
 ///         .OrderByDescending(r => r.ModificationDate);
 /// }
@@ -242,7 +242,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// {
 ///     public string Action { get; set; } = string.Empty;
 ///     public int UserId { get; set; }
-///     public DateTime Timestamp { get; set; }
+///     public DateTimeOffset Timestamp { get; set; }
 /// }
 /// 
 /// public IEnumerable&lt;AuditTrailEntry&gt; GetFullAuditTrail&lt;T&gt;(
@@ -317,14 +317,14 @@ public interface IModifiable<T> where T : struct
     /// Gets or sets the date and time (in UTC) when this entity was last modified.
     /// </summary>
     /// <value>
-    /// A <see cref="DateTime"/> in UTC representing when the entity was last modified, or null if
+    /// A <see cref="DateTimeOffset"/> in UTC representing when the entity was last modified, or null if
     /// the entity has never been modified since creation. This value is automatically set by the
     /// repository layer during update operations.
     /// </value>
     /// <remarks>
     /// <para>
     /// This property is populated by the repository layer during UpdateAsync operations using
-    /// DateTime.UtcNow. It should never be set manually in application code; use repository
+    /// DateTimeOffset.UtcNow. It should never be set manually in application code; use repository
     /// update methods instead. Always stored in UTC to ensure consistency across time zones.
     /// </para>
     /// <para>
@@ -333,7 +333,7 @@ public interface IModifiable<T> where T : struct
     /// </para>
     /// <para>
     /// Best practices:
-    /// - Always use UTC for audit timestamps (DateTime.UtcNow)
+    /// - Always use UTC for audit timestamps (DateTimeOffset.UtcNow)
     /// - Convert to local time in presentation layer if needed
     /// - Use for sorting by recency
     /// - Use for filtering recently modified entities
@@ -352,8 +352,8 @@ public interface IModifiable<T> where T : struct
     /// - Recently modified: ModifiedOn > cutoffDate
     /// - Never modified: ModifiedOn == null
     /// - Modified by user: ModifiedById == userId
-    /// - Stale entities: ModifiedOn &lt; oldDate
-    /// </para>
-    /// </remarks>
-    DateTime? ModifiedOn { get; set; }
-}
+        /// - Stale entities: ModifiedOn &lt; oldDate
+        /// </para>
+        /// </remarks>
+        DateTimeOffset? ModifiedOn { get; set; }
+    }

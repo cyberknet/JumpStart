@@ -38,7 +38,7 @@ public class ICreatableTests
         public string Name { get; set; } = string.Empty;
         
         public int CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
     }
 
     /// <summary>
@@ -50,7 +50,7 @@ public class ICreatableTests
         public string Title { get; set; } = string.Empty;
         
         public Guid CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ public class ICreatableTests
         public string Description { get; set; } = string.Empty;
         
         public long CreatedById { get; set; }
-        public DateTime CreatedOn { get; set; }
+        public DateTimeOffset CreatedOn { get; set; }
     }
 
     #endregion
@@ -466,7 +466,7 @@ public class ICreatableTests
         entity.CreatedOn = utcNow;
 
         // Assert
-        Assert.Equal(DateTimeKind.Utc, entity.CreatedOn.Kind);
+        Assert.Equal(TimeSpan.Zero, entity.CreatedOn.Offset);
     }
 
     [Fact]

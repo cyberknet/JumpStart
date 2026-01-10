@@ -107,7 +107,7 @@ public class AuditableEntityDtoTests
 
         // Assert
         Assert.Equal(utcNow, dto.CreatedOn);
-        Assert.Equal(DateTimeKind.Utc, dto.CreatedOn.Kind);
+        Assert.Equal(TimeSpan.Zero, dto.CreatedOn.Offset);
     }
 
     [Fact]

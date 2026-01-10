@@ -6,6 +6,7 @@
     <File Path="LICENSE.txt" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="JumpStart.DemoApp.Api/JumpStart.DemoApp.Api.csproj" />
   <Project Path="JumpStart.DemoApp/JumpStart.DemoApp.csproj" />
   <Project Path="JumpStart.Tests/JumpStart.Tests.csproj" />
   <Project Path="JumpStart/JumpStart.csproj" />

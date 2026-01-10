@@ -4,6 +4,7 @@ using JumpStart.DemoApp.Components;
 using JumpStart.DemoApp.Components.Account;
 using JumpStart.DemoApp.Data;
 using JumpStart.DemoApp.Services;
+using JumpStart.Services.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +32,14 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 // Add AutoMapper with all profiles from DemoApp
 builder.Services.AddJumpStartAutoMapper(typeof(Program).Assembly);
 
+// ============================================
+// JWT AUTHENTICATION SERVICES
+// ============================================
+// Register JWT token service and token store for API authentication
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ITokenStore, TokenStore>();
+builder.Services.AddTransient<JwtAuthenticationHandler>();
+
 // Add Controllers for API endpoints
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -48,9 +57,11 @@ builder.Services.AddSwaggerGen(options =>
 
 // Register API clients using Refit
 // The base address will be set dynamically based on the app URL
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7001";
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7002";
 
-builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products");
+// Register API clients with JWT authentication handler
+builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
+    .AddHttpMessageHandler<JwtAuthenticationHandler>();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();

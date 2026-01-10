@@ -29,6 +29,12 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '10.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore JumpStart/JumpStart.csproj
+        
+    - name: Build JumpStart project
+      run: dotnet build JumpStart/JumpStart.csproj --configuration Release --no-restore
         
     - name: Install DocFX
       run: dotnet tool install -g docfx

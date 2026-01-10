@@ -51,9 +51,10 @@ Understand the design decisions and architecture of JumpStart.
 - [Extension Points](architecture/extension-points.md)
 - [Decision Records](architecture/adr/index.md)
 
-### [API Reference](api/index.html)
+### [API Reference](api/index.md)
 Complete API reference generated from XML documentation comments.
-> **Note:** API reference is generated using DocFX. See [Contributing to Documentation](contributing-to-docs.md) for details.
+
+Browse all public types, methods, and properties with detailed descriptions and examples.
 
 ### [Sample Applications](samples.md)
 Learn from complete sample applications.

@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# DocFX generated files
+_site/
+api/
+obj/.optemp/
+.cache/

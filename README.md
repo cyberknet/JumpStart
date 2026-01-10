@@ -197,6 +197,70 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 - Submitting pull requests
 - Writing documentation
 
+## ?? Building Documentation
+
+JumpStart uses [DocFX](https://dotnet.github.io/docfx/) to generate API reference documentation from XML comments.
+
+### Prerequisites
+
+Install DocFX globally:
+```bash
+dotnet tool install -g docfx
+# Or update if already installed
+dotnet tool update -g docfx
+```
+
+### Build Documentation
+
+**Windows:**
+```cmd
+build-docs.cmd
+```
+
+**Linux/macOS:**
+```bash
+chmod +x build-docs.sh
+./build-docs.sh
+```
+
+**Manual build:**
+```bash
+# Generate metadata and build site
+docfx docfx.json
+
+# Serve locally
+docfx serve _site
+```
+
+The generated documentation will be in the `_site` folder. Open `_site/index.html` in a browser or serve it locally at `http://localhost:8080`.
+
+### Documentation Structure
+
+- `docs/` - Conceptual documentation (Markdown)
+- `api/` - Generated API reference (auto-generated from XML comments)
+- `docfx.json` - DocFX configuration
+- `build-docs.cmd` / `build-docs.sh` - Build scripts
+
+### Writing XML Comments
+
+The framework uses comprehensive XML documentation. When contributing code, please include:
+
+```csharp
+/// <summary>
+/// Brief description of the class/method.
+/// </summary>
+/// <remarks>
+/// Detailed explanation with examples if needed.
+/// </remarks>
+/// <example>
+/// <code>
+/// // Usage example
+/// var entity = new MyEntity();
+/// </code>
+/// </example>
+public class MyEntity { }
+```
+
 ## ?? License
 
 JumpStart is licensed under the **GNU General Public License v3.0**. See [LICENSE.txt](LICENSE.txt) for details.

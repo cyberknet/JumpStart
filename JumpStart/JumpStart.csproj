@@ -31,10 +31,4 @@
     <PackageReference Include="Refit.HttpClientFactory" Version="8.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
   </ItemGroup>
-
-  <!-- Optional: Include README in package -->
-  <ItemGroup>
-    <None Include="..\README.md" Pack="true" PackagePath="\" Condition="Exists('..\README.md')" />
-  </ItemGroup>
-
 </Project>

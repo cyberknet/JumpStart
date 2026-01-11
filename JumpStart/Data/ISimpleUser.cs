@@ -83,7 +83,7 @@ namespace JumpStart.Data;
 /// <para>
 /// <strong>Alternative for Custom Key Types:</strong>
 /// If your application uses custom key types (int, long, custom struct) instead of Guid for user IDs,
-/// use the Advanced namespace generic interface <see JumpStart.Data.Advanced.IUser{T}/> directly.
+/// use the Advanced namespace generic interface <see cref="JumpStart.Data.Advanced.IUser{T}"/> directly.
 /// </para>
 /// <para>
 /// <strong>Marker Interface Pattern:</strong>

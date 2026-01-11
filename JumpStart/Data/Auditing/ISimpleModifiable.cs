@@ -23,13 +23,13 @@ namespace JumpStart.Data.Auditing;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This interface extends <see cref="IModifiable{T}"/> with Guid as the user identifier type, providing
+/// This interface extends <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/> with Guid as the user identifier type, providing
 /// a simplified API for the common case of Guid-based user identities. It tracks who last modified an entity
 /// and when the modification occurred, which is essential for audit trails and change tracking.
 /// </para>
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
-/// Unlike the generic <see cref="IModifiable{T}"/> which requires specifying a type parameter, this interface
+/// Unlike the generic <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/> which requires specifying a type parameter, this interface
 /// uses Guid throughout. This simplifies the API and is recommended for new applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern identity systems (ASP.NET Core Identity) use Guid by default
@@ -54,7 +54,7 @@ namespace JumpStart.Data.Auditing;
 /// <strong>Modification vs Creation:</strong>
 /// A null ModifiedOn value typically indicates the entity has been created but never modified since creation.
 /// This is normal and expected. Only after the first update operation will these fields be populated.
-/// The creation audit is tracked separately by <see cref="ISimpleCreatable"/>.
+/// The creation audit is tracked separately by <see />.
 /// </para>
 /// <para>
 /// <strong>When to Use:</strong>
@@ -69,15 +69,15 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Related Interfaces:</strong>
 /// This interface is often combined with other simple audit interfaces:
-/// - <see cref="ISimpleCreatable"/> - Tracks who created the entity and when
-/// - <see cref="ISimpleDeletable"/> - Tracks soft deletion (who/when deleted)
-/// - <see cref="ISimpleAuditable"/> - Combines all three for complete audit tracking
+/// - <see cref="JumpStart.Data.Auditing.ISimpleCreatable"/> - Tracks who created the entity and when
+/// - <see cref="JumpStart.Data.Auditing.ISimpleDeletable"/> - Tracks soft deletion (who/when deleted)
+/// - <see cref="JumpStart.Data.Auditing.ISimpleAuditable"/> - Combines all three for complete audit tracking
 /// </para>
 /// <para>
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, consider using:
-/// - <see cref="SimpleAuditableEntity"/> - Implements ISimpleAuditable (includes ISimpleModifiable)
-/// - <see cref="SimpleAuditableNamedEntity"/> - Adds Name property to auditable entities
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Implements ISimpleAuditable (includes ISimpleModifiable)
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Adds Name property to auditable entities
 /// - Custom base classes that implement ISimpleModifiable for specific scenarios
 /// </para>
 /// <para>
@@ -89,7 +89,7 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Alternative for Custom Key Types:</strong>
 /// If your application uses custom key types (int, long, custom struct) instead of Guid, use the
-/// Advanced namespace generic interface <see cref="IModifiable{T}"/> directly.
+/// Advanced namespace generic interface <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/> directly.
 /// </para>
 /// </remarks>
 /// <example>
@@ -280,7 +280,7 @@ namespace JumpStart.Data.Auditing;
 /// <seealso cref="JumpStart.Data.Auditing.ISimpleDeletable"/>
 /// <seealso cref="JumpStart.Data.Auditing.ISimpleAuditable"/>
 /// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
-/// <seealso cref="Repositories.ISimpleUserContext"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleUserContext"/>
 public interface ISimpleModifiable : IModifiable<Guid>
 {
     // This interface intentionally contains no members beyond those inherited from IModifiable<Guid>.

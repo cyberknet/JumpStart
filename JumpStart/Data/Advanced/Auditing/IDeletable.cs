@@ -56,14 +56,14 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <para>
 /// <strong>Related Interfaces:</strong>
 /// This interface is often combined with other audit interfaces:
-/// - <see cref="ICreatable{T}"/> - Tracks who created the entity and when
-/// - <see cref="IModifiable{T}"/> - Tracks who last modified the entity and when
-/// - <see cref="IAuditable{T}"/> - Combines all three for complete audit tracking
+/// - <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/> - Tracks who created the entity and when
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/> - Tracks who last modified the entity and when
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/> - Combines all three for complete audit tracking
 /// </para>
 /// <para>
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, consider using:
-/// - <see cref="AuditableEntity{T}"/> - Implements IAuditable (includes IDeletable)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/> - Implements IAuditable (includes IDeletable)
 /// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - For Guid-based identifiers
 /// - Custom base classes that implement IDeletable for specific scenarios
 /// </para>
@@ -230,10 +230,10 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="ICreatable{T}"/>
-/// <seealso cref="IModifiable{T}"/>
-/// <seealso cref="IAuditable{T}"/>
-/// <seealso cref="AuditableEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/>
 public interface IDeletable<T> where T : struct
 {
     /// <summary>

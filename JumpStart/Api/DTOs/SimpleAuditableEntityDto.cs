@@ -23,14 +23,14 @@ namespace JumpStart.Api.DTOs;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This class combines the simplicity of <see cref="SimpleEntityDto"/> (Guid-based identifiers)
+/// This class combines the simplicity of <see cref="JumpStart.Api.DTOs.SimpleEntityDto"/> (Guid-based identifiers)
 /// with comprehensive audit tracking capabilities. It's the most common base DTO for applications
 /// that need to track who created and modified entities, and when those actions occurred.
 /// </para>
 /// <para>
 /// <strong>Inheritance Hierarchy:</strong>
-/// - Inherits from <see cref="SimpleEntityDto"/> (provides Guid Id property)
-/// - Implements <see cref="IDto"/> (through SimpleEntityDto)
+/// - Inherits from <see cref="JumpStart.Api.DTOs.SimpleEntityDto"/> (provides Guid Id property)
+/// - Implements <see cref="JumpStart.Api.DTOs.IDto"/> (through SimpleEntityDto)
 /// - Adds four audit properties for creation and modification tracking
 /// </para>
 /// <para>
@@ -53,9 +53,9 @@ namespace JumpStart.Api.DTOs;
 /// </para>
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
-/// - Use <see cref="SimpleEntityDto"/> if audit tracking is not needed
-/// - Use <see cref="Advanced.AuditableEntityDto{TKey}"/> for custom key types (int, long, etc.)
-/// - Use <see cref="Advanced.EntityDto{TKey}"/> for custom keys without audit tracking
+/// - Use <see cref="JumpStart.Api.DTOs.SimpleEntityDto"/> if audit tracking is not needed
+/// - Use <see cref="JumpStart.Api.DTOs.Advanced.AuditableEntityDto{TKey}"/> for custom key types (int, long, etc.)
+/// - Use <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/> for custom keys without audit tracking
 /// </para>
 /// </remarks>
 /// <example>
@@ -107,9 +107,9 @@ namespace JumpStart.Api.DTOs;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="SimpleEntityDto"/>
-/// <seealso cref="Advanced.AuditableEntityDto{TKey}"/>
-/// <seealso cref="IDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.SimpleEntityDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.Advanced.AuditableEntityDto{TKey}"/>
+/// <seealso cref="JumpStart.Api.DTOs.IDto"/>
 public abstract class SimpleAuditableEntityDto : SimpleEntityDto
 {
     /// <summary>

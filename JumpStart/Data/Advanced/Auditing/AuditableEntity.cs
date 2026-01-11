@@ -24,7 +24,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <typeparam name="T">The type of the entity's primary key and user identifier. Must be a value type (struct) such as int, long, or Guid.</typeparam>
 /// <remarks>
 /// <para>
-/// This class extends <see cref="Entity{T}"/> and implements <see cref="IAuditable{T}"/> to provide
+/// This class extends <see cref="JumpStart.Data.Advanced.Entity{T}"/> and implements <see cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/> to provide
 /// complete audit tracking capabilities. It automatically tracks:
 /// - Who created the entity and when (CreatedById, CreatedOn)
 /// - Who last modified the entity and when (ModifiedById, ModifiedOn)
@@ -55,7 +55,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
 /// - Use <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> for Guid identifiers (simpler, recommended for new apps)
-/// - Use <see cref="Entity{T}"/> if no audit tracking is needed
+/// - Use <see cref="JumpStart.Data.Advanced.Entity{T}"/> if no audit tracking is needed
 /// - Use <see cref="JumpStart.Data.SimpleEntity"/> for Guid identifiers without audit tracking
 /// </para>
 /// </remarks>
@@ -183,8 +183,8 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// }).SelectMany(x => x.Where(r => r != null));
 /// </code>
 /// </example>
-/// <seealso cref="Entity{T}"/>
-/// <seealso cref="IAuditable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Entity{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/>
 /// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
 public abstract class AuditableEntity<T> : Entity<T>, IAuditable<T>
     where T : struct

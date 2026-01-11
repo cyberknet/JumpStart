@@ -43,11 +43,11 @@ namespace JumpStart.Data.Advanced;
 /// <para>
 /// <strong>Common Implementations:</strong>
 /// Rather than implementing this interface directly, use one of these base classes:
-/// - <see cref="Entity{T}"/> - Basic entity with custom key type
-/// - <see cref="SimpleEntity"/> - Entity with Guid key (recommended for new applications)
-/// - <see cref="Auditing.AuditableEntity{T}"/> - Entity with full audit tracking
-/// - <see cref="SimpleAuditableEntity"/> - Guid entity with full audit tracking
-/// - <see cref="NamedEntity{T}"/> - Entity with Name property
+/// - <see cref="JumpStart.Data.Advanced.Entity{T}"/> - Basic entity with custom key type
+/// - <see cref="JumpStart.Data.SimpleEntity"/> - Entity with Guid key (recommended for new applications)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/> - Entity with full audit tracking
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Guid entity with full audit tracking
+/// - <see cref="JumpStart.Data.Advanced.NamedEntity{T}"/> - Entity with Name property
 /// </para>
 /// <para>
 /// <strong>Key Type Flexibility:</strong>

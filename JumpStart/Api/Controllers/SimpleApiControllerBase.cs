@@ -27,15 +27,15 @@ namespace JumpStart.Api.Controllers;
 /// Provides standard REST CRUD operations using AutoMapper for entity-DTO conversions following DRY principles.
 /// This is the recommended base controller for most applications using the JumpStart framework.
 /// </summary>
-/// <typeparam name="TEntity">The entity type. Must implement <see cref="ISimpleEntity"/> (entities with Guid identifiers).</typeparam>
-/// <typeparam name="TDto">The data transfer object type for read operations. Must inherit from <see cref="SimpleEntityDto"/>.</typeparam>
-/// <typeparam name="TCreateDto">The data transfer object type for create operations. Must implement <see cref="ICreateDto"/>.</typeparam>
-/// <typeparam name="TUpdateDto">The data transfer object type for update operations. Must implement <see cref="IUpdateDto{Guid}"/>.</typeparam>
-/// <typeparam name="TRepository">The repository type for data access. Must implement <see cref="ISimpleRepository{TEntity}"/>.</typeparam>
+/// <typeparam name="TEntity">The entity type. Must implement <see cref="JumpStart.Data.ISimpleEntity"/> (entities with Guid identifiers).</typeparam>
+/// <typeparam name="TDto">The data transfer object type for read operations. Must inherit from <see cref="JumpStart.Api.DTOs.SimpleEntityDto"/>.</typeparam>
+/// <typeparam name="TCreateDto">The data transfer object type for create operations. Must implement <see cref="JumpStart.Api.DTOs.ICreateDto"/>.</typeparam>
+/// <typeparam name="TUpdateDto">The data transfer object type for update operations. Must implement <see cref="JumpStart.Api.DTOs.IUpdateDto{Guid}"/>.</typeparam>
+/// <typeparam name="TRepository">The repository type for data access. Must implement <see cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/>.</typeparam>
 /// <remarks>
 /// <para>
 /// This controller simplifies API development for the most common scenario: entities with Guid identifiers.
-/// It inherits from <see cref="AdvancedApiControllerBase{TEntity, TKey, TDto, TCreateDto, TUpdateDto, TRepository}"/>
+/// It inherits from <see cref="JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase{TEntity, TKey, TDto, TCreateDto, TUpdateDto, TRepository}"/>
 /// with the key type fixed to Guid, reducing boilerplate code and type parameters.
 /// </para>
 /// <para>
@@ -90,7 +90,7 @@ namespace JumpStart.Api.Controllers;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="AdvancedApiControllerBase{TEntity, TKey, TDto, TCreateDto, TUpdateDto, TRepository}"/>
+/// <seealso cref="JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase{TEntity, TKey, TDto, TCreateDto, TUpdateDto, TRepository}"/>
 [ApiController]
 [Route("api/[controller]")]
 public abstract class SimpleApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, TRepository> 
@@ -110,7 +110,7 @@ public abstract class SimpleApiControllerBase<TEntity, TDto, TCreateDto, TUpdate
     /// Thrown when <paramref name="repository"/> or <paramref name="mapper"/> is null.
     /// </exception>
     /// <remarks>
-    /// This constructor simply passes the dependencies to the base <see cref="AdvancedApiControllerBase{TEntity, TKey, TDto, TCreateDto, TUpdateDto, TRepository}"/>
+    /// This constructor simply passes the dependencies to the base <see cref="JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase{TEntity, TKey, TDto, TCreateDto, TUpdateDto, TRepository}"/>
     /// class, which handles the actual initialization and validation.
     /// </remarks>
     /// <example>

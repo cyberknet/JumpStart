@@ -29,7 +29,7 @@ namespace JumpStart.Repositories.Advanced;
 /// This class must be inherited by concrete repository classes for specific entity types.
 /// </summary>
 /// <typeparam name="TEntity">
-/// The entity type that implements <see cref="IEntity{TKey}"/>. Must be a reference type (class).
+/// The entity type that implements <see cref="JumpStart.Data.Advanced.IEntity{TKey}"/>. Must be a reference type (class).
 /// </typeparam>
 /// <typeparam name="TKey">
 /// The type of the entity's primary key. Must be a value type (struct) such as int, long, Guid, or custom structs.
@@ -61,7 +61,7 @@ namespace JumpStart.Repositories.Advanced;
 /// </para>
 /// <para>
 /// <strong>Soft Delete:</strong>
-/// Entities implementing <see cref="IDeletable{TKey}"/> are soft-deleted (marked as deleted) rather
+/// Entities implementing <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/> are soft-deleted (marked as deleted) rather
 /// than permanently removed. Soft-deleted entities are automatically excluded from all queries.
 /// </para>
 /// <para>
@@ -235,11 +235,11 @@ namespace JumpStart.Repositories.Advanced;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IRepository{TEntity, TKey}"/>
-/// <seealso cref="IUserContext{TKey}"/>
-/// <seealso cref="ICreatable{TKey}"/>
-/// <seealso cref="IModifiable{TKey}"/>
-/// <seealso cref="IDeletable{TKey}"/>
+/// <seealso cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/>
+/// <seealso cref="JumpStart.Repositories.Advanced.IUserContext{TKey}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.ICreatable{TKey}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IModifiable{TKey}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>
 public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> where TEntity : class, IEntity<TKey>
                                                                       where TKey : struct
 {
@@ -278,7 +278,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     protected readonly IUserContext<TKey>? _userContext;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Repository{TEntity, TKey}"/> class.
+    /// Initializes a new instance of the <see cref="JumpStart.Repositories.Advanced.Repository{TEntity, TKey}"/> class.
     /// </summary>
     /// <param name="context">
     /// The Entity Framework Core database context. Must not be null.
@@ -303,7 +303,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     }
 
     /// <summary>
-    /// Applies a filter to exclude soft-deleted entities if the entity type implements <see cref="IDeletable{TKey}"/>.
+    /// Applies a filter to exclude soft-deleted entities if the entity type implements <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>.
     /// </summary>
     /// <param name="query">The queryable to apply the soft delete filter to.</param>
     /// <returns>
@@ -312,7 +312,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     /// </returns>
     /// <remarks>
     /// <para>
-    /// This method checks if the entity type implements <see cref="IDeletable{TKey}"/> and, if so,
+    /// This method checks if the entity type implements <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/> and, if so,
     /// adds a filter to exclude entities where DeletedOn is not null. This ensures soft-deleted
     /// entities are automatically hidden from query results.
     /// </para>
@@ -437,7 +437,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     /// <inheritdoc />
     /// <remarks>
     /// <para>
-    /// This method automatically populates audit fields if the entity implements <see cref="ICreatable{TKey}"/>:
+    /// This method automatically populates audit fields if the entity implements <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{TKey}"/>:
     /// - CreatedOn: Set to current UTC time
     /// - CreatedById: Set to current user ID from user context (if available)
     /// </para>
@@ -475,7 +475,7 @@ public abstract class Repository<TEntity, TKey> : IRepository<TEntity, TKey> whe
     /// <inheritdoc />
     /// <remarks>
     /// <para>
-    /// This method automatically populates audit fields if the entity implements <see cref="IModifiable{TKey}"/>:
+    /// This method automatically populates audit fields if the entity implements <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{TKey}"/>:
     /// - ModifiedOn: Set to current UTC time
     /// - ModifiedById: Set to current user ID from user context (if available)
     /// </para>

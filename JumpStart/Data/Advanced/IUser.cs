@@ -24,7 +24,7 @@ namespace JumpStart.Data.Advanced;
 /// <typeparam name="TKey">The type of the user's primary key. Must be a value type (struct) such as int, long, or Guid.</typeparam>
 /// <remarks>
 /// <para>
-/// This interface extends <see cref="IEntity{T}"/> to provide type-safe identification of user entities
+/// This interface extends <see cref="JumpStart.Data.Advanced.IEntity{T}"/> to provide type-safe identification of user entities
 /// throughout the JumpStart framework. It serves as a marker interface with no additional members,
 /// allowing the framework to distinguish user entities from other entities in generic code, particularly
 /// for audit tracking where user information is recorded.
@@ -47,8 +47,7 @@ namespace JumpStart.Data.Advanced;
 /// <para>
 /// <strong>Alternative Options:</strong>
 /// For simpler scenarios, consider:
-/// - <see cref="Data.IUser"/> - User interface with Guid key (recommended for new applications)
-/// - <see cref="SimpleUser"/> - Concrete user entity with Guid key and common properties
+/// - <see cref="JumpStart.Data.ISimpleUser"/> - User interface with Guid key and common properties
 /// - Custom user base classes that implement IUser{TKey} for specific requirements
 /// </para>
 /// <para>

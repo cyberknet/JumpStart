@@ -25,12 +25,12 @@ namespace JumpStart.Repositories;
 /// This is the recommended repository base class for most applications using the JumpStart framework.
 /// </summary>
 /// <typeparam name="TEntity">
-/// The entity type that implements <see cref="ISimpleEntity"/>. Must be a reference type (class).
+/// The entity type that implements <see cref="JumpStart.Data.ISimpleEntity"/>. Must be a reference type (class).
 /// </typeparam>
 /// <remarks>
 /// <para>
 /// This class provides a simplified API for repository operations by inheriting from 
-/// <see cref="Repository{TEntity, TKey}"/> with Guid as the fixed key type. This eliminates the need
+/// <see cref="JumpStart.Repositories.Advanced.Repository{TEntity, TKey}"/> with Guid as the fixed key type. This eliminates the need
 /// for explicit generic key type parameters in most application code, making repositories cleaner and easier to use.
 /// </para>
 /// <para>
@@ -38,7 +38,7 @@ namespace JumpStart.Repositories;
 /// - Complete CRUD operations with Guid keys
 /// - Automatic audit tracking (Created, Modified, Deleted fields)
 /// - Soft delete support with automatic filtering
-/// - Pagination with sorting via <see cref="QueryOptions{TEntity}"/>
+/// - Pagination with sorting via <see cref="JumpStart.Repositories.QueryOptions{TEntity}"/>
 /// - User context integration for audit fields
 /// - Entity Framework Core optimizations
 /// - Async/await throughout
@@ -62,13 +62,13 @@ namespace JumpStart.Repositories;
 /// </para>
 /// <para>
 /// <strong>Soft Delete:</strong>
-/// Entities implementing <see cref="Data.Advanced.Auditing.IDeletable{TKey}"/> are soft-deleted (marked as deleted) 
+/// Entities implementing <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/> are soft-deleted (marked as deleted) 
 /// rather than permanently removed. Soft-deleted entities are automatically excluded from all queries.
 /// </para>
 /// <para>
 /// <strong>When to Use Repository Instead:</strong>
 /// For applications requiring non-Guid keys (int, long, custom structs), inherit from 
-/// <see cref="Repository{TEntity, TKey}"/> directly which provides the same functionality
+/// <see cref="JumpStart.Repositories.Advanced.Repository{TEntity, TKey}"/> directly which provides the same functionality
 /// with explicit control over the key type.
 /// </para>
 /// <para>
@@ -319,17 +319,17 @@ namespace JumpStart.Repositories;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="Repository{TEntity, TKey}"/>
-/// <seealso cref="ISimpleRepository{TEntity}"/>
-/// <seealso cref="ISimpleEntity"/>
-/// <seealso cref="SimpleEntity"/>
-/// <seealso cref="SimpleAuditableEntity"/>
-/// <seealso cref="ISimpleUserContext"/>
+/// <seealso cref="JumpStart.Repositories.Advanced.Repository{TEntity, TKey}"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/>
+/// <seealso cref="JumpStart.Data.ISimpleEntity"/>
+/// <seealso cref="JumpStart.Data.SimpleEntity"/>
+/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleUserContext"/>
 public abstract class SimpleRepository<TEntity> : Repository<TEntity, Guid>, ISimpleRepository<TEntity>
 	where TEntity : class, ISimpleEntity
 {
 	/// <summary>
-	/// Initializes a new instance of the <see cref="SimpleRepository{TEntity}"/> class.
+	/// Initializes a new instance of the <see cref="JumpStart.Repositories.SimpleRepository{TEntity}"/> class.
 	/// </summary>
 	/// <param name="dbContext">
 	/// The Entity Framework Core database context. Must not be null.

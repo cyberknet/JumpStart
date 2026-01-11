@@ -22,7 +22,7 @@ namespace JumpStart.Api.Clients.Advanced;
 /// <remarks>
 /// <para>
 /// These extension methods simplify the registration of API clients that implement
-/// <see cref="IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/> interfaces.
+/// <see cref="JumpStart.Api.Clients.Advanced.IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/> interfaces.
 /// They configure Refit with appropriate settings for JSON serialization and HTTP client factories.
 /// </para>
 /// <para>
@@ -47,7 +47,7 @@ public static class ApiClientExtensions
     /// Registers a Refit-based API client for an advanced entity with custom key type.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.Advanced.IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/>.
     /// Must be an interface decorated with Refit attributes.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
@@ -129,7 +129,7 @@ public static class ApiClientExtensions
     /// Registers a Refit-based API client with additional HTTP client configuration.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.Advanced.IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/>.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
     /// <param name="baseAddress">The base address of the API endpoint.</param>
@@ -186,7 +186,7 @@ public static class ApiClientExtensions
     /// Registers a Refit-based API client with full HTTP client builder configuration.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.Advanced.IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/>.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
     /// <param name="baseAddress">The base address of the API endpoint.</param>

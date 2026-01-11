@@ -25,14 +25,14 @@ namespace JumpStart.Api.Clients.Advanced;
 /// Defines the contract for API clients that interact with DTO-based HTTP endpoints for entities with custom key types.
 /// This interface provides standard CRUD operations using DTOs for type-safe API communication via Refit.
 /// </summary>
-/// <typeparam name="TDto">The data transfer object type for read operations. Must inherit from <see cref="EntityDto{TKey}"/>.</typeparam>
-/// <typeparam name="TCreateDto">The data transfer object type for create operations. Must implement <see cref="ICreateDto"/>.</typeparam>
-/// <typeparam name="TUpdateDto">The data transfer object type for update operations. Must implement <see cref="IUpdateDto{TKey}"/>.</typeparam>
+/// <typeparam name="TDto">The data transfer object type for read operations. Must inherit from <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/>.</typeparam>
+/// <typeparam name="TCreateDto">The data transfer object type for create operations. Must implement <see cref="JumpStart.Api.DTOs.ICreateDto"/>.</typeparam>
+/// <typeparam name="TUpdateDto">The data transfer object type for update operations. Must implement <see cref="JumpStart.Api.DTOs.IUpdateDto{TKey}"/>.</typeparam>
 /// <typeparam name="TKey">The type of the entity's primary key. Must be a value type (struct).</typeparam>
 /// <remarks>
 /// <para>
 /// This interface is part of the Advanced namespace and supports custom key types (int, long, custom structs).
-/// For applications using Guid identifiers, use <see cref="Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/> instead.
+/// For applications using Guid identifiers, use <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/> instead.
 /// </para>
 /// <para>
 /// The interface uses Refit attributes for declarative HTTP API definitions:
@@ -64,7 +64,7 @@ namespace JumpStart.Api.Clients.Advanced;
 /// var product = await productClient.GetByIdAsync(123);
 /// </code>
 /// </example>
-/// <seealso cref="Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>
+/// <seealso cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>
 public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     where TDto : EntityDto<TKey>
     where TCreateDto : ICreateDto
@@ -109,7 +109,7 @@ public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
     /// </param>
     /// <returns>
     /// A task that represents the asynchronous operation.
-    /// The task result contains a <see cref="PagedResult{T}"/> with the requested page of entities
+    /// The task result contains a <see cref="JumpStart.Repositories.PagedResult{T}"/> with the requested page of entities
     /// and pagination metadata (page number, page size, total count).
     /// </returns>
     /// <exception cref="ApiException">

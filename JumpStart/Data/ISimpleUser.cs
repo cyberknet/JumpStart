@@ -23,13 +23,13 @@ namespace JumpStart.Data;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This interface extends <see cref="IUser{T}"/> with Guid as the user identifier type, providing
+/// This interface extends <see cref="JumpStart.Data.Advanced.IUser{T}"/> with Guid as the user identifier type, providing
 /// a simplified API for the common case of Guid-based user identities. User entities represent
 /// authenticated users who can perform auditable actions throughout the application.
 /// </para>
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
-/// Unlike the generic <see cref="IUser{T}"/> which requires specifying a type parameter, this interface
+/// Unlike the generic <see JumpStart.Data.Advanced.IUser{T}/> which requires specifying a type parameter, this interface
 /// uses Guid throughout. This simplifies the API and is recommended for new applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern identity systems (ASP.NET Core Identity) use Guid by default
@@ -83,7 +83,7 @@ namespace JumpStart.Data;
 /// <para>
 /// <strong>Alternative for Custom Key Types:</strong>
 /// If your application uses custom key types (int, long, custom struct) instead of Guid for user IDs,
-/// use the Advanced namespace generic interface <see cref="IUser{T}"/> directly.
+/// use the Advanced namespace generic interface <see JumpStart.Data.Advanced.IUser{T}/> directly.
 /// </para>
 /// <para>
 /// <strong>Marker Interface Pattern:</strong>

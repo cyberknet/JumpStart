@@ -26,7 +26,7 @@ namespace JumpStart.Repositories;
 /// <remarks>
 /// <para>
 /// This class provides a flexible way to configure queries with optional pagination and sorting.
-/// It is designed to work with repository methods that return <see cref="PagedResult{T}"/> and
+/// It is designed to work with repository methods that return <see cref="JumpStart.Repositories.PagedResult{T}"/> and
 /// need to support user-driven pagination and sorting in Blazor components, APIs, or other UI contexts.
 /// </para>
 /// <para>
@@ -315,9 +315,9 @@ namespace JumpStart.Repositories;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="PagedResult{T}"/>
-/// <seealso cref="IRepository{TEntity, TKey}"/>
-/// <seealso cref="ISimpleRepository{TEntity}"/>
+/// <seealso cref="JumpStart.Repositories.PagedResult{T}"/>
+/// <seealso cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/>
 public class QueryOptions<TEntity>
 {
     /// <summary>

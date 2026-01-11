@@ -15,7 +15,7 @@
 namespace JumpStart.Services.Authentication;
 
 /// <summary>
-/// In-memory implementation of <see cref="ITokenStore"/> for storing JWT tokens.
+/// In-memory implementation of <see cref="JumpStart.Services.Authentication.ITokenStore"/> for storing JWT tokens.
 /// </summary>
 /// <remarks>
 /// This implementation stores the token in memory for the duration of the scoped service lifetime.

@@ -23,9 +23,9 @@ namespace JumpStart.Data.Auditing;
 /// <remarks>
 /// <para>
 /// This class combines three key aspects of entity management:
-/// - Entity identification with Guid (from <see cref="SimpleEntity"/>)
-/// - Human-readable naming (implements <see cref="INamed"/>)
-/// - Complete audit trail (from <see cref="SimpleAuditableEntity"/>)
+/// - Entity identification with Guid (from <see cref="JumpStart.Data.SimpleEntity"/>)
+/// - Human-readable naming (implements <see cref="JumpStart.Data.INamed"/>)
+/// - Complete audit trail (from <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>)
 /// </para>
 /// <para>
 /// It is ideal for master data, lookup tables, categories, and reference data that need both
@@ -33,8 +33,8 @@ namespace JumpStart.Data.Auditing;
 /// </para>
 /// <para>
 /// <strong>Inheritance Hierarchy:</strong>
-/// Inherits from <see cref="SimpleAuditableEntity"/> (which inherits from <see cref="SimpleEntity"/>)
-/// and implements <see cref="INamed"/>. This provides:
+/// Inherits from <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> (which inherits from <see cref="JumpStart.Data.SimpleEntity"/>)
+/// and implements <see cref="JumpStart.Data.INamed"/>. This provides:
 /// - Id property (Guid) from SimpleEntity
 /// - Six audit properties from SimpleAuditableEntity (CreatedById, CreatedOn, ModifiedById, ModifiedOn, DeletedById, DeletedOn)
 /// - Name property from INamed
@@ -43,7 +43,7 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
 /// This class uses Guid for both entity IDs and user identifiers, simplifying the API compared to the
-/// generic <see cref="Advanced.Auditing.AuditableNamedEntity{T}"/>. This is the recommended approach for new
+/// generic <see cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/>. This is the recommended approach for new
 /// applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern identity systems (ASP.NET Core Identity) use Guid by default
@@ -53,7 +53,7 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Automatic Population:</strong>
 /// All audit fields are automatically populated by repository implementations when configured with
-/// an <see cref="Repositories.ISimpleUserContext"/>. The Name property must be set by application code.
+/// an <see cref="JumpStart.Repositories.ISimpleUserContext"/>. The Name property must be set by application code.
 /// </para>
 /// <para>
 /// <strong>When to Use:</strong>
@@ -76,10 +76,10 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
 /// Consider these alternatives based on your requirements:
-/// - <see cref="SimpleNamedEntity"/> - Named entity without audit tracking
-/// - <see cref="SimpleAuditableEntity"/> - Full audit tracking without naming
-/// - <see cref="SimpleEntity"/> - Basic entity with just Guid Id
-/// - <see cref="Advanced.Auditing.AuditableNamedEntity{T}"/> - For custom key types (int, long, custom struct)
+/// - <see cref="JumpStart.Data.SimpleNamedEntity"/> - Named entity without audit tracking
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Full audit tracking without naming
+/// - <see cref="JumpStart.Data.SimpleEntity"/> - Basic entity with just Guid Id
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/> - For custom key types (int, long, custom struct)
 /// </para>
 /// </remarks>
 /// <example>

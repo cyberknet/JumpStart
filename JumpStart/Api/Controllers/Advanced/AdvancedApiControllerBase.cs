@@ -30,12 +30,12 @@ namespace JumpStart.Api.Controllers.Advanced;
 /// Base API controller with DTO support for entities with custom key types.
 /// Provides standard REST CRUD operations using AutoMapper for entity-DTO conversions following DRY principles.
 /// </summary>
-/// <typeparam name="TEntity">The entity type. Must implement <see cref="IEntity{TKey}"/>.</typeparam>
+/// <typeparam name="TEntity">The entity type. Must implement <see cref="JumpStart.Data.Advanced.IEntity{TKey}"/>.</typeparam>
 /// <typeparam name="TKey">The type of the entity's primary key. Must be a value type (struct).</typeparam>
-/// <typeparam name="TDto">The data transfer object type for read operations. Must inherit from <see cref="EntityDto{TKey}"/>.</typeparam>
-/// <typeparam name="TCreateDto">The data transfer object type for create operations. Must implement <see cref="ICreateDto"/>.</typeparam>
-/// <typeparam name="TUpdateDto">The data transfer object type for update operations. Must implement <see cref="IUpdateDto{TKey}"/>.</typeparam>
-/// <typeparam name="TRepository">The repository type for data access. Must implement <see cref="IRepository{TEntity, TKey}"/>.</typeparam>
+/// <typeparam name="TDto">The data transfer object type for read operations. Must inherit from <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/>.</typeparam>
+/// <typeparam name="TCreateDto">The data transfer object type for create operations. Must implement <see cref="JumpStart.Api.DTOs.ICreateDto"/>.</typeparam>
+/// <typeparam name="TUpdateDto">The data transfer object type for update operations. Must implement <see cref="JumpStart.Api.DTOs.IUpdateDto{TKey}"/>.</typeparam>
+/// <typeparam name="TRepository">The repository type for data access. Must implement <see cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/>.</typeparam>
 /// <remarks>
 /// <para>
 /// This controller provides a complete RESTful API implementation with the following endpoints:
@@ -102,7 +102,7 @@ public abstract class AdvancedApiControllerBase<TEntity, TKey, TDto, TCreateDto,
     protected readonly IMapper Mapper;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AdvancedApiControllerBase{TEntity, TKey, TDto, TCreateDto, TUpdateDto, TRepository}"/> class.
+    /// Initializes a new instance of the <see cref="JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase{TEntity, TKey, TDto, TCreateDto, TUpdateDto, TRepository}"/> class.
     /// </summary>
     /// <param name="repository">The repository instance for data access.</param>
     /// <param name="mapper">The AutoMapper instance for entity-DTO conversions.</param>

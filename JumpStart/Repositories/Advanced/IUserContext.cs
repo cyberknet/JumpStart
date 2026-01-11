@@ -38,7 +38,7 @@ namespace JumpStart.Repositories.Advanced;
 /// </para>
 /// <para>
 /// <strong>For Guid Keys:</strong>
-/// For most applications using Guid identifiers (recommended), use <see cref="ISimpleUserContext"/> 
+/// For most applications using Guid identifiers (recommended), use <see cref="JumpStart.Repositories.ISimpleUserContext"/> 
 /// instead, which provides the same functionality without generic type parameters for a simpler API.
 /// </para>
 /// <para>
@@ -239,7 +239,7 @@ namespace JumpStart.Repositories.Advanced;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="ISimpleUserContext"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleUserContext"/>
 public interface IUserContext<TKey> where TKey : struct
 {
     /// <summary>

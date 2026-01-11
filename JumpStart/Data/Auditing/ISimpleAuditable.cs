@@ -18,16 +18,16 @@ namespace JumpStart.Data.Auditing;
 
 /// <summary>
 /// Defines the contract for entities that track complete audit information with Guid identifiers.
-/// This interface combines <see cref="ISimpleCreatable"/>, <see cref="ISimpleModifiable"/>, and <see cref="ISimpleDeletable"/>
+/// This interface combines <see cref="JumpStart.Data.Auditing.ISimpleCreatable"/>, <see cref="JumpStart.Data.Auditing.ISimpleModifiable"/>, and <see cref="JumpStart.Data.Auditing.ISimpleDeletable"/>
 /// to provide comprehensive audit trail capabilities using Guid-based user identification.
 /// </summary>
 /// <remarks>
 /// <para>
 /// This is the recommended auditing interface for most new applications using the JumpStart framework.
 /// It provides automatic tracking of the complete entity lifecycle:
-/// - Who created the entity and when (<see cref="ISimpleCreatable"/>)
-/// - Who last modified the entity and when (<see cref="ISimpleModifiable"/>)
-/// - Who soft-deleted the entity and when (<see cref="ISimpleDeletable"/>)
+/// - Who created the entity and when (<see cref="JumpStart.Data.Auditing.ISimpleCreatable"/>)
+/// - Who last modified the entity and when (<see cref="JumpStart.Data.Auditing.ISimpleModifiable"/>)
+/// - Who soft-deleted the entity and when (<see cref="JumpStart.Data.Auditing.ISimpleDeletable"/>)
 /// </para>
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
@@ -42,7 +42,7 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Automatic Population:</strong>
 /// All audit fields are automatically populated by the repository layer when configured with
-/// an <see cref="Repositories.ISimpleUserContext"/> implementation. The framework handles:
+/// an <see cref="JumpStart.Repositories.ISimpleUserContext"/> implementation. The framework handles:
 /// - Setting CreatedById and CreatedOn during AddAsync operations
 /// - Updating ModifiedById and ModifiedOn during UpdateAsync operations
 /// - Populating DeletedById and DeletedOn during soft delete operations
@@ -74,15 +74,15 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, use one of these base classes:
-/// - <see cref="SimpleAuditableEntity"/> - Basic auditable entity with Guid identifiers
-/// - <see cref="SimpleAuditableNamedEntity"/> - Adds Name property to auditable entity
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Basic auditable entity with Guid identifiers
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Adds Name property to auditable entity
 /// These base classes already implement ISimpleAuditable and provide all necessary properties.
 /// </para>
 /// <para>
 /// <strong>Alternative for Custom Key Types:</strong>
 /// If you need custom key types (int, long, custom struct) instead of Guid, use the Advanced namespace:
-/// - <see cref="Advanced.Auditing.IAuditable{T}"/> - Generic audit interface
-/// - <see cref="Advanced.Auditing.AuditableEntity{T}"/> - Generic audit base class
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/> - Generic audit interface
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/> - Generic audit base class
 /// </para>
 /// <para>
 /// <strong>Soft Delete Pattern:</strong>

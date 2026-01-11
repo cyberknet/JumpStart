@@ -18,14 +18,14 @@ using System.ComponentModel.DataAnnotations;
 namespace JumpStart.Data.Advanced;
 
 /// <summary>
-/// Provides a base implementation of the <see cref="IEntity{T}"/> interface for entities with a unique identifier.
+/// Provides a base implementation of the <see cref="JumpStart.Data.Advanced.IEntity{T}"/> interface for entities with a unique identifier.
 /// This abstract class serves as the foundation for all entities in the JumpStart framework that require custom key types.
 /// </summary>
 /// <typeparam name="T">The type of the entity's primary key. Must be a value type (struct) such as int, long, Guid, or custom struct.</typeparam>
 /// <remarks>
 /// <para>
 /// This class provides the core identity functionality for entities in the JumpStart framework. It implements
-/// the <see cref="IEntity{T}"/> interface and provides a strongly-typed Id property decorated with the
+/// the <see cref="JumpStart.Data.Advanced.IEntity{T}"/> interface and provides a strongly-typed Id property decorated with the
 /// <see cref="KeyAttribute"/> for automatic recognition by Entity Framework Core and other ORMs.
 /// </para>
 /// <para>
@@ -39,10 +39,10 @@ namespace JumpStart.Data.Advanced;
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
 /// For simpler scenarios, consider these alternatives:
-/// - <see cref="SimpleEntity"/> - Uses Guid identifiers (recommended for new applications)
-/// - <see cref="Auditing.AuditableEntity{T}"/> - Adds full audit tracking (creation, modification, deletion)
-/// - <see cref="SimpleAuditableEntity"/> - Guid identifiers with full audit tracking
-/// - <see cref="NamedEntity{T}"/> - Adds Name property for entities that need human-readable names
+/// - <see cref="JumpStart.Data.SimpleEntity"/> - Uses Guid identifiers (recommended for new applications)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/> - Adds full audit tracking (creation, modification, deletion)
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Guid identifiers with full audit tracking
+/// - <see cref="JumpStart.Data.Advanced.NamedEntity{T}"/> - Adds Name property for entities that need human-readable names
 /// </para>
 /// <para>
 /// <strong>Key Type Considerations:</strong>

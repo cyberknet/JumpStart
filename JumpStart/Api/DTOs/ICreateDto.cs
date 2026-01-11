@@ -42,7 +42,7 @@ namespace JumpStart.Api.DTOs;
 /// - Navigation properties as IDs or nested create DTOs
 /// </para>
 /// <para>
-/// This interface inherits from <see cref="IDto"/> to ensure all create DTOs are part
+/// This interface inherits from <see cref="JumpStart.Api.DTOs.IDto"/> to ensure all create DTOs are part
 /// of the DTO hierarchy and can be identified as data transfer objects.
 /// </para>
 /// </remarks>
@@ -98,8 +98,8 @@ namespace JumpStart.Api.DTOs;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IDto"/>
-/// <seealso cref="IUpdateDto{TKey}"/>
+/// <seealso cref="JumpStart.Api.DTOs.IDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.IUpdateDto{TKey}"/>
 public interface ICreateDto : IDto
 {
 }

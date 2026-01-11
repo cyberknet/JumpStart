@@ -50,7 +50,7 @@ public class JwtTokenService : IJwtTokenService
     private readonly IConfiguration _configuration;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JwtTokenService"/> class.
+    /// Initializes a new instance of the <see cref="JumpStart.Services.Authentication.JwtTokenService"/> class.
     /// </summary>
     /// <param name="configuration">The application configuration containing JWT settings.</param>
     /// <exception cref="ArgumentNullException">Thrown when configuration is null.</exception>

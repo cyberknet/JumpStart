@@ -51,14 +51,14 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <para>
 /// <strong>Related Interfaces:</strong>
 /// This interface is often combined with other audit interfaces:
-/// - <see cref="IModifiable{T}"/> - Adds modification tracking (who/when modified)
-/// - <see cref="IDeletable{T}"/> - Adds soft deletion tracking (who/when deleted)
-/// - <see cref="IAuditable{T}"/> - Combines all three for complete audit tracking
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/> - Adds modification tracking (who/when modified)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/> - Adds soft deletion tracking (who/when deleted)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/> - Combines all three for complete audit tracking
 /// </para>
 /// <para>
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, consider using:
-/// - <see cref="AuditableEntity{T}"/> - Implements IAuditable (includes ICreatable)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/> - Implements IAuditable (includes ICreatable)
 /// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - For Guid-based identifiers
 /// - Custom base classes that implement ICreatable for specific scenarios
 /// </para>
@@ -175,10 +175,10 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IModifiable{T}"/>
-/// <seealso cref="IDeletable{T}"/>
-/// <seealso cref="IAuditable{T}"/>
-/// <seealso cref="AuditableEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/>
 public interface ICreatable<T> where T : notnull
 {
     /// <summary>
@@ -196,7 +196,7 @@ public interface ICreatable<T> where T : notnull
     /// </para>
     /// <para>
     /// The value is immutable after creation - modifying it could compromise audit trail integrity.
-    /// To track modifications by different users, use <see cref="IModifiable{T}"/> in addition to this interface.
+    /// To track modifications by different users, use <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/> in addition to this interface.
     /// </para>
     /// <para>
     /// Common user identifier types:
@@ -223,7 +223,7 @@ public interface ICreatable<T> where T : notnull
     /// </para>
     /// <para>
     /// The value is immutable after creation - modifying it could compromise audit trail integrity.
-    /// To track when modifications occur, use <see cref="IModifiable{T}"/> in addition to this interface.
+    /// To track when modifications occur, use <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/> in addition to this interface.
     /// </para>
     /// <para>
     /// Best practices:

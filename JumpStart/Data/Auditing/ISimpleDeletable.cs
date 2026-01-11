@@ -23,13 +23,13 @@ namespace JumpStart.Data.Auditing;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This interface extends <see cref="IDeletable{T}"/> with Guid as the user identifier type, providing
+/// This interface extends <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/> with Guid as the user identifier type, providing
 /// a simplified API for the common case of Guid-based user identities. It enables the soft delete pattern
 /// where entities are marked as deleted rather than physically removed from the database.
 /// </para>
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
-/// Unlike the generic <see cref="IDeletable{T}"/> which requires specifying a type parameter, this interface
+/// Unlike the generic <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/> which requires specifying a type parameter, this interface
 /// uses Guid throughout. This simplifies the API and is recommended for new applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern identity systems (ASP.NET Core Identity) use Guid by default
@@ -72,15 +72,15 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Related Interfaces:</strong>
 /// This interface is often combined with other simple audit interfaces:
-/// - <see cref="ISimpleCreatable"/> - Tracks who created the entity and when
-/// - <see cref="ISimpleModifiable"/> - Tracks who last modified the entity and when
-/// - <see cref="ISimpleAuditable"/> - Combines all three for complete audit tracking
+/// - <see cref="JumpStart.Data.Auditing.ISimpleCreatable"/> - Tracks who created the entity and when
+/// - <see cref="JumpStart.Data.Auditing.ISimpleModifiable"/> - Tracks who last modified the entity and when
+/// - <see cref="JumpStart.Data.Auditing.ISimpleAuditable"/> - Combines all three for complete audit tracking
 /// </para>
 /// <para>
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, consider using:
-/// - <see cref="SimpleAuditableEntity"/> - Implements ISimpleAuditable (includes ISimpleDeletable)
-/// - <see cref="SimpleAuditableNamedEntity"/> - Adds Name property to auditable entities
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Implements ISimpleAuditable (includes ISimpleDeletable)
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Adds Name property to auditable entities
 /// - Custom base classes that implement ISimpleDeletable for specific scenarios
 /// </para>
 /// <para>
@@ -93,7 +93,7 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Alternative for Custom Key Types:</strong>
 /// If your application uses custom key types (int, long, custom struct) instead of Guid, use the
-/// Advanced namespace generic interface <see cref="IDeletable{T}"/> directly.
+/// Advanced namespace generic interface <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/> directly.
 /// </para>
 /// </remarks>
 /// <example>
@@ -279,7 +279,7 @@ namespace JumpStart.Data.Auditing;
 /// <seealso cref="JumpStart.Data.Auditing.ISimpleModifiable"/>
 /// <seealso cref="JumpStart.Data.Auditing.ISimpleAuditable"/>
 /// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
-/// <seealso cref="Repositories.ISimpleUserContext"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleUserContext"/>
 public interface ISimpleDeletable : IDeletable<Guid>
 {
     // This interface intentionally contains no members beyond those inherited from IDeletable<Guid>.

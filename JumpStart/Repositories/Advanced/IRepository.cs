@@ -26,7 +26,7 @@ namespace JumpStart.Repositories.Advanced;
 /// This is the recommended interface for applications requiring non-Guid identifier types.
 /// </summary>
 /// <typeparam name="TEntity">
-/// The entity type that implements <see cref="IEntity{TKey}"/>. Must be a reference type (class).
+/// The entity type that implements <see cref="JumpStart.Data.Advanced.IEntity{TKey}"/>. Must be a reference type (class).
 /// </typeparam>
 /// <typeparam name="TKey">
 /// The type of the entity's primary key. Must be a value type (struct) such as int, long, Guid, or custom structs.
@@ -41,14 +41,14 @@ namespace JumpStart.Repositories.Advanced;
 /// <para>
 /// <strong>Key Features:</strong>
 /// - Type-safe CRUD operations with custom key types
-/// - Automatic soft-delete support for entities implementing <see cref="IDeletable{TKey}"/>
-/// - Pagination and sorting through <see cref="QueryOptions{TEntity}"/>
+/// - Automatic soft-delete support for entities implementing <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>
+/// - Pagination and sorting through <see cref="JumpStart.Repositories.QueryOptions{TEntity}"/>
 /// - Async/await pattern for all operations
 /// - Nullable return types for operations that may not find entities
 /// </para>
 /// <para>
 /// <strong>Soft Delete Support:</strong>
-/// When entities implement <see cref="IDeletable{TKey}"/>, the repository:
+/// When entities implement <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>, the repository:
 /// - Automatically excludes soft-deleted entities from GetAll operations
 /// - Performs soft deletes (sets DeletedOn timestamp) instead of hard deletes in DeleteAsync
 /// - Preserves data for audit trails and recovery scenarios
@@ -64,7 +64,7 @@ namespace JumpStart.Repositories.Advanced;
 /// <para>
 /// <strong>Alternative for Guid Keys:</strong>
 /// For applications using Guid identifiers (recommended for new applications), use
-/// <see cref="ISimpleRepository{TEntity}"/> which provides the same functionality without
+/// <see cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/> which provides the same functionality without
 /// the complexity of generic type parameters.
 /// </para>
 /// <para>
@@ -289,11 +289,11 @@ namespace JumpStart.Repositories.Advanced;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IEntity{TKey}"/>
-/// <seealso cref="ISimpleRepository{TEntity}"/>
-/// <seealso cref="IDeletable{TKey}"/>
-/// <seealso cref="QueryOptions{TEntity}"/>
-/// <seealso cref="PagedResult{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.IEntity{TKey}"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>
+/// <seealso cref="JumpStart.Repositories.QueryOptions{TEntity}"/>
+/// <seealso cref="JumpStart.Repositories.PagedResult{T}"/>
 public interface IRepository<TEntity, TKey> where TEntity : class, IEntity<TKey>
                                              where TKey : struct
 {
@@ -312,7 +312,7 @@ public interface IRepository<TEntity, TKey> where TEntity : class, IEntity<TKey>
     /// </para>
     /// <para>
     /// <strong>Soft Delete Behavior:</strong>
-    /// If the entity implements <see cref="IDeletable{TKey}"/> and has been soft-deleted (DeletedOn is set),
+    /// If the entity implements <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/> and has been soft-deleted (DeletedOn is set),
     /// implementations may choose to either:
     /// - Return null (treating soft-deleted entities as not found)
     /// - Return the entity (allowing access to soft-deleted data)
@@ -344,7 +344,7 @@ public interface IRepository<TEntity, TKey> where TEntity : class, IEntity<TKey>
     /// <para>
     /// <strong>Soft Delete Behavior:</strong>
     /// This method automatically excludes soft-deleted entities if the entity type implements 
-    /// <see cref="IDeletable{TKey}"/>. Only entities where DeletedOn is null will be returned.
+    /// <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>. Only entities where DeletedOn is null will be returned.
     /// </para>
     /// <para>
     /// <strong>Performance Warning:</strong>
@@ -384,7 +384,7 @@ public interface IRepository<TEntity, TKey> where TEntity : class, IEntity<TKey>
     /// </para>
     /// <para>
     /// <strong>Soft Delete Behavior:</strong>
-    /// Automatically excludes soft-deleted entities if the entity implements <see cref="IDeletable{TKey}"/>.
+    /// Automatically excludes soft-deleted entities if the entity implements <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>.
     /// </para>
     /// <para>
     /// <strong>Query Options:</strong>
@@ -473,7 +473,7 @@ public interface IRepository<TEntity, TKey> where TEntity : class, IEntity<TKey>
     /// </para>
     /// <para>
     /// <strong>Audit Tracking:</strong>
-    /// If the entity implements <see cref="IModifiable{TKey}"/>, the implementation should
+    /// If the entity implements <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{TKey}"/>, the implementation should
     /// update audit fields (ModifiedOn, ModifiedById) before saving.
     /// </para>
     /// <para>
@@ -506,7 +506,7 @@ public interface IRepository<TEntity, TKey> where TEntity : class, IEntity<TKey>
     /// <remarks>
     /// <para>
     /// <strong>Soft Delete vs Hard Delete:</strong>
-    /// The behavior of this method depends on whether the entity implements <see cref="IDeletable{TKey}"/>:
+    /// The behavior of this method depends on whether the entity implements <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>:
     /// </para>
     /// <para>
     /// <strong>Soft Delete (entity implements IDeletable):</strong>

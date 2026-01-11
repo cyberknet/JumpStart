@@ -24,12 +24,12 @@ namespace JumpStart.Data;
 /// <remarks>
 /// <para>
 /// This class provides a simplified base for entity implementations by using Guid as the identifier type,
-/// removing the need for generic type parameters. It inherits from <see cref="Entity{T}"/> with Guid
-/// and implements <see cref="ISimpleEntity"/> to provide the standard entity contract.
+/// removing the need for generic type parameters. It inherits from <see cref="JumpStart.Data.Advanced.Entity{T}"/> with Guid
+/// and implements <see cref="JumpStart.Data.ISimpleEntity"/> to provide the standard entity contract.
 /// </para>
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
-/// Unlike the generic <see cref="Entity{T}"/> which requires specifying a type parameter, this class
+/// Unlike the generic <see cref="JumpStart.Data.Advanced.Entity{T}"/> which requires specifying a type parameter, this class
 /// uses Guid throughout. This simplifies inheritance and is recommended for new applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern ORM tools and databases handle Guid efficiently
@@ -49,18 +49,18 @@ namespace JumpStart.Data;
 /// - Building new applications with modern architecture
 /// - Guid identifiers are suitable for your domain
 /// - You want simplified inheritance without generic type parameters
-/// - No audit tracking is required (for audit tracking, use <see cref="Auditing.SimpleAuditableEntity"/>)
-/// - No naming is required (for naming, use <see cref="SimpleNamedEntity"/>)
+/// - No audit tracking is required (for audit tracking, use <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>)
+/// - No naming is required (for naming, use <see cref="JumpStart.Data.SimpleNamedEntity"/>)
 /// - Working with distributed systems or microservices
 /// - Database-agnostic design is desired
 /// </para>
 /// <para>
 /// <strong>Enhanced Base Classes:</strong>
 /// Consider these alternatives based on your requirements:
-/// - <see cref="SimpleNamedEntity"/> - Adds Name property
-/// - <see cref="Auditing.SimpleAuditableEntity"/> - Adds full audit tracking (creation, modification, deletion)
-/// - <see cref="Auditing.SimpleAuditableNamedEntity"/> - Combines naming and full audit tracking
-/// - <see cref="Entity{T}"/> - For custom key types (int, long, custom struct)
+/// - <see cref="JumpStart.Data.SimpleNamedEntity"/> - Adds Name property
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Adds full audit tracking (creation, modification, deletion)
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Combines naming and full audit tracking
+/// - <see cref="JumpStart.Data.Advanced.Entity{T}"/> - For custom key types (int, long, custom struct)
 /// </para>
 /// <para>
 /// <strong>Properties Provided:</strong>

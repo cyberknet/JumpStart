@@ -18,7 +18,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 
 /// <summary>
 /// Defines the contract for entities that track complete audit information including creation, modification, and soft deletion.
-/// This interface combines <see cref="ICreatable{T}"/>, <see cref="IModifiable{T}"/>, and <see cref="IDeletable{T}"/>
+/// This interface combines <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/>, <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/>, and <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/>
 /// to provide comprehensive audit trail capabilities.
 /// </summary>
 /// <typeparam name="T">The type of the user identifier. Must be a value type (struct) such as int, long, or Guid.</typeparam>
@@ -26,9 +26,9 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <para>
 /// This interface is the root contract for full audit tracking in the JumpStart framework. It combines
 /// three specialized audit interfaces to track the complete lifecycle of an entity:
-/// - <see cref="ICreatable{T}"/> - Tracks who created the entity and when (CreatedById, CreatedOn)
-/// - <see cref="IModifiable{T}"/> - Tracks who last modified the entity and when (ModifiedById, ModifiedOn)
-/// - <see cref="IDeletable{T}"/> - Tracks who deleted the entity and when for soft deletes (DeletedById, DeletedOn)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/> - Tracks who created the entity and when (CreatedById, CreatedOn)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/> - Tracks who last modified the entity and when (ModifiedById, ModifiedOn)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/> - Tracks who deleted the entity and when for soft deletes (DeletedById, DeletedOn)
 /// </para>
 /// <para>
 /// <strong>Properties Defined by Inherited Interfaces:</strong>
@@ -54,7 +54,7 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// </para>
 /// <para>
 /// <strong>When to Use:</strong>
-/// Implement this interface (or inherit from <see cref="AuditableEntity{T}"/>) when:
+/// Implement this interface (or inherit from <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/>) when:
 /// - Compliance or regulatory requirements mandate tracking all changes
 /// - You need to know who created, modified, or deleted each entity
 /// - Soft delete functionality is required to preserve historical data
@@ -63,9 +63,9 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <para>
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, use one of these base classes:
-/// - <see cref="AuditableEntity{T}"/> - Full audit tracking with custom key types
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/> - Full audit tracking with custom key types
 /// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Full audit tracking with Guid identifiers (recommended)
-/// - <see cref="AuditableNamedEntity{T}"/> - Adds Name property to auditable entities
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/> - Adds Name property to auditable entities
 /// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Named auditable entities with Guid identifiers
 /// </para>
 /// <para>
@@ -229,10 +229,10 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="ICreatable{T}"/>
-/// <seealso cref="IModifiable{T}"/>
-/// <seealso cref="IDeletable{T}"/>
-/// <seealso cref="AuditableEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IModifiable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/>
 /// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>
 public interface IAuditable<T> 
     : ICreatable<T>, IModifiable<T>, IDeletable<T>

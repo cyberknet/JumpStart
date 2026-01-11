@@ -24,7 +24,7 @@ namespace JumpStart.Data.Advanced;
 /// <typeparam name="T">The type of the entity's primary key. Must be a value type (struct) such as int, long, or Guid.</typeparam>
 /// <remarks>
 /// <para>
-/// This class extends <see cref="Entity{T}"/> to add a Name property through the <see cref="INamed"/> interface.
+/// This class extends <see cref="JumpStart.Data.Advanced.Entity{T}"/> to add a Name property through the <see cref="JumpStart.Data.INamed"/> interface.
 /// It provides the foundation for entities that need both system-generated unique identifiers and
 /// human-readable names. This pattern is common in master data, lookup tables, categories, types,
 /// and other reference data where users need to identify entities by name.
@@ -50,10 +50,10 @@ namespace JumpStart.Data.Advanced;
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
 /// Consider these alternatives based on your requirements:
-/// - <see cref="SimpleNamedEntity"/> - Uses Guid identifiers (simpler, recommended for new apps)
+/// - <see cref="JumpStart.Data.SimpleNamedEntity"/> - Uses Guid identifiers (simpler, recommended for new apps)
 /// - <see cref="Auditing.AuditableNamedEntity{T}"/> - Adds full audit tracking to named entities
-/// - <see cref="SimpleAuditableNamedEntity"/> - Guid identifiers with naming and full audit tracking
-/// - <see cref="Entity{T}"/> - If naming is not required
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Guid identifiers with naming and full audit tracking
+/// - <see cref="JumpStart.Data.Advanced.Entity{T}"/> - If naming is not required
 /// </para>
 /// <para>
 /// <strong>Properties Provided:</strong>

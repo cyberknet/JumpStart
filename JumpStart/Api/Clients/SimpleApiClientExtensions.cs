@@ -47,7 +47,7 @@ public static class SimpleApiClientExtensions
     /// Registers a Refit-based API client for a Simple entity with Guid identifier.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
     /// Must be an interface decorated with Refit attributes.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
@@ -118,7 +118,7 @@ public static class SimpleApiClientExtensions
     /// Registers a Refit-based API client with additional HTTP client configuration.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
     /// <param name="baseAddress">The base address of the API endpoint.</param>
@@ -175,7 +175,7 @@ public static class SimpleApiClientExtensions
     /// Registers a Refit-based API client with full HTTP client builder configuration.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
     /// <param name="baseAddress">The base address of the API endpoint.</param>

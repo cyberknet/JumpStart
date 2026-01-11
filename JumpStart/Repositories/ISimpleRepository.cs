@@ -26,12 +26,12 @@ namespace JumpStart.Repositories;
 /// This is the recommended repository interface for most applications using the JumpStart framework.
 /// </summary>
 /// <typeparam name="TEntity">
-/// The entity type that implements <see cref="ISimpleEntity"/>. Must be a reference type (class).
+/// The entity type that implements <see cref="JumpStart.Data.ISimpleEntity"/>. Must be a reference type (class).
 /// </typeparam>
 /// <remarks>
 /// <para>
 /// This interface provides a simplified API for repository operations by inheriting from 
-/// <see cref="IRepository{TEntity, TKey}"/> with Guid as the fixed key type. This eliminates the need
+/// <see cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/> with Guid as the fixed key type. This eliminates the need
 /// for explicit generic key type parameters in most application code, making the API cleaner and easier to use.
 /// </para>
 /// <para>
@@ -45,8 +45,8 @@ namespace JumpStart.Repositories;
 /// <para>
 /// <strong>Key Features (inherited from IRepository):</strong>
 /// - Type-safe CRUD operations with Guid keys
-/// - Automatic soft-delete support for entities implementing <see cref="Data.Advanced.Auditing.IDeletable{TKey}"/>
-/// - Pagination and sorting through <see cref="QueryOptions{TEntity}"/>
+/// - Automatic soft-delete support for entities implementing <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{TKey}"/>
+/// - Pagination and sorting through <see cref="JumpStart.Repositories.QueryOptions{TEntity}"/>
 /// - Async/await pattern for all operations
 /// - Nullable return types for operations that may not find entities
 /// </para>
@@ -61,7 +61,7 @@ namespace JumpStart.Repositories;
 /// <para>
 /// <strong>When to Use IRepository Instead:</strong>
 /// For applications requiring non-Guid keys (int, long, custom structs), use 
-/// <see cref="IRepository{TEntity, TKey}"/> directly which provides the same functionality
+/// <see cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/> directly which provides the same functionality
 /// with explicit control over the key type.
 /// </para>
 /// <para>
@@ -308,11 +308,11 @@ namespace JumpStart.Repositories;
 /// // Notice: No need to specify Guid explicitly
 /// </code>
 /// </example>
-/// <seealso cref="IRepository{TEntity, TKey}"/>
-/// <seealso cref="ISimpleEntity"/>
-/// <seealso cref="SimpleEntity"/>
-/// <seealso cref="QueryOptions{TEntity}"/>
-/// <seealso cref="PagedResult{T}"/>
+/// <seealso cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/>
+/// <seealso cref="JumpStart.Data.ISimpleEntity"/>
+/// <seealso cref="JumpStart.Data.SimpleEntity"/>
+/// <seealso cref="JumpStart.Repositories.QueryOptions{TEntity}"/>
+/// <seealso cref="JumpStart.Repositories.PagedResult{T}"/>
 public interface ISimpleRepository<TEntity> : IRepository<TEntity, Guid>
     where TEntity : class, ISimpleEntity
 {

@@ -54,19 +54,19 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// <strong>Modification vs Creation:</strong>
 /// A null ModifiedOn value typically indicates the entity has been created but never modified since creation.
 /// This is normal and expected. Only after the first update operation will these fields be populated.
-/// The creation audit is tracked separately by <see cref="ICreatable{T}"/>.
+/// The creation audit is tracked separately by <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/>.
 /// </para>
 /// <para>
 /// <strong>Related Interfaces:</strong>
 /// This interface is often combined with other audit interfaces:
-/// - <see cref="ICreatable{T}"/> - Tracks who created the entity and when
-/// - <see cref="IDeletable{T}"/> - Tracks soft deletion (who/when deleted)
-/// - <see cref="IAuditable{T}"/> - Combines all three for complete audit tracking
+/// - <see cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/> - Tracks who created the entity and when
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/> - Tracks soft deletion (who/when deleted)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/> - Combines all three for complete audit tracking
 /// </para>
 /// <para>
 /// <strong>Implementation Options:</strong>
 /// Rather than implementing this interface directly, consider using:
-/// - <see cref="AuditableEntity{T}"/> - Implements IAuditable (includes IModifiable)
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/> - Implements IAuditable (includes IModifiable)
 /// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - For Guid-based identifiers
 /// - Custom base classes that implement IModifiable for specific scenarios
 /// </para>
@@ -273,10 +273,10 @@ namespace JumpStart.Data.Advanced.Auditing;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="ICreatable{T}"/>
-/// <seealso cref="IDeletable{T}"/>
-/// <seealso cref="IAuditable{T}"/>
-/// <seealso cref="AuditableEntity{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.ICreatable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IDeletable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/>
 public interface IModifiable<T> where T : struct
 {
     /// <summary>

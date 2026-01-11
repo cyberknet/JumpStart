@@ -21,7 +21,7 @@ namespace JumpStart.Api.Clients.Advanced;
 /// <remarks>
 /// <para>
 /// This class provides a simplified query options type without the generic entity parameter
-/// found in <see cref="Repositories.QueryOptions{TEntity}"/>. It's suitable for API client scenarios where
+/// found in <see cref="JumpStart.Repositories.QueryOptions{TEntity}"/>. It's suitable for API client scenarios where
 /// the entity type is not needed for query construction.
 /// </para>
 /// <para>

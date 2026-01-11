@@ -26,7 +26,7 @@ namespace JumpStart.Api.DTOs;
 /// <para>
 /// This class simplifies DTO creation by fixing the key type to Guid, eliminating the need
 /// for generic type parameters in the most common scenario. It inherits from
-/// <see cref="EntityDto{TKey}"/> with TKey set to Guid, providing all the functionality
+/// <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/> with TKey set to Guid, providing all the functionality
 /// of the advanced DTO system with a cleaner, simpler syntax.
 /// </para>
 /// <para>
@@ -40,8 +40,8 @@ namespace JumpStart.Api.DTOs;
 /// </para>
 /// <para>
 /// <strong>Inheritance Hierarchy:</strong>
-/// - Inherits from <see cref="EntityDto{TKey}"/> with TKey = Guid
-/// - Implements <see cref="IDto"/> (through EntityDto)
+/// - Inherits from <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/> with TKey = Guid
+/// - Implements <see cref="JumpStart.Api.DTOs.IDto"/> (through EntityDto)
 /// - Provides Id property of type Guid
 /// - Can be extended by concrete DTOs or auditable DTOs
 /// </para>
@@ -50,14 +50,14 @@ namespace JumpStart.Api.DTOs;
 /// Use SimpleEntityDto when:
 /// - Entities use Guid identifiers (recommended for new applications)
 /// - Simplified API without generic type parameters is preferred
-/// - No audit tracking is needed (use <see cref="SimpleAuditableEntityDto"/> for audit)
+/// - No audit tracking is needed (use <see cref="JumpStart.Api.DTOs.SimpleAuditableEntityDto"/> for audit)
 /// - Standard CRUD operations are sufficient
 /// </para>
 /// <para>
 /// <strong>When to Use Alternatives:</strong>
-/// - Use <see cref="SimpleAuditableEntityDto"/> if audit tracking is required (most common)
-/// - Use <see cref="EntityDto{TKey}"/> for custom key types (int, long, custom structs)
-/// - Use <see cref="Advanced.AuditableEntityDto{TKey}"/> for custom keys with audit tracking
+/// - Use <see cref="JumpStart.Api.DTOs.SimpleAuditableEntityDto"/> if audit tracking is required (most common)
+/// - Use <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/> for custom key types (int, long, custom structs)
+/// - Use <see cref="JumpStart.Api.DTOs.Advanced.AuditableEntityDto{TKey}"/> for custom keys with audit tracking
 /// </para>
 /// </remarks>
 /// <example>
@@ -125,9 +125,9 @@ namespace JumpStart.Api.DTOs;
 /// };
 /// </code>
 /// </example>
-/// <seealso cref="EntityDto{TKey}"/>
-/// <seealso cref="SimpleAuditableEntityDto"/>
-/// <seealso cref="IDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/>
+/// <seealso cref="JumpStart.Api.DTOs.SimpleAuditableEntityDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.IDto"/>
 public abstract class SimpleEntityDto : EntityDto<Guid>
 {
 }

@@ -119,8 +119,8 @@ namespace JumpStart.Extensions;
 /// });
 /// </code>
 /// </example>
-/// <seealso cref="JumpStartServiceCollectionExtensions"/>
-/// <seealso cref="ISimpleUserContext"/>
+/// <seealso cref="Microsoft.Extensions.DependencyInjection.JumpStartServiceCollectionExtensions"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleUserContext"/>
 public class JumpStartOptions
 {
     private readonly IServiceCollection _services;
@@ -194,7 +194,7 @@ public class JumpStartOptions
     /// </summary>
     /// <typeparam name="TUserContext">
     /// The user context implementation type that provides the current user's ID.
-    /// Must implement <see cref="ISimpleUserContext"/>.
+    /// Must implement <see cref="JumpStart.Repositories.ISimpleUserContext"/>.
     /// </typeparam>
     /// <returns>The options instance for method chaining.</returns>
     /// <remarks>

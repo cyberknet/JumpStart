@@ -24,7 +24,7 @@ namespace JumpStart.Api.DTOs.Advanced;
 /// <remarks>
 /// <para>
 /// This is the base class for all advanced DTOs in the JumpStart framework that use custom key types.
-/// It implements <see cref="IDto"/> and provides the essential Id property required for entity identification.
+/// It implements <see cref="JumpStart.Api.DTOs.IDto"/> and provides the essential Id property required for entity identification.
 /// </para>
 /// <para>
 /// The generic TKey parameter allows flexibility in choosing the identifier type:
@@ -35,12 +35,12 @@ namespace JumpStart.Api.DTOs.Advanced;
 /// </para>
 /// <para>
 /// For entities with Guid identifiers (the most common scenario in modern applications),
-/// use <see cref="SimpleEntityDto"/> instead, which provides a simpler interface without
+/// use <see cref="JumpStart.Api.DTOs.SimpleEntityDto"/> instead, which provides a simpler interface without
 /// the generic key parameter.
 /// </para>
 /// <para>
 /// Derived classes should add additional properties specific to their entity type.
-/// For entities requiring audit information, inherit from <see cref="AuditableEntityDto{TKey}"/> instead.
+/// For entities requiring audit information, inherit from <see cref="JumpStart.Api.DTOs.Advanced.AuditableEntityDto{TKey}"/> instead.
 /// </para>
 /// </remarks>
 /// <example>
@@ -72,9 +72,9 @@ namespace JumpStart.Api.DTOs.Advanced;
 /// // }
 /// </code>
 /// </example>
-/// <seealso cref="IDto"/>
-/// <seealso cref="SimpleEntityDto"/>
-/// <seealso cref="AuditableEntityDto{TKey}"/>
+/// <seealso cref="JumpStart.Api.DTOs.IDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.SimpleEntityDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.Advanced.AuditableEntityDto{TKey}"/>
 public abstract class EntityDto<TKey> : IDto where TKey : struct
 {
     /// <summary>

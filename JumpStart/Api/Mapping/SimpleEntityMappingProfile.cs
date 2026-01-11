@@ -24,14 +24,14 @@ namespace JumpStart.Api.Mapping;
 /// Simplifies the most common scenario by fixing the key type to Guid.
 /// This is the recommended base profile for most applications using the JumpStart framework.
 /// </summary>
-/// <typeparam name="TEntity">The entity type. Must implement <see cref="ISimpleEntity"/> (entities with Guid identifiers).</typeparam>
-/// <typeparam name="TDto">The DTO type for read operations. Must inherit from <see cref="SimpleEntityDto"/>.</typeparam>
-/// <typeparam name="TCreateDto">The DTO type for create operations. Must implement <see cref="ICreateDto"/>.</typeparam>
-/// <typeparam name="TUpdateDto">The DTO type for update operations. Must implement <see cref="IUpdateDto{Guid}"/>.</typeparam>
+/// <typeparam name="TEntity">The entity type. Must implement <see cref="JumpStart.Data.ISimpleEntity"/> (entities with Guid identifiers).</typeparam>
+/// <typeparam name="TDto">The DTO type for read operations. Must inherit from <see cref="JumpStart.Api.DTOs.SimpleEntityDto"/>.</typeparam>
+/// <typeparam name="TCreateDto">The DTO type for create operations. Must implement <see cref="JumpStart.Api.DTOs.ICreateDto"/>.</typeparam>
+/// <typeparam name="TUpdateDto">The DTO type for update operations. Must implement <see cref="JumpStart.Api.DTOs.IUpdateDto{Guid}"/>.</typeparam>
 /// <remarks>
 /// <para>
 /// This profile simplifies AutoMapper configuration for the most common scenario: entities with Guid identifiers.
-/// It inherits from <see cref="EntityMappingProfile{TEntity, TKey, TDto, TCreateDto, TUpdateDto}"/> with TKey
+/// It inherits from <see cref="JumpStart.Api.Mapping.Advanced.EntityMappingProfile{TEntity, TKey, TDto, TCreateDto, TUpdateDto}"/> with TKey
 /// fixed to Guid, reducing the number of generic parameters and providing a cleaner API.
 /// </para>
 /// <para>
@@ -51,14 +51,14 @@ namespace JumpStart.Api.Mapping;
 /// </para>
 /// <para>
 /// <strong>Audit Field Handling:</strong>
-/// If your entity implements <see cref="Data.Advanced.Auditing.IAuditable{T}"/> or inherits from
+/// If your entity implements <see cref="JumpStart.Data.Advanced.Auditing.IAuditable{T}"/> or inherits from
 /// <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/>, audit fields (CreatedById, CreatedOn, ModifiedById, ModifiedOn,
 /// DeletedById, DeletedOn) are automatically excluded from create and update mappings. These fields
 /// are managed by the repository layer based on the current user context.
 /// </para>
 /// <para>
 /// <strong>Extensibility:</strong>
-/// Override <see cref="EntityMappingProfile{TEntity, TKey, TDto, TCreateDto, TUpdateDto}.ConfigureAdditionalMappings"/>
+/// Override <see cref="JumpStart.Api.Mapping.Advanced.EntityMappingProfile{TEntity, TKey, TDto, TCreateDto, TUpdateDto}.ConfigureAdditionalMappings"/>
 /// to add custom mappings, calculated fields, nested object mappings, or conditional logic.
 /// </para>
 /// </remarks>
@@ -205,9 +205,9 @@ namespace JumpStart.Api.Mapping;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="EntityMappingProfile{TEntity, TKey, TDto, TCreateDto, TUpdateDto}"/>
-/// <seealso cref="ISimpleEntity"/>
-/// <seealso cref="SimpleEntityDto"/>
+/// <seealso cref="JumpStart.Api.Mapping.Advanced.EntityMappingProfile{TEntity, TKey, TDto, TCreateDto, TUpdateDto}"/>
+/// <seealso cref="JumpStart.Data.ISimpleEntity"/>
+/// <seealso cref="JumpStart.Api.DTOs.SimpleEntityDto"/>
 public abstract class SimpleEntityMappingProfile<TEntity, TDto, TCreateDto, TUpdateDto> 
     : EntityMappingProfile<TEntity, Guid, TDto, TCreateDto, TUpdateDto>
     where TEntity : class, ISimpleEntity

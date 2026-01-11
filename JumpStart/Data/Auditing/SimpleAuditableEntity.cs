@@ -22,8 +22,8 @@ namespace JumpStart.Data.Auditing;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This class provides comprehensive audit trail functionality by implementing <see cref="ISimpleAuditable"/>,
-/// which combines <see cref="ISimpleCreatable"/>, <see cref="ISimpleModifiable"/>, and <see cref="ISimpleDeletable"/>.
+/// This class provides comprehensive audit trail functionality by implementing <see cref="JumpStart.Data.Auditing.ISimpleAuditable"/>,
+/// which combines <see cref="JumpStart.Data.Auditing.ISimpleCreatable"/>, <see cref="JumpStart.Data.Auditing.ISimpleModifiable"/>, and <see cref="JumpStart.Data.Auditing.ISimpleDeletable"/>.
 /// It tracks the complete lifecycle of an entity:
 /// - Creation: Who created the entity and when (CreatedById, CreatedOn)
 /// - Modification: Who last modified the entity and when (ModifiedById, ModifiedOn)
@@ -32,7 +32,7 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
 /// This class uses Guid for both entity IDs and user identifiers, simplifying the API compared to the
-/// generic <see cref="Advanced.Auditing.AuditableEntity{T}"/>. This is the recommended approach for new
+/// generic <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/>. This is the recommended approach for new
 /// applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern identity systems (ASP.NET Core Identity) use Guid by default
@@ -41,13 +41,13 @@ namespace JumpStart.Data.Auditing;
 /// </para>
 /// <para>
 /// <strong>Inheritance Hierarchy:</strong>
-/// Inherits from <see cref="SimpleEntity"/> (which provides Id as Guid) and implements <see cref="ISimpleAuditable"/>.
+/// Inherits from <see cref="JumpStart.Data.SimpleEntity"/> (which provides Id as Guid) and implements <see cref="JumpStart.Data.Auditing.ISimpleAuditable"/>.
 /// All six audit properties are defined in this class and automatically managed by the repository layer.
 /// </para>
 /// <para>
 /// <strong>Automatic Population:</strong>
-/// All audit fields are automatically populated by repository implementations (such as <see cref="Repositories.SimpleRepository{TEntity}"/>)
-/// when configured with an <see cref="Repositories.ISimpleUserContext"/>:
+/// All audit fields are automatically populated by repository implementations (such as <see cref="JumpStart.Repositories.SimpleRepository{TEntity}"/>)
+/// when configured with an <see cref="JumpStart.Repositories.ISimpleUserContext"/>:
 /// - CreatedById and CreatedOn: Set during AddAsync operations
 /// - ModifiedById and ModifiedOn: Updated during UpdateAsync operations
 /// - DeletedById and DeletedOn: Set during soft delete operations
@@ -76,10 +76,10 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
 /// Consider these alternatives based on your requirements:
-/// - <see cref="SimpleEntity"/> - If no audit tracking is needed
-/// - <see cref="SimpleNamedEntity"/> - Adds Name property without audit tracking
-/// - <see cref="SimpleAuditableNamedEntity"/> - Adds Name property with full audit tracking
-/// - <see cref="Advanced.Auditing.AuditableEntity{T}"/> - For custom key types (int, long, custom struct)
+/// - <see cref="JumpStart.Data.SimpleEntity"/> - If no audit tracking is needed
+/// - <see cref="JumpStart.Data.SimpleNamedEntity"/> - Adds Name property without audit tracking
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Adds Name property with full audit tracking
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableEntity{T}"/> - For custom key types (int, long, custom struct)
 /// </para>
 /// </remarks>
 /// <example>
@@ -260,7 +260,7 @@ public abstract class SimpleAuditableEntity : SimpleEntity, ISimpleAuditable
     /// </value>
     /// <remarks>
     /// This property is required and is automatically populated by the repository
-    /// when an <see cref="Repositories.ISimpleUserContext"/> is available.
+    /// when an <see cref="JumpStart.Repositories.ISimpleUserContext"/> is available.
     /// </remarks>
     public Guid CreatedById { get; set; }
 
@@ -287,7 +287,7 @@ public abstract class SimpleAuditableEntity : SimpleEntity, ISimpleAuditable
     /// </value>
     /// <remarks>
     /// This property is null when the entity has never been modified after creation.
-    /// Automatically populated by the repository when an <see cref="Repositories.ISimpleUserContext"/> is available.
+    /// Automatically populated by the repository when an <see cref="JumpStart.Repositories.ISimpleUserContext"/> is available.
     /// </remarks>
     public Guid? ModifiedById { get; set; }
 
@@ -321,7 +321,7 @@ public abstract class SimpleAuditableEntity : SimpleEntity, ISimpleAuditable
     /// </para>
     /// <para>
     /// Soft deletion allows entities to be recovered and maintains referential integrity.
-    /// Automatically populated by the repository when an <see cref="Repositories.ISimpleUserContext"/> is available.
+    /// Automatically populated by the repository when an <see cref="JumpStart.Repositories.ISimpleUserContext"/> is available.
     /// </para>
     /// </remarks>
     public Guid? DeletedById { get; set; }

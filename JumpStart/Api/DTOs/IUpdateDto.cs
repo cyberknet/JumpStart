@@ -22,8 +22,8 @@ namespace JumpStart.Api.DTOs;
 /// <typeparam name="TKey">The type of the entity identifier. Must be a value type (struct) such as int, long, or Guid.</typeparam>
 /// <remarks>
 /// <para>
-/// This interface extends <see cref="IDto"/> to identify DTOs specifically designed for
-/// entity update operations. Unlike <see cref="ICreateDto"/>, update DTOs must include
+/// This interface extends <see cref="JumpStart.Api.DTOs.IDto"/> to identify DTOs specifically designed for
+/// entity update operations. Unlike <see cref="JumpStart.Api.DTOs.ICreateDto"/>, update DTOs must include
 /// the Id property to identify which entity to update.
 /// </para>
 /// <para>
@@ -136,8 +136,8 @@ namespace JumpStart.Api.DTOs;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IDto"/>
-/// <seealso cref="ICreateDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.IDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.ICreateDto"/>
 public interface IUpdateDto<TKey> : IDto where TKey : struct
 {
     /// <summary>

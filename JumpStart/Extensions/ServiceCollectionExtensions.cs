@@ -44,7 +44,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <para>
 /// <strong>Supported Repository Interfaces:</strong>
 /// The framework automatically discovers and registers implementations of:
-/// - <see cref="ISimpleRepository{TEntity}"/> - Simple Guid-based repositories
+/// - <see cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/> - Simple Guid-based repositories
 /// - <see cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/> - Generic repositories with custom key types
 /// </para>
 /// </remarks>

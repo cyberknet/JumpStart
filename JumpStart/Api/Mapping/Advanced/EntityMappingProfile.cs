@@ -24,11 +24,11 @@ namespace JumpStart.Api.Mapping.Advanced;
 /// Base AutoMapper profile for mapping between entities and DTOs with custom key types.
 /// Provides common mappings for entity base classes and automatically handles audit field exclusions.
 /// </summary>
-/// <typeparam name="TEntity">The entity type. Must implement <see cref="IEntity{TKey}"/>.</typeparam>
+/// <typeparam name="TEntity">The entity type. Must implement <see cref="JumpStart.Data.Advanced.IEntity{TKey}"/>.</typeparam>
 /// <typeparam name="TKey">The entity identifier type. Must be a value type (struct).</typeparam>
-/// <typeparam name="TDto">The DTO type for read operations. Must inherit from <see cref="EntityDto{TKey}"/>.</typeparam>
-/// <typeparam name="TCreateDto">The DTO type for create operations. Must implement <see cref="ICreateDto"/>.</typeparam>
-/// <typeparam name="TUpdateDto">The DTO type for update operations. Must implement <see cref="IUpdateDto{TKey}"/>.</typeparam>
+/// <typeparam name="TDto">The DTO type for read operations. Must inherit from <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/>.</typeparam>
+/// <typeparam name="TCreateDto">The DTO type for create operations. Must implement <see cref="JumpStart.Api.DTOs.ICreateDto"/>.</typeparam>
+/// <typeparam name="TUpdateDto">The DTO type for update operations. Must implement <see cref="JumpStart.Api.DTOs.IUpdateDto{TKey}"/>.</typeparam>
 /// <remarks>
 /// <para>
 /// This base profile provides standard mappings for CRUD operations while following best practices:
@@ -38,7 +38,7 @@ namespace JumpStart.Api.Mapping.Advanced;
 /// </para>
 /// <para>
 /// <strong>Automatic Audit Field Handling:</strong>
-/// If the entity implements <see cref="IAuditable{TKey}"/>, the profile automatically ignores
+/// If the entity implements <see cref="JumpStart.Data.Advanced.Auditing.IAuditable{TKey}"/>, the profile automatically ignores
 /// audit fields during mapping from create and update DTOs. This prevents clients from setting:
 /// - CreatedById, CreatedOn (managed during creation)
 /// - ModifiedById, ModifiedOn (managed during updates)
@@ -141,8 +141,8 @@ namespace JumpStart.Api.Mapping.Advanced;
 /// </code>
 /// </example>
 /// <seealso cref="Profile"/>
-/// <seealso cref="IEntity{TKey}"/>
-/// <seealso cref="IAuditable{TKey}"/>
+/// <seealso cref="JumpStart.Data.Advanced.IEntity{TKey}"/>
+/// <seealso cref="JumpStart.Data.Advanced.Auditing.IAuditable{TKey}"/>
 public abstract class EntityMappingProfile<TEntity, TKey, TDto, TCreateDto, TUpdateDto> : Profile
     where TEntity : class, IEntity<TKey>
     where TKey : struct
@@ -151,7 +151,7 @@ public abstract class EntityMappingProfile<TEntity, TKey, TDto, TCreateDto, TUpd
     where TUpdateDto : IUpdateDto<TKey>
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="EntityMappingProfile{TEntity, TKey, TDto, TCreateDto, TUpdateDto}"/> class.
+    /// Initializes a new instance of the <see cref="JumpStart.Api.Mapping.Advanced.EntityMappingProfile{TEntity, TKey, TDto, TCreateDto, TUpdateDto}"/> class.
     /// Configures standard CRUD mappings and automatically handles audit field exclusions.
     /// </summary>
     /// <remarks>

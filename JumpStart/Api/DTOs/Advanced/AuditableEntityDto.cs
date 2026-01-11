@@ -23,7 +23,7 @@ namespace JumpStart.Api.DTOs.Advanced;
 /// <typeparam name="TKey">The type of the entity and user identifiers. Must be a value type (struct) such as int, long, or Guid.</typeparam>
 /// <remarks>
 /// <para>
-/// This DTO extends <see cref="EntityDto{TKey}"/> to include audit trail information for entities
+/// This DTO extends <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/> to include audit trail information for entities
 /// that track who created and modified them, and when those actions occurred.
 /// </para>
 /// <para>
@@ -60,7 +60,7 @@ namespace JumpStart.Api.DTOs.Advanced;
 /// // }
 /// </code>
 /// </example>
-/// <seealso cref="EntityDto{TKey}"/>
+/// <seealso cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/>
 /// <seealso cref="JumpStart.Api.DTOs.SimpleAuditableEntityDto"/>
 public abstract class AuditableEntityDto<TKey> : EntityDto<TKey> where TKey : struct
 {

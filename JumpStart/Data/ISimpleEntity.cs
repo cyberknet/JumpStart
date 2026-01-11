@@ -23,13 +23,13 @@ namespace JumpStart.Data;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This interface extends <see cref="IEntity{T}"/> with Guid as the identifier type, providing
+/// This interface extends <see cref="JumpStart.Data.Advanced.IEntity{T}"/> with Guid as the identifier type, providing
 /// a simplified API for the common case of Guid-based entity identification. It serves as a marker
 /// interface with no additional members beyond the Id property inherited from IEntity{Guid}.
 /// </para>
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
-/// Unlike the generic <see cref="IEntity{T}"/> which requires specifying a type parameter, this interface
+/// Unlike the generic <see cref="JumpStart.Data.Advanced.IEntity{T}"/> which requires specifying a type parameter, this interface
 /// uses Guid throughout. This simplifies the API and is recommended for new applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern ORM tools and databases handle Guid efficiently
@@ -55,15 +55,15 @@ namespace JumpStart.Data;
 /// <para>
 /// <strong>Common Implementations:</strong>
 /// Rather than implementing this interface directly, consider using:
-/// - <see cref="SimpleEntity"/> - Basic entity with Guid identifier
-/// - <see cref="SimpleNamedEntity"/> - Adds Name property
-/// - <see cref="Auditing.SimpleAuditableEntity"/> - Adds full audit tracking
-/// - <see cref="Auditing.SimpleAuditableNamedEntity"/> - Combines naming and audit tracking
+/// - <see cref="JumpStart.Data.SimpleEntity"/> - Basic entity with Guid identifier
+/// - <see cref="JumpStart.Data.SimpleNamedEntity"/> - Adds Name property
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Adds full audit tracking
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Combines naming and audit tracking
 /// </para>
 /// <para>
 /// <strong>Alternative for Custom Key Types:</strong>
 /// If your application requires custom key types (int, long, custom struct) instead of Guid, use the
-/// Advanced namespace generic interface <see cref="IEntity{T}"/> directly.
+/// Advanced namespace generic interface <see cref="JumpStart.Data.Advanced.IEntity{T}"/> directly.
 /// </para>
 /// <para>
 /// <strong>Marker Interface Pattern:</strong>

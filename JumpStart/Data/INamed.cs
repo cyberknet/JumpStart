@@ -38,10 +38,10 @@ namespace JumpStart.Data;
 /// <para>
 /// <strong>Common Implementations:</strong>
 /// Rather than implementing this interface directly, consider using these base classes:
-/// - <see cref="SimpleNamedEntity"/> - Basic named entity with Guid identifier
-/// - <see cref="Advanced.NamedEntity{T}"/> - Named entity with custom key type
-/// - <see cref="Auditing.SimpleAuditableNamedEntity"/> - Named entity with full audit tracking
-/// - <see cref="Advanced.Auditing.AuditableNamedEntity{T}"/> - Named entity with custom key type and audit
+/// - <see cref="JumpStart.Data.SimpleNamedEntity"/> - Basic named entity with Guid identifier
+/// - <see cref="JumpStart.Data.Advanced.NamedEntity{T}"/> - Named entity with custom key type
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Named entity with full audit tracking
+/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/> - Named entity with custom key type and audit
 /// </para>
 /// <para>
 /// <strong>Validation Considerations:</strong>

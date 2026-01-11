@@ -20,7 +20,7 @@ namespace JumpStart.Services.Authentication;
 /// HTTP message handler that adds JWT bearer token authentication to outgoing API requests.
 /// </summary>
 /// <remarks>
-/// This handler retrieves the JWT token from the <see cref="ITokenStore"/> and adds it
+/// This handler retrieves the JWT token from the <see cref="JumpStart.Services.Authentication.ITokenStore"/> and adds it
 /// to the Authorization header of each outgoing request. If no token is available,
 /// the request proceeds without authentication.
 /// </remarks>

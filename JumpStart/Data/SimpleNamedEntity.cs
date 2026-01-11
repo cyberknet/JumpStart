@@ -23,8 +23,8 @@ namespace JumpStart.Data;
 /// <remarks>
 /// <para>
 /// This class combines two key aspects of entity management:
-/// - Entity identification with Guid (from <see cref="SimpleEntity"/>)
-/// - Human-readable naming (implements <see cref="INamed"/>)
+/// - Entity identification with Guid (from <see cref="JumpStart.Data.SimpleEntity"/>)
+/// - Human-readable naming (implements <see cref="JumpStart.Data.INamed"/>)
 /// </para>
 /// <para>
 /// It is ideal for master data, lookup tables, categories, and reference data that need both
@@ -32,8 +32,8 @@ namespace JumpStart.Data;
 /// </para>
 /// <para>
 /// <strong>Inheritance Hierarchy:</strong>
-/// Inherits from <see cref="SimpleEntity"/> (which inherits from <see cref="Advanced.Entity{T}"/> with Guid)
-/// and implements <see cref="INamed"/>. This provides:
+/// Inherits from <see cref="JumpStart.Data.SimpleEntity"/> (which inherits from <see cref="JumpStart.Data.Advanced.Entity{T}"/> with Guid)
+/// and implements <see cref="JumpStart.Data.INamed"/>. This provides:
 /// - Id property (Guid) from SimpleEntity
 /// - Name property (string) from INamed
 /// Total of 2 properties.
@@ -41,7 +41,7 @@ namespace JumpStart.Data;
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
 /// This class uses Guid for entity IDs, simplifying the API compared to the generic
-/// <see cref="Advanced.NamedEntity{T}"/>. This is the recommended approach for new applications because:
+/// <see cref="JumpStart.Data.Advanced.NamedEntity{T}"/>. This is the recommended approach for new applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern identity systems use Guid by default
 /// - Distributed systems benefit from client-side Guid generation
@@ -52,7 +52,7 @@ namespace JumpStart.Data;
 /// Use this base class when your entities need:
 /// - Guid identifier (Id)
 /// - Human-readable name for display and search
-/// - No audit tracking (for audit tracking, use <see cref="Auditing.SimpleAuditableNamedEntity"/>)
+/// - No audit tracking (for audit tracking, use <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/>)
 /// - Simplified API without generic type parameters
 /// </para>
 /// <para>
@@ -67,10 +67,10 @@ namespace JumpStart.Data;
 /// <para>
 /// <strong>Alternative Base Classes:</strong>
 /// Consider these alternatives based on your requirements:
-/// - <see cref="SimpleEntity"/> - Entity with Guid Id without naming
-/// - <see cref="Auditing.SimpleAuditableEntity"/> - Entity with full audit tracking but no naming
-/// - <see cref="Auditing.SimpleAuditableNamedEntity"/> - Adds full audit tracking to named entities
-/// - <see cref="Advanced.NamedEntity{T}"/> - For custom key types (int, long, custom struct)
+/// - <see cref="JumpStart.Data.SimpleEntity"/> - Entity with Guid Id without naming
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableEntity"/> - Entity with full audit tracking but no naming
+/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Adds full audit tracking to named entities
+/// - <see cref="JumpStart.Data.Advanced.NamedEntity{T}"/> - For custom key types (int, long, custom struct)
 /// </para>
 /// </remarks>
 /// <example>

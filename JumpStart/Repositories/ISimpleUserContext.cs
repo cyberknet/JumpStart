@@ -25,7 +25,7 @@ namespace JumpStart.Repositories;
 /// <remarks>
 /// <para>
 /// This interface provides a simplified API for user context operations by inheriting from 
-/// <see cref="IUserContext{TKey}"/> with Guid as the fixed key type. This eliminates the need
+/// <see cref="JumpStart.Repositories.Advanced.IUserContext{TKey}"/> with Guid as the fixed key type. This eliminates the need
 /// for explicit generic key type parameters in most application code, making the API cleaner and easier to use.
 /// </para>
 /// <para>
@@ -64,7 +64,7 @@ namespace JumpStart.Repositories;
 /// <para>
 /// <strong>When to Use IUserContext Instead:</strong>
 /// For applications requiring non-Guid user keys (int, long, custom structs), use 
-/// <see cref="IUserContext{TKey}"/> directly which provides the same functionality
+/// <see cref="JumpStart.Repositories.Advanced.IUserContext{TKey}"/> directly which provides the same functionality
 /// with explicit control over the key type.
 /// </para>
 /// <para>
@@ -321,9 +321,9 @@ namespace JumpStart.Repositories;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="IUserContext{TKey}"/>
-/// <seealso cref="ISimpleRepository{TEntity}"/>
-/// <seealso cref="SimpleRepository{TEntity}"/>
+/// <seealso cref="JumpStart.Repositories.Advanced.IUserContext{TKey}"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/>
+/// <seealso cref="JumpStart.Repositories.SimpleRepository{TEntity}"/>
 public interface ISimpleUserContext : IUserContext<Guid>
 {
 }

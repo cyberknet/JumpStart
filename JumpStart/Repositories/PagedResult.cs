@@ -39,7 +39,7 @@ namespace JumpStart.Repositories;
 /// </para>
 /// <para>
 /// <strong>Usage Pattern:</strong>
-/// This class is typically returned by repository methods that accept <see cref="QueryOptions{TEntity}"/>
+/// This class is typically returned by repository methods that accept <see cref="JumpStart.Repositories.QueryOptions{TEntity}"/>
 /// for pagination parameters. It provides all the information needed to display paginated data and
 /// build pagination controls in the UI.
 /// </para>
@@ -210,9 +210,9 @@ namespace JumpStart.Repositories;
 /// });
 /// </code>
 /// </example>
-/// <seealso cref="QueryOptions{TEntity}"/>
-/// <seealso cref="IRepository{TEntity, TKey}"/>
-/// <seealso cref="ISimpleRepository{TEntity}"/>
+/// <seealso cref="JumpStart.Repositories.QueryOptions{TEntity}"/>
+/// <seealso cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/>
+/// <seealso cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/>
 public class PagedResult<T>
 {
     /// <summary>

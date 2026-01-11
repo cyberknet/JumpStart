@@ -29,7 +29,7 @@ namespace JumpStart.Data;
 /// </para>
 /// <para>
 /// <strong>Guid-Based Simplification:</strong>
-/// Unlike the generic <see JumpStart.Data.Advanced.IUser{T}/> which requires specifying a type parameter, this interface
+/// Unlike the generic <see cref="JumpStart.Data.Advanced.IUser{T}"/> which requires specifying a type parameter, this interface
 /// uses Guid throughout. This simplifies the API and is recommended for new applications because:
 /// - Guid provides global uniqueness without database coordination
 /// - Modern identity systems (ASP.NET Core Identity) use Guid by default
@@ -39,7 +39,7 @@ namespace JumpStart.Data;
 /// </para>
 /// <para>
 /// <strong>Properties Defined:</strong>
-/// Inherited from IUser{Guid} and IEntity{Guid}:
+/// Inherited from <see cref="IUser{Guid}"/> and <see cref="IEntity{Guid}"/>:
 /// - Id (Guid) - The unique identifier for the user
 /// This interface is a marker interface with no additional properties, relying on concrete
 /// implementations to add user-specific properties like Username, Email, etc.

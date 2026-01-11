@@ -1,0 +1,15 @@
+﻿/* Custom styles for JumpStart documentation */
+
+/* Logo size customization */
+.navbar-brand > img {
+    max-height: 40px; /* Change this value: smaller = smaller logo */
+    width: auto;
+    margin-right: 10px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .navbar-brand > img {
+        max-height: 30px;
+    }
+}

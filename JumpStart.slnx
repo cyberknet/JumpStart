@@ -20,6 +20,9 @@
   <Folder Name="/Documentation/images/">
     <File Path="docs/images/logo.svg" />
   </Folder>
+  <Folder Name="/Documentation/styles/">
+    <File Path="custom.css" />
+  </Folder>
   <Folder Name="/Governance/">
     <File Path="LICENSE.txt" />
     <File Path="README.md" />

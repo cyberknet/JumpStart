@@ -35,8 +35,7 @@
     "resource": [
       {
         "files": [
-          "images/**"
-        ],
+          "images/**"        ],
         "src": "docs"
       }
     ],
@@ -67,8 +66,8 @@
     "globalMetadata": {
       "_appTitle": "JumpStart Framework",
       "_appName": "JumpStart",
-      "_appLogoPath": "images/logo.png",
-      "_appFaviconPath": "images/favicon.ico",
+      "_appLogoPath": "images/logo.svg",
+      "_appFaviconPath": "images/logo.svg",
       "_enableSearch": true,
       "_enableNewTab": true,
       "_disableContribution": false,

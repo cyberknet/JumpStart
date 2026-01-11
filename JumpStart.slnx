@@ -28,6 +28,7 @@
     <File Path="docs/audit-tracking.md" />
     <File Path="docs/api-development.md" />
     <File Path="docs/authentication.md" />
+    <File Path="docs/logo.svg" />
     <File Path="docs/samples.md" />
     <File Path="docs/faq.md" />
     <File Path="docs/troubleshooting.md" />

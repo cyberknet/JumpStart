@@ -17,6 +17,9 @@
     <File Path="docs/how-to/pagination.md" />
     <File Path="docs/how-to/secure-endpoints.md" />
   </Folder>
+  <Folder Name="/Documentation/images/">
+    <File Path="docs/images/logo.svg" />
+  </Folder>
   <Folder Name="/Governance/">
     <File Path="LICENSE.txt" />
     <File Path="README.md" />
@@ -28,7 +31,6 @@
     <File Path="docs/audit-tracking.md" />
     <File Path="docs/api-development.md" />
     <File Path="docs/authentication.md" />
-    <File Path="docs/logo.svg" />
     <File Path="docs/samples.md" />
     <File Path="docs/faq.md" />
     <File Path="docs/troubleshooting.md" />

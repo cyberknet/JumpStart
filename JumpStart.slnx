@@ -8,6 +8,9 @@
   <Folder Name="/Documentation/architecture/adr/">
     <File Path="docs/architecture/adr/index.md" />
   </Folder>
+  <Folder Name="/Documentation/architecture/api/">
+    <File Path="docs/api/index_md.md" />
+  </Folder>
   <Folder Name="/Documentation/architecture/how-to/">
     <File Path="docs/how-to/custom-repository.md" />
     <File Path="docs/how-to/index.md" />

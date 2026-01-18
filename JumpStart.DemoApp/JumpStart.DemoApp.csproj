@@ -17,6 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<ProjectReference Include="..\JumpStart.DemoApp.Shared\JumpStart.DemoApp.Shared.csproj" />
 		<ProjectReference Include="..\JumpStart\JumpStart.csproj" />
 	</ItemGroup>
 

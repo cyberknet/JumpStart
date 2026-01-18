@@ -12,19 +12,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     {
     }
 
-    // Add DbSet for Product
-    public DbSet<Product> Products { get; set; }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        // Configure Product entity
-        modelBuilder.Entity<Product>(entity =>
-        {
-            entity.HasIndex(e => e.SKU).IsUnique();
-            entity.Property(e => e.Price).HasPrecision(18, 2);
-        });
 
         // Configure ApplicationUser if needed
         modelBuilder.Entity<ApplicationUser>(entity =>

@@ -204,6 +204,7 @@ public static class JumpStartServiceCollectionExtensions
     /// <summary>
     /// Discovers and registers repository implementations from specified assemblies.
     /// Scans for classes implementing ISimpleRepository or IRepository interfaces.
+    /// Registers the concrete class and all repository-related interfaces it implements.
     /// </summary>
     /// <param name="services">The service collection to add repositories to.</param>
     /// <param name="options">The JumpStart options containing assembly list and lifetime settings.</param>
@@ -215,30 +216,35 @@ public static class JumpStartServiceCollectionExtensions
 
         foreach (var assembly in assemblies)
         {
-            // Find all repository interface implementations
-            var repositoryTypes = assembly.GetTypes()
-                .Where(type => type.IsClass && !type.IsAbstract)
-                .Select(type => new
-                {
-                    Implementation = type,
-                    Interfaces = type.GetInterfaces()
-                        .Where(i => i.IsGenericType && IsRepositoryInterface(i))
-                        .ToList()
-                })
-                .Where(x => x.Interfaces.Any())
+            // Get all types in the assembly
+            var allTypes = assembly.GetTypes();
+            // find types that are classes and not abstract
+            var nonAbstractClasses = allTypes.Where(type => type.IsClass && !type.IsAbstract).ToList();
+
+            var repositoryTypes = nonAbstractClasses
+                .Where(type => type.GetInterfaces().Any(i => IsRepositoryInterface(i) || IsCustomRepositoryInterface(i)))
                 .ToList();
 
-            foreach (var repo in repositoryTypes)
+            foreach (var repoType in repositoryTypes)
             {
-                foreach (var @interface in repo.Interfaces)
-                {
-                    // Register with the specified lifetime
-                    var serviceDescriptor = new ServiceDescriptor(
-                        @interface,
-                        repo.Implementation,
-                        options.RepositoryLifetime);
+                // Get all interfaces that are repository-related
+                var repositoryInterfaces = repoType.GetInterfaces()
+                    .Where(i => IsRepositoryInterface(i) || IsCustomRepositoryInterface(i))
+                    .ToList();
 
-                    services.TryAdd(serviceDescriptor);
+                // Register the concrete implementation first
+                services.TryAdd(new ServiceDescriptor(
+                    repoType,
+                    repoType,
+                    options.RepositoryLifetime));
+
+                // Then register each interface to resolve to the same concrete instance
+                foreach (var @interface in repositoryInterfaces)
+                {
+                    services.TryAdd(new ServiceDescriptor(
+                        @interface,
+                        sp => sp.GetRequiredService(repoType),
+                        options.RepositoryLifetime));
                 }
             }
         }
@@ -252,6 +258,7 @@ public static class JumpStartServiceCollectionExtensions
     /// <returns><c>true</c> if the type is a repository interface; otherwise, <c>false</c>.</returns>
     private static bool IsRepositoryInterface(Type type)
     {
+        string name = type.Name;
         if (!type.IsGenericType)
             return false;
 
@@ -259,5 +266,20 @@ public static class JumpStartServiceCollectionExtensions
 
         return genericTypeDef == typeof(ISimpleRepository<>) ||
                genericTypeDef == typeof(JumpStart.Repositories.Advanced.IRepository<,>);
+    }
+
+    /// <summary>
+    /// Determines if a type is a custom repository interface that inherits from a JumpStart repository interface.
+    /// This catches interfaces like IProductRepository that extend ISimpleRepository{Product}.
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <returns><c>true</c> if the type is a custom repository interface; otherwise, <c>false</c>.</returns>
+    private static bool IsCustomRepositoryInterface(Type type)
+    {
+        if (!type.IsInterface)
+            return false;
+
+        // Check if any base interfaces are JumpStart repository interfaces
+        return type.GetInterfaces().Any(IsRepositoryInterface);
     }
 }

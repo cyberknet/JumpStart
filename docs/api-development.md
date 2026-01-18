@@ -833,3 +833,60 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
 ---
 
 **Need Help?** Check the [FAQ](faq.md) or [open an issue](https://github.com/cyberknet/JumpStart/issues).
+
+## Project Structure
+
+The demo application is split into three projects:
+
+### JumpStart.DemoApp (Blazor UI)
+- **Port:** https://localhost:7099
+- **Responsibilities:**
+  - Blazor Server components and pages
+  - ASP.NET Core Identity (user authentication)
+  - API client registration (Refit)
+  - JWT token management for API calls
+- **Database:** ApplicationDbContext (Identity tables only)
+
+### JumpStart.DemoApp.Api (Web API)
+- **Port:** https://localhost:7030
+- **Responsibilities:**
+  - RESTful API controllers
+  - Business logic and repositories
+  - Entity Framework DbContext (business entities)
+  - AutoMapper configuration
+  - JWT authentication validation
+- **Database:** ApiDbContext (Product tables)
+
+### JumpStart.DemoApp.Shared (Contracts)
+- **Responsibilities:**
+  - DTOs shared between UI and API
+  - Refit API client interfaces
+  - No runtime dependencies
+
+## Running the Demo
+
+You must run **both projects simultaneously**:
+
+1. **Start the API project first:**
+
+cd JumpStart.DemoApp.Api dotnet run
+
+API will be available at https://localhost:7030
+
+2. **Start the UI project:**
+
+cd JumpStart.DemoApp dotnet run
+
+UI will be available at https://localhost:7099
+
+### Visual Studio
+- Right-click solution →**Set Startup Projects**
+- Select **Multiple startup projects**
+- Set both `JumpStart.DemoApp` and `JumpStart.DemoApp.Api` to **Start**
+
+## Configuration
+
+### API Project (appsettings.json)
+{ "ConnectionStrings": { "DefaultConnection": "Server=(localdb)\mssqllocaldb;Database=JumpStartDemo;..." }, "JwtSettings": { "SecretKey": "YourSecretKey...", "Issuer": "JumpStartDemoApi", "Audience": "JumpStartDemoApp" }, "CorsSettings": { "BlazorServerUrl": "https://localhost:7099" } }
+### UI Project (appsettings.json)
+{ "ConnectionStrings": { "DefaultConnection": "Server=(localdb)\mssqllocaldb;Database=JumpStartDemo;..." }, "ApiBaseUrl": "https://localhost:7030" }

@@ -265,19 +265,7 @@ public class MyEntity { }
 
 JumpStart is licensed under the **GNU General Public License v3.0**. See [LICENSE.txt](LICENSE.txt) for details.
 
-This means you can:
-- ? Use commercially
-- ? Modify the code
-- ? Distribute
-- ? Use privately
-
-With the requirement that:
-- ?? Disclose source
-- ?? License and copyright notice
-- ?? Same license
-- ?? State changes
-
-## ?? Links
+## Links
 
 - **Documentation:** [docs/index.md](docs/index.md)
 - **GitHub:** https://github.com/cyberknet/JumpStart
@@ -355,7 +343,52 @@ public class ProductsController : SimpleApiControllerBase<
 }
 ```
 
-## ?? Learning Resources
+## Demo Application Architecture
+
+The demo consists of three projects demonstrating a realistic microservices-style architecture:
+```mermaid:
+architecture-beta
+    service web(frontend)[Web Front End]
+    service api(server)[API Back End]
+    service shared(database)[Shared Project]
+
+    web:R --> L:api
+    web:B -- T:shared
+    api:B -- T:shared
+```
+
+### Web Front End
+
+- Port: 7099
+- Blazor Server Pages
+- Identity Authentication
+- API Client (Refit)
+- JWT Token Management
+
+### Api Back End
+
+- - Port: 7030
+- REST Controllers
+- Repositories
+- Business Logic
+- JWT Validation
+- Swagger Documentation
+- CORS Configuration
+
+### Shared Project
+
+- DTOs
+- API Client Interfaces
+
+### Running the Demo
+
+1. Set **multiple startup projects** in Visual Studio
+2. Or run both projects in separate terminals:
+   - Terminal 1: `cd JumpStart.DemoApp.Api && dotnet run`
+   - Terminal 2: `cd JumpStart.DemoApp && dotnet run`
+3. Navigate to https://localhost:7099
+
+## Learning Resources
 
 **New to JumpStart?** Follow this learning path:
 
@@ -374,18 +407,13 @@ public class ProductsController : SimpleApiControllerBase<
 - [Troubleshooting](docs/troubleshooting.md) - Common issues
 - [GitHub Discussions](https://github.com/cyberknet/JumpStart/discussions) - Ask the community
 
-## ? Star History
+## Star History
 
-If you find JumpStart useful, please consider giving it a star! ?
+If you find JumpStart useful, please consider giving it a star!
 
-## ?? Acknowledgments
+## Contributors
 
-Built with ?? by [Scott Blomfield](https://github.com/cyberknet) and contributors.
-
-Special thanks to:
-- The ASP.NET Core team for an amazing framework
-- The Entity Framework Core team for excellent ORM capabilities
-- The open-source community for inspiration and feedback
+[Scott Blomfield](https://github.com/cyberknet)
 
 ---
 

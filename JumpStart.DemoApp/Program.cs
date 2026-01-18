@@ -1,3 +1,17 @@
+// Copyright ©2026 Scott Blomfield
+/*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>. 
+ */
+
 using JumpStart.Api.Clients;
 using JumpStart.DemoApp.Clients;
 using JumpStart.DemoApp.Components;
@@ -11,58 +25,26 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// ============================================
+// 1. BLAZOR COMPONENTS
+// ============================================
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+// ============================================
+// 2. DATABASE CONTEXT (Identity only)
+// ============================================
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-// Add JumpStart with DbContext - combines DbContext registration and repository discovery
-builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
-    options => options.UseSqlServer(connectionString),
-    jumpStart =>
-    {
-        jumpStart.RegisterUserContext<BlazorUserContext>();
-        jumpStart.ScanAssembly(typeof(Program).Assembly);
-    });
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// Add AutoMapper with all profiles from DemoApp
-builder.Services.AddJumpStartAutoMapper(typeof(Program).Assembly);
-
 // ============================================
-// JWT AUTHENTICATION SERVICES
+// 3. IDENTITY SERVICES
 // ============================================
-// Register JWT token service and token store for API authentication
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-builder.Services.AddScoped<ITokenStore, TokenStore>();
-builder.Services.AddTransient<JwtAuthenticationHandler>();
-
-// Add Controllers for API endpoints
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        // Configure JSON serialization for entities
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-    });
-
-// Add API Explorer and Swagger for development
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new() { Title = "JumpStart DemoApp API", Version = "v1" });
-});
-
-// Register API clients using Refit
-// The base address will be set dynamically based on the app URL
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7002";
-
-// Register API clients with JWT authentication handler
-builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
-    .AddHttpMessageHandler<JwtAuthenticationHandler>();
-
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
@@ -86,34 +68,53 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
+// ============================================
+// 4. JWT TOKEN SERVICES (for API calls)
+// ============================================
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ITokenStore, TokenStore>();
+builder.Services.AddTransient<JwtAuthenticationHandler>();
+
+// ============================================
+// 5. API CLIENT REGISTRATION
+// ============================================
+// Get the API base URL from configuration
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
+
+// Register API clients with JWT authentication handler
+builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
+    .AddHttpMessageHandler<JwtAuthenticationHandler>();
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ============================================
+// MIDDLEWARE PIPELINE
+// ============================================
+
+// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
-    app.UseSwagger();
-    app.UseSwaggerUI();
 }
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
 
+app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+// Map Blazor components
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Map API controllers
-app.MapControllers();
+// Authentication & Authorization
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Add additional endpoints required by the Identity /Account Razor components.
+// Add additional endpoints required by the Identity /Account Razor components
 app.MapAdditionalIdentityEndpoints();
 
 app.Run();

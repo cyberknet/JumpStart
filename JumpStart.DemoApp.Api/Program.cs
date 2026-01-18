@@ -14,14 +14,39 @@
 
 using System.Text;
 using JumpStart.DemoApp.Api.Infrastructure.Authentication;
+using JumpStart.DemoApp.Api.Data;
 using JumpStart.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ============================================
-// 1. JWT AUTHENTICATION CONFIGURATION
+// 1. DATABASE CONTEXT
+// ============================================
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+builder.Services.AddDbContext<ApiDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// ============================================
+// 2. JUMPSTART FRAMEWORK SERVICES
+// ============================================
+builder.Services.AddJumpStart(jumpStart =>
+{
+    jumpStart.RegisterUserContext<ApiUserContext>();
+    jumpStart.ScanAssembly(typeof(Program).Assembly);
+});
+
+// ============================================
+// 3. AUTOMAPPER
+// ============================================
+builder.Services.AddJumpStartAutoMapper(typeof(Program).Assembly);
+
+// ============================================
+// 4. JWT AUTHENTICATION CONFIGURATION
 // ============================================
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()
     ?? throw new InvalidOperationException("JwtSettings configuration is missing");
@@ -44,15 +69,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // ============================================
-// 2. AUTHORIZATION
+// 5. AUTHORIZATION
 // ============================================
 builder.Services.AddAuthorization();
 
 // ============================================
-// 3. CORS CONFIGURATION
+// 6. CORS CONFIGURATION
 // ============================================
 // Allow Blazor Server to call this API
-var blazorServerUrl = builder.Configuration["CorsSettings:BlazorServerUrl"] ?? "https://localhost:7001";
+var blazorServerUrl = builder.Configuration["CorsSettings:BlazorServerUrl"] ?? "https://localhost:7099";
 
 builder.Services.AddCors(options =>
 {
@@ -66,25 +91,46 @@ builder.Services.AddCors(options =>
 });
 
 // ============================================
-// 4. HTTP CONTEXT ACCESSOR (for ISimpleUserContext)
+// 7. HTTP CONTEXT ACCESSOR (for ISimpleUserContext)
 // ============================================
 builder.Services.AddHttpContextAccessor();
 
 // ============================================
-// 5. USER CONTEXT (for audit tracking)
+// 8. API DOCUMENTATION
 // ============================================
-builder.Services.AddScoped<ISimpleUserContext, ApiUserContext>();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new() { Title = "JumpStart DemoApp API", Version = "v1" });
+});
 
 // ============================================
-// 6. CONTROLLERS
+// 9. CONTROLLERS
 // ============================================
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Configure JSON serialization
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 var app = builder.Build();
 
 // ============================================
 // MIDDLEWARE PIPELINE
 // ============================================
+
+// ============================================
+// 10. API DOCUMENTATION (development only)
+// ============================================
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "JumpStart DemoApp API v1");
+    });
+}
 
 // HTTPS redirection
 app.UseHttpsRedirection();

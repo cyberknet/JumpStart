@@ -49,8 +49,11 @@
         <File Path="docs/architecture/adr/index.md" />
       </Folder>
     </Folder>
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
   </Folder>
   <Project Path="JumpStart.DemoApp.Api/JumpStart.DemoApp.Api.csproj" />
+  <Project Path="JumpStart.DemoApp.Shared/JumpStart.DemoApp.Shared.csproj" Id="e61e9ddb-ff82-445b-bb61-f65c83c67816" />
   <Project Path="JumpStart.DemoApp/JumpStart.DemoApp.csproj" />
   <Project Path="JumpStart.Tests/JumpStart.Tests.csproj" />
   <Project Path="JumpStart/JumpStart.csproj" />

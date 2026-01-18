@@ -1,20 +1,9 @@
+using JumpStart.DemoApp.Api.Data;
 using JumpStart.DemoApp.Data;
 using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace JumpStart.DemoApp.Services;
-
-/// <summary>
-/// Repository interface for Product entities.
-/// Extends ISimpleRepository with custom product-specific queries.
-/// </summary>
-public interface IProductRepository : ISimpleRepository<Product>
-{
-    Task<IEnumerable<Product>> GetProductsByPriceRangeAsync(decimal minPrice, decimal maxPrice);
-    Task<IEnumerable<Product>> GetLowStockProductsAsync(int threshold);
-    Task<IEnumerable<Product>> GetActiveProductsAsync();
-    Task<Product?> GetProductBySkuAsync(string sku);
-}
+namespace JumpStart.DemoApp.Api.Repositories;
 
 /// <summary>
 /// Repository implementation for Product entities using JumpStart framework.
@@ -22,7 +11,7 @@ public interface IProductRepository : ISimpleRepository<Product>
 /// </summary>
 public class ProductRepository : SimpleRepository<Product>, IProductRepository
 {
-    public ProductRepository(ApplicationDbContext context, ISimpleUserContext? userContext = null)
+    public ProductRepository(ApiDbContext context, ISimpleUserContext? userContext = null)
         : base(context, userContext)
     {
     }

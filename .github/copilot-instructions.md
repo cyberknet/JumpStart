@@ -29,6 +29,11 @@
 * Logging - Every method should log with appropriate log levels.
 * Testing - Write unit tests for all new features and bug fixes. Aim for high code coverage and use mocking frameworks as needed.
 
+# Entity Framework
+* Always use DataAnnotations where possible for entity configuration.
+* If it is not possible to use DataAnnotations, consider creating new reusable attributes that accomplish the task and handle them in OnModelCreating.
+* Fluent API is to be used only when DataAnnotations are impossible.
+
 # Exception Handling
 * Implement error handling and exception management to ensure application stability. 
 * Never swallow exceptions silently.

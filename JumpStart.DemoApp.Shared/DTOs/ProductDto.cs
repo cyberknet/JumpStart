@@ -1,6 +1,6 @@
 using System;
 
-namespace JumpStart.DemoApp.DTOs;
+namespace JumpStart.DemoApp.Shared.DTOs;
 
 /// <summary>
 /// DTO for reading Product data.

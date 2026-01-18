@@ -171,6 +171,7 @@ public abstract class AdvancedApiControllerBase<TEntity, TKey, TDto, TCreateDto,
     /// </summary>
     /// <param name="pageNumber">Optional page number for pagination (1-based). If null, all entities are returned.</param>
     /// <param name="pageSize">Optional number of items per page. If null, all entities are returned.</param>
+    /// <param name="sortBy">Optional property name to sort by (e.g., "Name", "Price"). If null, default repository ordering is used.</param>
     /// <param name="sortDescending">Whether to sort results in descending order. Default is false (ascending).</param>
     /// <returns>
     /// An <see cref="ActionResult{PagedResult}"/> containing the entities as DTOs with pagination metadata.
@@ -178,9 +179,13 @@ public abstract class AdvancedApiControllerBase<TEntity, TKey, TDto, TCreateDto,
     /// <response code="200">Returns the paged collection of entity DTOs.</response>
     /// <remarks>
     /// <para>
-    /// This endpoint retrieves entities from the database with optional pagination support.
+    /// This endpoint retrieves entities from the database with optional pagination and sorting support.
     /// When pagination parameters are omitted, all entities are returned (subject to any
     /// repository-level limits).
+    /// </para>
+    /// <para>
+    /// The sortBy parameter accepts property names from the entity (e.g., "Name", "Price", "CreatedOn").
+    /// The sorting is performed at the database level using Entity Framework Core.
     /// </para>
     /// <para>
     /// The response includes pagination metadata (total count, page number, page size) along
@@ -189,7 +194,7 @@ public abstract class AdvancedApiControllerBase<TEntity, TKey, TDto, TCreateDto,
     /// </remarks>
     /// <example>
     /// <code>
-    /// // Request: GET /api/products?pageNumber=1&amp;pageSize=20&amp;sortDescending=false
+    /// // Request: GET /api/products?pageNumber=1&amp;pageSize=20&amp;sortBy=Name&amp;sortDescending=false
     /// // Response: 200 OK
     /// // {
     /// //   "items": [
@@ -204,9 +209,11 @@ public abstract class AdvancedApiControllerBase<TEntity, TKey, TDto, TCreateDto,
     /// </example>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<object>), 200)]
+    [ProducesResponseType(400)]
     public virtual async Task<ActionResult<PagedResult<TDto>>> GetAll(
         [FromQuery] int? pageNumber = null,
         [FromQuery] int? pageSize = null,
+        [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDescending = false)
     {
         var options = new QueryOptions<TEntity>
@@ -215,6 +222,40 @@ public abstract class AdvancedApiControllerBase<TEntity, TKey, TDto, TCreateDto,
             PageSize = pageSize,
             SortDescending = sortDescending
         };
+
+        // If sortBy is provided, validate and create a property expression for it
+        if (!string.IsNullOrWhiteSpace(sortBy))
+        {
+            try
+            {
+                // Validate that the property exists using reflection (case-insensitive)
+                var propertyInfo = typeof(TEntity).GetProperty(
+                    sortBy, 
+                    System.Reflection.BindingFlags.Public | 
+                    System.Reflection.BindingFlags.Instance | 
+                    System.Reflection.BindingFlags.IgnoreCase);
+
+                if (propertyInfo == null)
+                {
+                    return BadRequest($"Invalid sort property: '{sortBy}'. Property does not exist on {typeof(TEntity).Name}.");
+                }
+
+                // Use the actual property name (with correct casing)
+                var actualPropertyName = propertyInfo.Name;
+
+                // Create the expression: x => x.PropertyName
+                var parameter = System.Linq.Expressions.Expression.Parameter(typeof(TEntity), "x");
+                var property = System.Linq.Expressions.Expression.Property(parameter, actualPropertyName);
+                var conversion = System.Linq.Expressions.Expression.Convert(property, typeof(object));
+                var lambda = System.Linq.Expressions.Expression.Lambda<Func<TEntity, object>>(conversion, parameter);
+
+                options.SortBy = lambda;
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest($"Invalid sort property: '{sortBy}'. {ex.Message}");
+            }
+        }
 
         var result = await Repository.GetAllAsync(options);
 

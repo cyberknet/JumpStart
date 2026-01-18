@@ -1,5 +1,5 @@
 using JumpStart.Api.Clients;
-using JumpStart.DemoApp.DTOs;
+using JumpStart.DemoApp.Shared.DTOs;
 using Refit;
 
 namespace JumpStart.DemoApp.Clients;

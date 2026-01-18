@@ -1,6 +1,6 @@
 using JumpStart.Api.Mapping;
 using JumpStart.DemoApp.Data;
-using JumpStart.DemoApp.DTOs;
+using JumpStart.DemoApp.Shared.DTOs;
 
 namespace JumpStart.DemoApp.Mapping;
 

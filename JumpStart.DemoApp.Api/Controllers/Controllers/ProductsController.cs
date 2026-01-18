@@ -2,7 +2,7 @@ using AutoMapper;
 using JumpStart.Api.Controllers;
 using JumpStart.DemoApp.Api.Repositories;
 using JumpStart.DemoApp.Data;
-using JumpStart.DemoApp.DTOs;
+using JumpStart.DemoApp.Shared.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace JumpStart.DemoApp.Controllers;

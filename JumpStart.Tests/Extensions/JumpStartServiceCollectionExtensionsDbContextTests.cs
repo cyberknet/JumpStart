@@ -17,7 +17,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using JumpStart.Data;
-using JumpStart.Extensions;
+using JumpStart;
 using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +26,7 @@ using Xunit;
 namespace JumpStart.Tests.Extensions;
 
 /// <summary>
-/// Unit tests for the <see cref="JumpStartServiceCollectionExtensionsDbContext"/> class.
+/// Unit tests for the <see cref="JumpStartServiceCollectionExtensions"/> class.
 /// Tests DbContext integration with JumpStart framework registration.
 /// </summary>
 public class JumpStartServiceCollectionExtensionsDbContextTests
@@ -44,7 +44,7 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     /// <summary>
     /// Mock DbContext for testing.
     /// </summary>
-    public class TestDbContext : DbContext
+    public class TestDbContext : JumpStartDbContext
     {
         public TestDbContext(DbContextOptions<TestDbContext> options)
             : base(options)
@@ -71,8 +71,8 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     public void AddJumpStartWithDbContext_HasCorrectSignature()
     {
         // Arrange
-        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
-        var method = extensionType.GetMethod(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext));
+        var extensionType = typeof(JumpStartServiceCollectionExtensions);
+        var method = extensionType.GetMethod(nameof(JumpStartServiceCollectionExtensions.AddJumpStartWithDbContext));
 
         // Act & Assert
         Assert.NotNull(method);
@@ -86,8 +86,8 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     public void AddJumpStartWithDbContext_IsExtensionMethod()
     {
         // Arrange
-        var method = typeof(JumpStartServiceCollectionExtensionsDbContext)
-            .GetMethod(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext));
+        var method = typeof(JumpStartServiceCollectionExtensions)
+            .GetMethod(nameof(JumpStartServiceCollectionExtensions.AddJumpStartWithDbContext));
 
         // Act & Assert
         Assert.True(method!.IsStatic);
@@ -100,10 +100,10 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     #region Class Structure Tests
 
     [Fact]
-    public void JumpStartServiceCollectionExtensionsDbContext_IsPublicStaticClass()
+    public void JumpStartServiceCollectionExtensions_IsPublicStaticClass()
     {
         // Arrange
-        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+        var extensionType = typeof(JumpStartServiceCollectionExtensions);
 
         // Act & Assert
         Assert.True(extensionType.IsPublic);
@@ -113,10 +113,10 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     }
 
     [Fact]
-    public void JumpStartServiceCollectionExtensionsDbContext_IsInCorrectNamespace()
+    public void JumpStartServiceCollectionExtensions_IsInCorrectNamespace()
     {
         // Arrange
-        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+        var extensionType = typeof(JumpStartServiceCollectionExtensions);
 
         // Act & Assert
         Assert.Equal("Microsoft.Extensions.DependencyInjection", extensionType.Namespace);
@@ -130,8 +130,8 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     public void AddJumpStartWithDbContext_RequiresDbContextConstraint()
     {
         // Arrange
-        var method = typeof(JumpStartServiceCollectionExtensionsDbContext)
-            .GetMethod(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext));
+        var method = typeof(JumpStartServiceCollectionExtensions)
+            .GetMethod(nameof(JumpStartServiceCollectionExtensions.AddJumpStartWithDbContext));
 
         // Act
         var genericParameter = method!.GetGenericArguments()[0];
@@ -342,17 +342,17 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     #region Method Count Tests
 
     [Fact]
-    public void JumpStartServiceCollectionExtensionsDbContext_HasOnePublicMethod()
+    public void JumpStartServiceCollectionExtensions_HasOnePublicMethod()
     {
         // Arrange
-        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+        var extensionType = typeof(JumpStartServiceCollectionExtensions);
         var publicMethods = extensionType.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Where(m => m.DeclaringType == extensionType)
             .ToArray();
 
         // Act & Assert
         Assert.Single(publicMethods);
-        Assert.Equal(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext), publicMethods[0].Name);
+        Assert.Equal(nameof(JumpStartServiceCollectionExtensions.AddJumpStartWithDbContext), publicMethods[0].Name);
     }
 
     #endregion
@@ -430,13 +430,13 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     #region Documentation Tests
 
     [Fact]
-    public void JumpStartServiceCollectionExtensionsDbContext_IsProperlyNamed()
+    public void JumpStartServiceCollectionExtensions_IsProperlyNamed()
     {
         // Arrange
-        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
+        var extensionType = typeof(JumpStartServiceCollectionExtensions);
 
         // Act & Assert
-        Assert.Equal("JumpStartServiceCollectionExtensionsDbContext", extensionType.Name);
+        Assert.Equal("JumpStartServiceCollectionExtensions", extensionType.Name);
         Assert.True(extensionType.Name.StartsWith("JumpStart"));
         Assert.True(extensionType.Name.EndsWith("DbContext"));
     }
@@ -445,8 +445,8 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
     public void AddJumpStartWithDbContext_ReturnsIServiceCollection()
     {
         // Arrange
-        var extensionType = typeof(JumpStartServiceCollectionExtensionsDbContext);
-        var method = extensionType.GetMethod(nameof(JumpStartServiceCollectionExtensionsDbContext.AddJumpStartWithDbContext));
+        var extensionType = typeof(JumpStartServiceCollectionExtensions);
+        var method = extensionType.GetMethod(nameof(JumpStartServiceCollectionExtensions.AddJumpStartWithDbContext));
 
         // Act & Assert
         Assert.Equal(typeof(IServiceCollection), method!.ReturnType);

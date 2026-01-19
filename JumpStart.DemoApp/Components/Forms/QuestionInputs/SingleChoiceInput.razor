@@ -1,0 +1,18 @@
+@inherits QuestionInputBase
+
+@foreach (var option in Question.Options.OrderBy(o => o.DisplayOrder))
+{
+    <div class="form-check">
+        <input type="radio" 
+               class="form-check-input" 
+               name="radio_@Question.Id" 
+               value="@option.Id"
+               @onchange="@(e => OnOptionAnswerChanged.InvokeAsync(new List<Guid> { option.Id }))"
+               required="@Question.IsRequired" />
+        <label class="form-check-label">@option.OptionText</label>
+    </div>
+}
+
+@code {
+    // Inherits all functionality from QuestionInputBase
+}

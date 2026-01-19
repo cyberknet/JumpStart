@@ -14,7 +14,6 @@
 
 using System;
 using System.Reflection;
-using JumpStart.Extensions;
 using JumpStart.Repositories;
 using Xunit;
 
@@ -157,7 +156,7 @@ public class JumpStartOptionsTests
     {
         // Arrange
         var optionsType = typeof(JumpStartOptions);
-        var method = optionsType.GetMethod(nameof(JumpStartOptions.DisableAutoDiscovery));
+        var method = optionsType.GetMethod(nameof(JumpStartOptions.DisableRepositoryAutoDiscovery));
 
         // Act & Assert
         Assert.NotNull(method);
@@ -340,7 +339,7 @@ public class JumpStartOptionsTests
         Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.ScanAssembly)));
         Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.ScanAssembliesContaining)));
         Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.RegisterRepository)));
-        Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.DisableAutoDiscovery)));
+        Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.DisableRepositoryAutoDiscovery)));
         Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.UseRepositoryLifetime)));
     }
 

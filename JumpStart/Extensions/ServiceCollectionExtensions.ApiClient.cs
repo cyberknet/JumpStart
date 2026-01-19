@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright Â©2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -13,36 +13,51 @@
  */
 
 using System;
-using Microsoft.Extensions.DependencyInjection;
+using JumpStart;
+using JumpStart.Api.Clients;
 using Refit;
 
-namespace JumpStart.Api.Clients;
+namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>
-/// Extension methods for registering Refit-based Simple API clients (Guid-based entities) in the dependency injection container.
-/// </summary>
-/// <remarks>
-/// <para>
-/// These extension methods provide simplified registration for the common case of Guid-based entities.
-/// They wrap the advanced API client registration with Guid as the key type.
-/// </para>
-/// <para>
-/// For entities with custom key types (int, long, custom structs), use the Advanced namespace extensions.
-/// </para>
-/// </remarks>
-/// <example>
-/// <code>
-/// // Basic registration
-/// services.AddSimpleApiClient&lt;IProductApiClient&gt;("https://api.example.com/api/products");
-/// 
-/// // With custom configuration
-/// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
-///     "https://api.example.com/api/products",
-///     client => client.Timeout = TimeSpan.FromSeconds(30));
-/// </code>
-/// </example>
-public static class SimpleApiClientExtensions
+// Partial class containing API client registration extension methods.
+// See ServiceCollectionExtensions.cs for complete class-level documentation.
+public static partial class JumpStartServiceCollectionExtensions
 {
+    /// <summary>
+    /// Discovers and registers API client implementations from specified assemblies.
+    /// Scans for classes implementing ISimpleApiClient or IAdvancedApiClient interfaces.
+    /// Registers the concrete class and all API client-related interfaces it implements.
+    /// </summary>
+    /// <param name="services">The service collection to add API clients to.</param>
+    /// <param name="options">The JumpStart options containing assembly list and lifetime settings.</param>
+    private static void RegisterApiClients(IServiceCollection services, JumpStartOptions options)
+    {
+        RegisterServicesByInterface(
+            services,
+            options,
+            IsApiClientInterface,
+            IsCustomApiClientInterface,
+            options.ApiClientLifetime);
+    }
+
+    /// <summary>
+    /// Determines if a type is a recognized JumpStart API client interface.
+    /// Checks for ISimpleApiClient{TDto, TCreateDto, TUpdateDto} or IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}.
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <returns><c>true</c> if the type is an API client interface; otherwise, <c>false</c>.</returns>
+    private static bool IsApiClientInterface(Type type) =>
+        IsBaseInterface(type, typeof(ISimpleApiClient<,,>), typeof(JumpStart.Api.Clients.Advanced.IAdvancedApiClient<,,,>));
+
+    /// <summary>
+    /// Determines if a type is a custom API client interface that inherits from a JumpStart API client interface.
+    /// This catches interfaces like IProductApiClient that extend ISimpleApiClient{ProductDto, CreateProductDto, UpdateProductDto}.
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <returns><c>true</c> if the type is a custom API client interface; otherwise, <c>false</c>.</returns>
+    private static bool IsCustomApiClientInterface(Type type) =>
+        IsCustomInterface(type, IsApiClientInterface);
+
     /// <summary>
     /// Registers a Refit-based API client for a Simple entity with Guid identifier.
     /// </summary>
@@ -67,31 +82,45 @@ public static class SimpleApiClientExtensions
     /// </exception>
     /// <remarks>
     /// <para>
-    /// This method is a convenience wrapper around AddAdvancedApiClient for Guid-based entities.
-    /// It configures Refit with the same default settings:
+    /// This method configures Refit with the following default settings:
     /// - System.Text.Json for serialization
     /// - Camel case property names
     /// - Ignores null values in JSON
-    /// - Uses IHttpClientFactory for proper client lifecycle
+    /// - Uses IHttpClientFactory for proper client lifecycle management
+    /// </para>
+    /// <para>
+    /// <strong>Typical Usage in Blazor Server:</strong>
+    /// Register API clients in Program.cs to call a separate API project. The client is registered
+    /// with Scoped lifetime, making it suitable for use in Blazor components with @inject.
+    /// </para>
+    /// <para>
+    /// <strong>Authentication:</strong>
+    /// Chain with <c>.AddHttpMessageHandler&lt;T&gt;()</c> to add authentication handlers that
+    /// inject JWT tokens or other credentials into requests.
     /// </para>
     /// </remarks>
     /// <example>
     /// <code>
-    /// // Example 1: Basic registration
-    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
-    ///     "https://api.example.com/api/products");
+    /// // Example 1: Basic registration in Blazor Program.cs
+    /// var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
+    /// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    ///     $"{apiBaseUrl}/api/products");
     /// 
-    /// // Example 2: With retry policy
-    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// // Example 2: With JWT authentication handler
+    /// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    ///     "https://api.example.com/api/products")
+    ///     .AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
+    /// 
+    /// // Example 3: With retry policy using Polly
+    /// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;(
     ///     "https://api.example.com/api/products")
     ///     .AddTransientHttpErrorPolicy(p => 
     ///         p.WaitAndRetryAsync(3, retryAttempt => 
     ///             TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
     /// 
-    /// // Example 3: With authentication
-    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
-    ///     "https://api.example.com/api/products")
-    ///     .AddHttpMessageHandler&lt;AuthenticationHandler&gt;();
+    /// // Example 4: Use in Blazor component
+    /// // @inject IProductApiClient ProductClient
+    /// // var products = await ProductClient.GetAllAsync();
     /// </code>
     /// </example>
     public static IHttpClientBuilder AddSimpleApiClient<TInterface>(
@@ -133,11 +162,20 @@ public static class SimpleApiClientExtensions
     /// Thrown when <paramref name="services"/> or <paramref name="baseAddress"/> is null.
     /// </exception>
     /// <remarks>
+    /// <para>
     /// This overload allows configuring the HttpClient during registration,
     /// which is useful for setting default headers, timeouts, or other client-level settings.
+    /// </para>
+    /// <para>
+    /// <strong>Common Configurations:</strong>
+    /// - Timeout: Set request timeout different from default (100 seconds)
+    /// - Default headers: Add API keys, version headers, user agent
+    /// - Max response buffer: Control memory usage for large responses
+    /// </para>
     /// </remarks>
     /// <example>
     /// <code>
+    /// // Example 1: Configure timeout and headers
     /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
     ///     "https://api.example.com/api/products",
     ///     client =>
@@ -145,6 +183,15 @@ public static class SimpleApiClientExtensions
     ///         client.Timeout = TimeSpan.FromSeconds(30);
     ///         client.DefaultRequestHeaders.Add("X-Api-Version", "2.0");
     ///         client.DefaultRequestHeaders.Add("User-Agent", "JumpStart/1.0");
+    ///     });
+    /// 
+    /// // Example 2: Add API key header
+    /// var apiKey = builder.Configuration["ApiKey"];
+    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    ///     "https://api.example.com/api/products",
+    ///     client =>
+    ///     {
+    ///         client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
     ///     });
     /// </code>
     /// </example>
@@ -189,26 +236,63 @@ public static class SimpleApiClientExtensions
     /// or <paramref name="configureBuilder"/> is null.
     /// </exception>
     /// <remarks>
+    /// <para>
     /// This overload provides the most flexibility by exposing the IHttpClientBuilder
-    /// for comprehensive configuration including resilience patterns, authentication,
-    /// logging, and custom message handlers.
+    /// for comprehensive configuration including:
+    /// - Resilience patterns (retry, circuit breaker, timeout) via Polly
+    /// - Custom message handlers (authentication, logging, caching)
+    /// - Request/response pipeline customization
+    /// - Named client configuration
+    /// </para>
+    /// <para>
+    /// <strong>Resilience Patterns:</strong>
+    /// Use Polly policies to handle transient failures, implement circuit breakers,
+    /// and add timeouts for robust API communication.
+    /// </para>
     /// </remarks>
     /// <example>
     /// <code>
+    /// // Example 1: Complete resilience configuration
     /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
     ///     "https://api.example.com/api/products",
     ///     builder =>
     ///     {
-    ///         // Add retry policy
+    ///         // Retry policy with exponential backoff
     ///         builder.AddTransientHttpErrorPolicy(p => 
-    ///             p.WaitAndRetryAsync(3, _ => TimeSpan.FromSeconds(2)));
+    ///             p.WaitAndRetryAsync(3, retryAttempt => 
+    ///                 TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
     ///         
-    ///         // Add circuit breaker
+    ///         // Circuit breaker after 5 failures for 30 seconds
     ///         builder.AddTransientHttpErrorPolicy(p =>
     ///             p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
     ///         
-    ///         // Add custom handler
+    ///         // Timeout policy
+    ///         builder.AddPolicyHandler(Policy.TimeoutAsync&lt;HttpResponseMessage&gt;(
+    ///             TimeSpan.FromSeconds(10)));
+    ///     });
+    /// 
+    /// // Example 2: Add multiple handlers
+    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    ///     "https://api.example.com/api/products",
+    ///     builder =>
+    ///     {
+    ///         builder.AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
     ///         builder.AddHttpMessageHandler&lt;LoggingHandler&gt;();
+    ///         builder.AddHttpMessageHandler&lt;CachingHandler&gt;();
+    ///     });
+    /// 
+    /// // Example 3: Real-world Blazor Server configuration
+    /// var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
+    /// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    ///     $"{apiBaseUrl}/api/products",
+    ///     clientBuilder =>
+    ///     {
+    ///         // Add JWT authentication
+    ///         clientBuilder.AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
+    ///         
+    ///         // Add retry for transient failures
+    ///         clientBuilder.AddTransientHttpErrorPolicy(p => 
+    ///             p.WaitAndRetryAsync(2, _ => TimeSpan.FromSeconds(1)));
     ///     });
     /// </code>
     /// </example>

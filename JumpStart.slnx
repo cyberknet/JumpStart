@@ -2,6 +2,10 @@
   <Folder Name="/.github/">
     <File Path=".github/copilot-instructions.md" />
   </Folder>
+  <Folder Name="/Documentation/api/">
+    <File Path="docs/api/index.md" />
+    <File Path="docs/api/toc.yml" />
+  </Folder>
   <Folder Name="/Documentation/architecture/">
     <File Path="docs/architecture/index.md" />
   </Folder>
@@ -23,19 +27,19 @@
   <Folder Name="/Documentation/styles/">
     <File Path="custom.css" />
   </Folder>
-  <Folder Name="/Governance/">
-    <File Path="LICENSE.txt" />
-    <File Path="README.md" />
-  </Folder>
   <Folder Name="/Documentation/">
     <File Path="docs/index.md" />
+    <File Path="docs/forms.md" />
     <File Path="docs/getting-started.md" />
     <File Path="docs/core-concepts.md" />
     <File Path="docs/audit-tracking.md" />
     <File Path="docs/api-development.md" />
     <File Path="docs/authentication.md" />
     <File Path="docs/samples.md" />
+    <File Path="docs/data-seeding.md" />
+    <File Path="docs/documentation-system.md" />
     <File Path="docs/faq.md" />
+    <File Path="docs/toc.yml" />
     <File Path="docs/troubleshooting.md" />
     <Folder Name="how-to/">
       <File Path="docs/how-to/index.md" />
@@ -49,6 +53,15 @@
         <File Path="docs/architecture/adr/index.md" />
       </Folder>
     </Folder>
+  </Folder>
+  <Folder Name="/General/">
+    <File Path="build-docs.cmd" />
+    <File Path="build-docs.sh" />
+    <File Path="custom.css" />
+    <File Path="DEPLOYMENT_CHECKLIST.md" />
+    <File Path="DOCUMENTATION.md" />
+    <File Path="DOCUMENTATION_BUILD_STATUS.md" />
+    <File Path="GITHUB_PAGES_SETUP.md" />
     <File Path="LICENSE.txt" />
     <File Path="README.md" />
   </Folder>

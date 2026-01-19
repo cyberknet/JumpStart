@@ -1,0 +1,31 @@
+@inherits QuestionInputBase
+
+<input type="number" 
+       class="form-control"
+       @onchange="@(e => OnTextAnswerChanged.InvokeAsync(e.Value?.ToString()))"
+       required="@Question.IsRequired"
+       min="@Question.MinimumValue"
+       max="@Question.MaximumValue"
+       step="any" />
+
+@if (!string.IsNullOrEmpty(Question.MinimumValue) || !string.IsNullOrEmpty(Question.MaximumValue))
+{
+    <div class="form-text">
+        @if (!string.IsNullOrEmpty(Question.MinimumValue) && !string.IsNullOrEmpty(Question.MaximumValue))
+        {
+            <text>Must be between @Question.MinimumValue and @Question.MaximumValue</text>
+        }
+        else if (!string.IsNullOrEmpty(Question.MinimumValue))
+        {
+            <text>Minimum value: @Question.MinimumValue</text>
+        }
+        else
+        {
+            <text>Maximum value: @Question.MaximumValue</text>
+        }
+    </div>
+}
+
+@code {
+    // Inherits all functionality from QuestionInputBase
+}

@@ -36,6 +36,28 @@ public class Product : SimpleAuditableEntity
 }
 ```
 
+### Your DbContext
+
+**⚠️ IMPORTANT:** Your DbContext must inherit from `JumpStartDbContext`:
+
+```csharp
+public class ApplicationDbContext : JumpStartDbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options) { }
+
+    public DbSet<Product> Products => Set<Product>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder); // ⚠️ Call base first!
+        // Your configurations here
+    }
+}
+```
+
+This ensures framework data (like QuestionTypes for Forms) is automatically seeded via migrations.
+
 ### Your First Repository
 
 ```csharp

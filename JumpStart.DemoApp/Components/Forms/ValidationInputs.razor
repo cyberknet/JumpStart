@@ -1,0 +1,98 @@
+@* Copyright ©2026 Scott Blomfield *@
+@*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>.
+ *@
+
+@using JumpStart.Forms
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label class="form-label">Minimum Value</label>
+            <input type="text" 
+                   class="form-control" 
+                   value="@MinimumValue" 
+                   @oninput="@(e => MinimumValue = e.Value?.ToString())"
+                   placeholder="@GetMinimumPlaceholder()"
+                   disabled="@(!IsApplicable)" />
+            <small class="form-text text-muted">@GetMinimumHelpText()</small>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="mb-3">
+            <label class="form-label">Maximum Value</label>
+            <input type="text" 
+                   class="form-control" 
+                   value="@MaximumValue" 
+                   @oninput="@(e => MaximumValue = e.Value?.ToString())"
+                   placeholder="@GetMaximumPlaceholder()"
+                   disabled="@(!IsApplicable)" />
+            <small class="form-text text-muted">@GetMaximumHelpText()</small>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? QuestionTypeCode { get; set; }
+
+    private string? minimumValue;
+    [Parameter]
+    public string? MinimumValue 
+    { 
+        get => minimumValue; 
+        set
+        {
+            if (minimumValue != value)
+            {
+                minimumValue = value;
+                MinimumValueChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string?> MinimumValueChanged { get; set; }
+
+    private string? maximumValue;
+    [Parameter]
+    public string? MaximumValue 
+    { 
+        get => maximumValue; 
+        set
+        {
+            if (maximumValue != value)
+            {
+                maximumValue = value;
+                MaximumValueChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter]
+    public EventCallback<string?> MaximumValueChanged { get; set; }
+    
+    private bool IsApplicable => 
+        QuestionTypeCode is "Number" or "ShortText" or "LongText" or "Date";
+    
+    private string GetMinimumPlaceholder() =>
+        IsApplicable ? QuestionValidator.GetMinimumValuePlaceholder(QuestionTypeCode ?? string.Empty) : string.Empty;
+    
+    private string GetMaximumPlaceholder() =>
+        IsApplicable ? QuestionValidator.GetMaximumValuePlaceholder(QuestionTypeCode ?? string.Empty) : string.Empty;
+    
+    private string GetMinimumHelpText() =>
+        IsApplicable ? QuestionValidator.GetMinimumValueHelpText(QuestionTypeCode ?? string.Empty) : "Not applicable for this question type";
+    
+    private string GetMaximumHelpText() =>
+        IsApplicable ? QuestionValidator.GetMaximumValueHelpText(QuestionTypeCode ?? string.Empty) : "Not applicable for this question type";
+}

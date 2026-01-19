@@ -1,0 +1,14 @@
+@inherits QuestionInputBase
+
+<textarea class="form-control" 
+          rows="4"
+          @onchange="@(e => OnTextAnswerChanged.InvokeAsync(e.Value?.ToString()))"
+          required="@Question.IsRequired"
+          minlength="@GetMinLength()"
+          maxlength="@GetMaxLength()"></textarea>
+
+@RenderConstraintHelpText()
+
+@code {
+    // Inherits all functionality from QuestionInputBase
+}

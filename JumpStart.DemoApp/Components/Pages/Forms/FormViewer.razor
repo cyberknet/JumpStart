@@ -1,0 +1,328 @@
+@page "/forms/view/{FormId:guid}"
+@using System.Text.Json
+@using JumpStart.Api.DTOs.Forms
+@using JumpStart.Api.Clients.Forms
+@using JumpStart.DemoApp.Models.Forms
+@using JumpStart.DemoApp.Components.Forms.QuestionInputs
+@inject IFormsApiClient FormsClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(form?.Name ?? "View Form")</PageTitle>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (submitted)
+{
+    <div class="alert alert-success" role="alert">
+        <h4 class="alert-heading">Thank you!</h4>
+        <p>Your response has been submitted successfully.</p>
+        <hr />
+        <button class="btn btn-primary" @onclick="BackToForms">
+            <i class="bi bi-arrow-left"></i> Back to Forms
+        </button>
+    </div>
+}
+else if (loading)
+{
+    <p><em>Loading form...</em></p>
+}
+else if (form != null)
+{
+    <div class="card">
+        <div class="card-header">
+            <h2>@form.Name</h2>
+            @if (!string.IsNullOrEmpty(form.Description))
+            {
+                <p class="text-muted mb-0">@form.Description</p>
+            }
+        </div>
+        <div class="card-body">
+            <EditForm Model="@responseModel" OnValidSubmit="SubmitForm">
+                <DataAnnotationsValidator />
+
+                @foreach (var (question, index) in form.Questions.OrderBy(q => q.DisplayOrder).Select((q, i) => (q, i)))
+                {
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            @(index + 1). @question.QuestionText
+                            @if (question.IsRequired)
+                            {
+                                <span class="text-danger">*</span>
+                            }
+                        </label>
+
+                                @if (!string.IsNullOrEmpty(question.HelpText))
+                                {
+                                    <div class="form-text mb-2">@question.HelpText</div>
+                                }
+
+                                @* Render input component based on ApplicationData *@
+                                @RenderQuestionInput(question)
+                            </div>
+                        }
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@submitting">
+                        @if (submitting)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        <i class="bi bi-check-circle"></i> Submit Response
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid FormId { get; set; }
+
+    private FormWithQuestionsDto? form;
+    private bool loading = true;
+    private bool submitting = false;
+    private bool submitted = false;
+    private string? errorMessage;
+    private ResponseModel responseModel = new();
+
+    // Store answers: questionId -> answer data
+    private Dictionary<Guid, string?> textAnswers = new();
+    private Dictionary<Guid, List<Guid>> optionAnswers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadForm();
+    }
+
+    private async Task LoadForm()
+    {
+        loading = true;
+        errorMessage = null;
+        try
+        {
+            form = await FormsClient.GetFormByIdAsync(FormId);
+            
+            if (!form.IsActive)
+            {
+                errorMessage = "This form is not currently accepting responses.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load form: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void SetAnswer(Guid questionId, string? value)
+    {
+        textAnswers[questionId] = value;
+    }
+
+    private void SetOptionAnswer(Guid questionId, List<Guid> optionIds)
+    {
+        optionAnswers[questionId] = optionIds;
+    }
+
+    private void ToggleOptionAnswer(Guid questionId, Guid optionId, bool selected)
+    {
+        if (!optionAnswers.ContainsKey(questionId))
+        {
+            optionAnswers[questionId] = new List<Guid>();
+        }
+
+        if (selected)
+        {
+            if (!optionAnswers[questionId].Contains(optionId))
+            {
+                optionAnswers[questionId].Add(optionId);
+            }
+        }
+        else
+        {
+            optionAnswers[questionId].Remove(optionId);
+        }
+    }
+
+        private async Task SubmitForm()
+        {
+            submitting = true;
+            errorMessage = null;
+
+            try
+            {
+                // Build response DTO
+                var responseDto = new CreateFormResponseDto
+                {
+                    FormId = FormId,
+                    IsComplete = true,
+                    QuestionResponses = new List<CreateQuestionResponseDto>()
+                };
+
+                // Add text/number/date/boolean responses
+                foreach (var (questionId, value) in textAnswers)
+                {
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        responseDto.QuestionResponses.Add(new CreateQuestionResponseDto
+                        {
+                            QuestionId = questionId,
+                            ResponseValue = value
+                        });
+                    }
+                }
+
+                // Add choice-based responses
+                foreach (var (questionId, optionIds) in optionAnswers)
+                {
+                    if (optionIds.Any())
+                    {
+                        responseDto.QuestionResponses.Add(new CreateQuestionResponseDto
+                        {
+                            QuestionId = questionId,
+                            SelectedOptionIds = optionIds
+                        });
+                    }
+                }
+
+                // Submit to API
+                await FormsClient.SubmitFormResponseAsync(FormId, responseDto);
+
+                submitted = true;
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Failed to submit response: {ex.Message}";
+            }
+            finally
+            {
+                submitting = false;
+            }
+        }
+
+        private void BackToForms()
+        {
+            Navigation.NavigateTo("/forms");
+        }
+
+        private void Cancel()
+        {
+            Navigation.NavigateTo("/forms");
+        }
+
+        /// <summary>
+        /// Renders the appropriate input component based on ApplicationData.
+        /// </summary>
+        private RenderFragment RenderQuestionInput(QuestionDto question) => builder =>
+        {
+            // Deserialize ApplicationData to get component name
+            var metadata = JsonSerializer.Deserialize<QuestionTypeMetadata>(
+                question.QuestionType.ApplicationData ?? "{}");
+
+            var componentName = metadata?.RazorComponentName ?? question.QuestionType.Code;
+
+            // Get component type from name
+            var componentType = GetComponentType(componentName);
+
+            if (componentType == null)
+            {
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "class", "alert alert-warning");
+                builder.AddContent(2, $"Unknown component: {componentName}");
+                builder.CloseElement();
+                return;
+            }
+
+            // Render the component
+            builder.OpenComponent(0, componentType);
+            builder.AddAttribute(1, "Question", question);
+            builder.AddAttribute(2, "OnTextAnswerChanged", EventCallback.Factory.Create<string?>(this, 
+                value => SetAnswer(question.Id, value)));
+            builder.AddAttribute(3, "OnOptionAnswerChanged", EventCallback.Factory.Create<List<Guid>>(this,
+                options => SetOptionAnswer(question.Id, options)));
+            builder.CloseComponent();
+        };
+
+        /// <summary>
+        /// Gets the component type from the component name.
+        /// </summary>
+        private Type? GetComponentType(string componentName)
+        {
+            return componentName switch
+            {
+                "ShortTextInput" => typeof(ShortTextInput),
+                "LongTextInput" => typeof(LongTextInput),
+                "NumberInput" => typeof(NumberInput),
+                "DateInput" => typeof(DateInput),
+                "BooleanInput" => typeof(BooleanInput),
+                "SingleChoiceInput" => typeof(SingleChoiceInput),
+                "MultipleChoiceInput" => typeof(MultipleChoiceInput),
+                "DropdownInput" => typeof(DropdownInput),
+
+                // Fallback to Code-based matching for backwards compatibility
+                "ShortText" => typeof(ShortTextInput),
+                "LongText" => typeof(LongTextInput),
+                "Number" => typeof(NumberInput),
+                "Date" => typeof(DateInput),
+                "Boolean" => typeof(BooleanInput),
+                "SingleChoice" => typeof(SingleChoiceInput),
+                "MultipleChoice" => typeof(MultipleChoiceInput),
+                "Dropdown" => typeof(DropdownInput),
+
+                _ => null
+            };
+        }
+
+        // Helper methods for min/max validation
+        private string? GetMinLength(QuestionDto question)
+        {
+            if (string.IsNullOrEmpty(question.MinimumValue))
+                return null;
+
+            if (int.TryParse(question.MinimumValue, out var min))
+                return min.ToString();
+
+            return null;
+        }
+
+        private string? GetMaxLength(QuestionDto question)
+        {
+            if (string.IsNullOrEmpty(question.MaximumValue))
+                return null;
+
+            if (int.TryParse(question.MaximumValue, out var max))
+                return max.ToString();
+
+            return null;
+        }
+
+        private string FormatDate(string? dateValue)
+        {
+            if (string.IsNullOrEmpty(dateValue))
+                return string.Empty;
+
+            if (DateTime.TryParse(dateValue, out var date))
+                return date.ToString("MMMM d, yyyy");
+
+            return dateValue;
+        }
+
+        private class ResponseModel
+        {
+            // Validation model (if needed)
+        }
+    }

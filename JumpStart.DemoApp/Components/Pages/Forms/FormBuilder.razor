@@ -1,0 +1,486 @@
+@page "/forms/create"
+@page "/forms/edit/{FormId:guid}"
+@using JumpStart.Api.DTOs.Forms
+@using JumpStart.Api.Clients.Forms
+@using JumpStart.Forms
+@using System.ComponentModel.DataAnnotations
+@inject IFormsApiClient FormsClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Form" : "Create Form")</PageTitle>
+
+<h1>@(IsEditMode ? "Edit Form" : "Create New Form")</h1>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="@formModel" OnValidSubmit="SaveForm">
+        <DataAnnotationsValidator />
+
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5>Form Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label">Form Name <span class="text-danger">*</span></label>
+                        <InputText id="name" class="form-control" @bind-Value="formModel.Name" />
+                        <ValidationMessage For="@(() => formModel.Name)" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Status</label>
+                        <div class="form-check">
+                            <InputCheckbox id="isActive" class="form-check-input" @bind-Value="formModel.IsActive" />
+                            <label class="form-check-label" for="isActive">
+                                Active (visible to users)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <InputTextArea id="description" class="form-control" rows="3" @bind-Value="formModel.Description" />
+                    <ValidationMessage For="@(() => formModel.Description)" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <InputCheckbox id="allowMultiple" class="form-check-input" @bind-Value="formModel.AllowMultipleResponses" />
+                            <label class="form-check-label" for="allowMultiple">
+                                Allow multiple responses per user
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <InputCheckbox id="allowAnonymous" class="form-check-input" @bind-Value="formModel.AllowAnonymous" />
+                            <label class="form-check-label" for="allowAnonymous">
+                                Allow anonymous responses
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Questions</h5>
+                <button type="button" class="btn btn-sm btn-success" @onclick="AddQuestion">
+                    <i class="bi bi-plus-circle"></i> Add Question
+                </button>
+            </div>
+            <div class="card-body">
+                @if (formModel.Questions.Count == 0)
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No questions yet. Click "Add Question" to create one.
+                    </div>
+                }
+                else
+                {
+                    @foreach (var (question, index) in formModel.Questions.Select((q, i) => (q, i)))
+                    {
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>Question @(index + 1)</strong>
+                                    <div>
+                                        @if (index > 0)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => MoveQuestionUp(index)">
+                                                <i class="bi bi-arrow-up"></i>
+                                            </button>
+                                        }
+                                        @if (index < formModel.Questions.Count - 1)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => MoveQuestionDown(index)">
+                                                <i class="bi bi-arrow-down"></i>
+                                            </button>
+                                        }
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => RemoveQuestion(index)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8 mb-3">
+                                        <label class="form-label">Question Text <span class="text-danger">*</span></label>
+                                        <InputText class="form-control" @bind-Value="question.QuestionText" />
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">Type <span class="text-danger">*</span></label>
+                                        <InputSelect class="form-select" @bind-Value="question.QuestionTypeId">
+                                            <option value="">-- Select Type --</option>
+                                            @foreach (var type in questionTypes)
+                                            {
+                                                <option value="@type.Id">@type.Name</option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Help Text (optional)</label>
+                                    <InputText class="form-control" @bind-Value="question.HelpText" placeholder="Additional guidance for users" />
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <InputCheckbox class="form-check-input" @bind-Value="question.IsRequired" />
+                                    <label class="form-check-label">
+                                        Required question
+                                    </label>
+                                </div>
+
+                                @* Min/Max Validation for applicable question types *@
+                                @{
+                                    var questionTypeCode = GetQuestionTypeCode(question.QuestionTypeId);
+                                    var isApplicable = questionTypeCode is "Number" or "ShortText" or "LongText" or "Date";
+                                }
+                                @if (isApplicable)
+                                {
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Minimum Value</label>
+                                                <InputText class="form-control" 
+                                                           @bind-Value="question.MinimumValue" 
+                                                           placeholder="@QuestionValidator.GetMinimumValuePlaceholder(questionTypeCode ?? string.Empty)" />
+                                                <small class="form-text text-muted">@QuestionValidator.GetMinimumValueHelpText(questionTypeCode ?? string.Empty)</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="form-label">Maximum Value</label>
+                                                <InputText class="form-control" 
+                                                           @bind-Value="question.MaximumValue" 
+                                                           placeholder="@QuestionValidator.GetMaximumValuePlaceholder(questionTypeCode ?? string.Empty)" />
+                                                <small class="form-text text-muted">@QuestionValidator.GetMaximumValueHelpText(questionTypeCode ?? string.Empty)</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                @* Show options editor for choice-based questions *@
+                                @if (IsChoiceQuestion(question.QuestionTypeId))
+                                {
+                                    <div class="border-top pt-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <label class="form-label mb-0">Options <span class="text-danger">*</span></label>
+                                            <button type="button" class="btn btn-sm btn-success" @onclick="() => AddOption(question)">
+                                                <i class="bi bi-plus"></i> Add Option
+                                            </button>
+                                        </div>
+
+                                        @if (question.Options.Count == 0)
+                                        {
+                                            <div class="alert alert-warning">
+                                                <i class="bi bi-exclamation-triangle"></i> Add at least one option
+                                            </div>
+                                        }
+
+                                        @foreach (var (option, optIndex) in question.Options.Select((o, i) => (o, i)))
+                                        {
+                                            <div class="input-group mb-2">
+                                                <span class="input-group-text">@(optIndex + 1)</span>
+                                                <InputText class="form-control" @bind-Value="option.OptionText" placeholder="Option text" />
+                                                <InputText class="form-control" @bind-Value="option.OptionValue" placeholder="Value (optional)" />
+                                                <button type="button" class="btn btn-outline-danger" @onclick="() => RemoveOption(question, optIndex)">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary" disabled="@saving">
+                @if (saving)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                }
+                <i class="bi bi-save"></i> Save Form
+            </button>
+            <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                <i class="bi bi-x-circle"></i> Cancel
+            </button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public Guid? FormId { get; set; }
+
+    private bool IsEditMode => FormId.HasValue;
+    private bool loading = false;
+    private bool saving = false;
+    private string? errorMessage;
+    private FormBuilderModel formModel = new();
+    private List<QuestionTypeDto> questionTypes = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        loading = true;
+        try
+        {
+            // Load question types
+            var types = await FormsClient.GetQuestionTypesAsync();
+            questionTypes = types.ToList();
+
+            if (IsEditMode && FormId.HasValue)
+            {
+                await LoadForm(FormId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to initialize: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadForm(Guid id)
+    {
+        try
+        {
+            var form = await FormsClient.GetFormByIdAsync(id);
+            formModel = new FormBuilderModel
+            {
+                Name = form.Name,
+                Description = form.Description,
+                IsActive = form.IsActive,
+                AllowMultipleResponses = form.AllowMultipleResponses,
+                AllowAnonymous = form.AllowAnonymous,
+                Questions = form.Questions.Select(q => new QuestionBuilderModel
+                {
+                    QuestionText = q.QuestionText,
+                    HelpText = q.HelpText ?? string.Empty,
+                    QuestionTypeId = q.QuestionType.Id,
+                    IsRequired = q.IsRequired,
+                    MinimumValue = q.MinimumValue,
+                    MaximumValue = q.MaximumValue,
+                    DisplayOrder = q.DisplayOrder,
+                    Options = q.Options.Select(o => new OptionBuilderModel
+                    {
+                        OptionText = o.OptionText,
+                        OptionValue = o.OptionValue ?? string.Empty,
+                        DisplayOrder = o.DisplayOrder
+                    }).ToList()
+                }).ToList()
+            };
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load form: {ex.Message}";
+        }
+    }
+
+    private void AddQuestion()
+    {
+        formModel.Questions.Add(new QuestionBuilderModel
+        {
+            DisplayOrder = formModel.Questions.Count + 1
+        });
+    }
+
+    private void RemoveQuestion(int index)
+    {
+        formModel.Questions.RemoveAt(index);
+        // Update display orders
+        for (int i = 0; i < formModel.Questions.Count; i++)
+        {
+            formModel.Questions[i].DisplayOrder = i + 1;
+        }
+    }
+
+    private void MoveQuestionUp(int index)
+    {
+        if (index > 0)
+        {
+            var temp = formModel.Questions[index];
+            formModel.Questions[index] = formModel.Questions[index - 1];
+            formModel.Questions[index - 1] = temp;
+
+            // Update display orders
+            formModel.Questions[index].DisplayOrder = index + 1;
+            formModel.Questions[index - 1].DisplayOrder = index;
+        }
+    }
+
+    private void MoveQuestionDown(int index)
+    {
+        if (index < formModel.Questions.Count - 1)
+        {
+            var temp = formModel.Questions[index];
+            formModel.Questions[index] = formModel.Questions[index + 1];
+            formModel.Questions[index + 1] = temp;
+
+            // Update display orders
+            formModel.Questions[index].DisplayOrder = index + 1;
+            formModel.Questions[index + 1].DisplayOrder = index + 2;
+        }
+    }
+
+    private void AddOption(QuestionBuilderModel question)
+    {
+        question.Options.Add(new OptionBuilderModel
+        {
+            DisplayOrder = question.Options.Count + 1
+        });
+    }
+
+    private void RemoveOption(QuestionBuilderModel question, int index)
+    {
+        question.Options.RemoveAt(index);
+        // Update display orders
+        for (int i = 0; i < question.Options.Count; i++)
+        {
+            question.Options[i].DisplayOrder = i + 1;
+        }
+    }
+
+    private bool IsChoiceQuestion(Guid questionTypeId)
+    {
+        var type = questionTypes.FirstOrDefault(t => t.Id == questionTypeId);
+        return type?.HasOptions ?? false;
+    }
+
+    private string? GetQuestionTypeCode(Guid questionTypeId)
+    {
+        var type = questionTypes.FirstOrDefault(t => t.Id == questionTypeId);
+        return type?.Code;
+    }
+
+    private async Task SaveForm()
+    {
+        saving = true;
+        errorMessage = null;
+
+        try
+        {
+            if (IsEditMode && FormId.HasValue)
+            {
+                // Update existing form
+                var updateDto = new UpdateFormDto
+                {
+                    Id = FormId.Value,
+                    Name = formModel.Name,
+                    Description = formModel.Description,
+                    IsActive = formModel.IsActive,
+                    AllowMultipleResponses = formModel.AllowMultipleResponses,
+                    AllowAnonymous = formModel.AllowAnonymous
+                };
+
+                await FormsClient.UpdateFormAsync(FormId.Value, updateDto);
+            }
+            else
+            {
+                // Create new form
+                var createDto = new CreateFormDto
+                {
+                    Name = formModel.Name,
+                    Description = formModel.Description,
+                    IsActive = formModel.IsActive,
+                    AllowMultipleResponses = formModel.AllowMultipleResponses,
+                    AllowAnonymous = formModel.AllowAnonymous,
+                    Questions = formModel.Questions.Select(q => new CreateQuestionDto
+                    {
+                        QuestionText = q.QuestionText,
+                        HelpText = q.HelpText,
+                        QuestionTypeId = q.QuestionTypeId,
+                        IsRequired = q.IsRequired,
+                        MinimumValue = q.MinimumValue,
+                        MaximumValue = q.MaximumValue,
+                        DisplayOrder = q.DisplayOrder,
+                        Options = q.Options.Select(o => new CreateQuestionOptionDto
+                        {
+                            OptionText = o.OptionText,
+                            OptionValue = string.IsNullOrWhiteSpace(o.OptionValue) ? null : o.OptionValue,
+                            DisplayOrder = o.DisplayOrder
+                        }).ToList()
+                    }).ToList()
+                };
+
+                await FormsClient.CreateFormAsync(createDto);
+            }
+
+            Navigation.NavigateTo("/forms");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to save form: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/forms");
+    }
+
+    // Form models for builder
+    private class FormBuilderModel
+    {
+        [Required(ErrorMessage = "Form name is required")]
+        [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(1000, ErrorMessage = "Description cannot exceed 1000 characters")]
+        public string Description { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = false;
+        public bool AllowMultipleResponses { get; set; } = false;
+        public bool AllowAnonymous { get; set; } = false;
+        public List<QuestionBuilderModel> Questions { get; set; } = new();
+    }
+
+    private class QuestionBuilderModel
+    {
+        public string QuestionText { get; set; } = string.Empty;
+        public string HelpText { get; set; } = string.Empty;
+        public Guid QuestionTypeId { get; set; }
+        public bool IsRequired { get; set; } = false;
+        public string? MinimumValue { get; set; }
+        public string? MaximumValue { get; set; }
+        public int DisplayOrder { get; set; }
+        public List<OptionBuilderModel> Options { get; set; } = new();
+    }
+
+    private class OptionBuilderModel
+    {
+        public string OptionText { get; set; } = string.Empty;
+        public string OptionValue { get; set; } = string.Empty;
+        public int DisplayOrder { get; set; }
+    }
+}

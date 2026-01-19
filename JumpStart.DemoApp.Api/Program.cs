@@ -34,16 +34,20 @@ builder.Services.AddDbContext<ApiDbContext>(options =>
 // ============================================
 // 2. JUMPSTART FRAMEWORK SERVICES
 // ============================================
-builder.Services.AddJumpStart(jumpStart =>
+builder.Services.AddJumpStart(options =>
 {
-    jumpStart.RegisterUserContext<ApiUserContext>();
-    jumpStart.ScanAssembly(typeof(Program).Assembly);
+    options.RegisterUserContext<ApiUserContext>();
+    options.AutoDiscoverRepositories = true; // ? Required for EnsureDbContextResolution
+    options.ScanAssembly(typeof(Program).Assembly);
+    options.RegisterFormsController = true;
 });
 
 // ============================================
 // 3. AUTOMAPPER
 // ============================================
-builder.Services.AddJumpStartAutoMapper(typeof(Program).Assembly);
+builder.Services.AddJumpStartAutoMapper(
+    typeof(Program).Assembly,                    // API project profiles
+    typeof(JumpStart.Forms.Form).Assembly);      // JumpStart framework profiles (includes FormsProfile)
 
 // ============================================
 // 4. JWT AUTHENTICATION CONFIGURATION

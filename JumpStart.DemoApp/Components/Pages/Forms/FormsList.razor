@@ -1,0 +1,440 @@
+@page "/forms"
+@using JumpStart.Api.DTOs.Forms
+@using JumpStart.Api.Clients.Forms
+@using JumpStart.DemoApp.Components.Shared
+@inject IFormsApiClient FormsClient
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Forms</PageTitle>
+
+<h1>Form Management</h1>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @successMessage
+        <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+    </div>
+}
+
+@if (loading)
+{
+    <p><em>Loading forms...</em></p>
+}
+else if (forms != null)
+{
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="CreateForm">
+            <i class="bi bi-plus-circle"></i> Create New Form
+        </button>
+        <button class="btn btn-success" @onclick="LoadActiveForms">
+            <i class="bi bi-check-circle"></i> Show Active
+        </button>
+        <button class="btn btn-outline-secondary" @onclick="LoadAllForms">
+            <i class="bi bi-arrow-clockwise"></i> Show All
+        </button>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Responses</th>
+                <th>Settings</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var form in forms)
+            {
+                var stats = formStats.GetValueOrDefault(form.Id);
+                var hasResponses = stats != null && stats.TotalResponses > 0;
+
+                <tr>
+                    <td><strong>@form.Name</strong></td>
+                    <td>@form.Description</td>
+                    <td>
+                        @if (form.IsActive)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Inactive</span>
+                        }
+                    </td>
+                    <td>
+                        @if (stats != null && stats.TotalResponses > 0)
+                        {
+                            <span class="badge bg-primary" title="@stats.TotalResponses responses">
+                                <i class="bi bi-chat-left-text"></i> @stats.TotalResponses
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No responses</span>
+                        }
+                    </td>
+                    <td>
+                        @if (form.AllowMultipleResponses)
+                        {
+                            <span class="badge bg-info text-dark">Multiple</span>
+                        }
+                        @if (form.AllowAnonymous)
+                        {
+                            <span class="badge bg-warning text-dark">Anonymous</span>
+                        }
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-primary" 
+                                    @onclick="() => HandleEditClick(form.Id)"
+                                    title="@(hasResponses ? "Edit (has responses)" : "Edit form")">
+                                <i class="bi bi-pencil"></i>
+                                @if (hasResponses)
+                                {
+                                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                                }
+                            </button>
+                            <button class="btn btn-sm btn-info" @onclick="() => ViewForm(form.Id)">
+                                <i class="bi bi-eye"></i> View
+                            </button>
+                            <button class="btn btn-sm btn-secondary" @onclick="() => ViewStatistics(form.Id)">
+                                <i class="bi bi-bar-chart"></i>
+                            </button>
+                            @if (hasResponses)
+                            {
+                                <button class="btn btn-sm btn-warning" 
+                                        @onclick="() => ShowDeleteResponsesModal(form.Id)"
+                                        title="Delete all responses">
+                                    <i class="bi bi-trash"></i> Responses
+                                </button>
+                            }
+                            <button class="btn btn-sm btn-danger" @onclick="() => DeleteForm(form.Id)">
+                                <i class="bi bi-trash"></i> Form
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (forms.Count == 0)
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No forms found. Click "Create New Form" to get started.
+        </div>
+    }
+}
+
+<!-- Statistics Modal -->
+@if (showStatsModal && currentStats != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Form Statistics: @currentStats.FormName</h5>
+                    <button type="button" class="btn-close" @onclick="CloseStatsModal"></button>
+                </div>
+                <div class="modal-body">
+                    <dl class="row">
+                        <dt class="col-sm-6">Total Responses:</dt>
+                        <dd class="col-sm-6">@currentStats.TotalResponses</dd>
+
+                        <dt class="col-sm-6">Complete Responses:</dt>
+                        <dd class="col-sm-6">@currentStats.CompleteResponses</dd>
+
+                        <dt class="col-sm-6">Incomplete Responses:</dt>
+                        <dd class="col-sm-6">@currentStats.IncompleteResponses</dd>
+
+                        <dt class="col-sm-6">Completion Rate:</dt>
+                        <dd class="col-sm-6">
+                            <span class="badge @(currentStats.CompletionRate >= 80 ? "bg-success" : currentStats.CompletionRate >= 50 ? "bg-warning" : "bg-danger")">
+                                @currentStats.CompletionRate.ToString("F1")%
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseStatsModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Confirmation Modal for Delete Responses -->
+<ConfirmationModal @ref="deleteResponsesModal"
+                   Title="Delete All Responses?"
+                   ConfirmButtonText="Yes, Delete All"
+                   CancelButtonText="Cancel"
+                   ConfirmButtonClass="btn-danger"
+                   OnClose="HandleDeleteResponsesConfirmation">
+    <Message>
+        @if (pendingDeleteResponsesStats != null)
+        {
+            <p class="mb-2">
+                <strong>This form has @pendingDeleteResponsesStats.TotalResponses response(s).</strong>
+            </p>
+            <p class="text-danger mb-0">
+                <i class="bi bi-exclamation-triangle"></i>
+                All responses will be <strong>permanently deleted</strong>. This action cannot be undone.
+            </p>
+        }
+    </Message>
+</ConfirmationModal>
+
+<!-- Confirmation Modal for Edit with Responses -->
+<ConfirmationModal @ref="editWithResponsesModal"
+                   Title="Edit Form with Responses?"
+                   ConfirmButtonText="Delete Responses and Edit"
+                   CancelButtonText="Cancel"
+                   ConfirmButtonClass="btn-warning"
+                   OnClose="HandleEditWithResponsesConfirmation">
+    <Message>
+        @if (pendingEditFormStats != null)
+        {
+            <p class="mb-2">
+                This form has <strong>@pendingEditFormStats.TotalResponses response(s)</strong>.
+            </p>
+            <p class="text-warning mb-2">
+                <i class="bi bi-exclamation-triangle"></i>
+                You cannot edit a form that has received responses without first deleting all responses.
+            </p>
+            <p class="mb-0">
+                Do you want to <strong>delete all responses</strong> and proceed to edit the form?
+            </p>
+        }
+    </Message>
+</ConfirmationModal>
+
+@code {
+    private List<FormDto>? forms;
+    private Dictionary<Guid, FormStatisticsDto> formStats = new();
+    private bool loading = true;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool showStatsModal = false;
+    private FormStatisticsDto? currentStats;
+
+    private ConfirmationModal deleteResponsesModal = null!;
+    private ConfirmationModal editWithResponsesModal = null!;
+    private Guid pendingDeleteResponsesFormId;
+    private Guid pendingEditFormId;
+    private FormStatisticsDto? pendingDeleteResponsesStats;
+    private FormStatisticsDto? pendingEditFormStats;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllForms();
+    }
+
+    private async Task LoadAllForms()
+    {
+        loading = true;
+        errorMessage = null;
+        successMessage = null;
+        try
+        {
+            var result = await FormsClient.GetAllFormsAsync();
+            forms = result.ToList();
+
+            // Load statistics for all forms
+            formStats.Clear();
+            foreach (var form in forms)
+            {
+                try
+                {
+                    var stats = await FormsClient.GetFormStatisticsAsync(form.Id);
+                    formStats[form.Id] = stats;
+                }
+                catch
+                {
+                    // Ignore stats loading errors for individual forms
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load forms: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadActiveForms()
+    {
+        loading = true;
+        errorMessage = null;
+        successMessage = null;
+        try
+        {
+            var result = await FormsClient.GetActiveFormsAsync();
+            forms = result.ToList();
+
+            // Load statistics for active forms
+            formStats.Clear();
+            foreach (var form in forms)
+            {
+                try
+                {
+                    var stats = await FormsClient.GetFormStatisticsAsync(form.Id);
+                    formStats[form.Id] = stats;
+                }
+                catch
+                {
+                    // Ignore stats loading errors
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load active forms: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private void CreateForm()
+    {
+        Navigation.NavigateTo("/forms/create");
+    }
+
+    private async Task HandleEditClick(Guid formId)
+    {
+        // Check if form has responses
+        if (formStats.TryGetValue(formId, out var stats) && stats.TotalResponses > 0)
+        {
+            // Show confirmation modal
+            pendingEditFormId = formId;
+            pendingEditFormStats = stats;
+            editWithResponsesModal.Show();
+        }
+        else
+        {
+            // No responses, proceed directly to edit
+            Navigation.NavigateTo($"/forms/edit/{formId}");
+        }
+    }
+
+    private async Task HandleEditWithResponsesConfirmation(bool confirmed)
+    {
+        if (confirmed)
+        {
+            try
+            {
+                // Delete all responses
+                var deletedCount = await FormsClient.DeleteAllFormResponsesAsync(pendingEditFormId);
+                successMessage = $"Deleted {deletedCount} response(s). Redirecting to edit...";
+                StateHasChanged();
+
+                // Small delay to show message
+                await Task.Delay(1000);
+
+                // Navigate to edit
+                Navigation.NavigateTo($"/forms/edit/{pendingEditFormId}");
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Failed to delete responses: {ex.Message}";
+            }
+        }
+
+        pendingEditFormStats = null;
+    }
+
+    private void ShowDeleteResponsesModal(Guid formId)
+    {
+        if (formStats.TryGetValue(formId, out var stats))
+        {
+            pendingDeleteResponsesFormId = formId;
+            pendingDeleteResponsesStats = stats;
+            deleteResponsesModal.Show();
+        }
+    }
+
+    private async Task HandleDeleteResponsesConfirmation(bool confirmed)
+    {
+        if (confirmed)
+        {
+            try
+            {
+                var deletedCount = await FormsClient.DeleteAllFormResponsesAsync(pendingDeleteResponsesFormId);
+                successMessage = $"Successfully deleted {deletedCount} response(s).";
+
+                // Reload forms to update response counts
+                await LoadAllForms();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Failed to delete responses: {ex.Message}";
+            }
+        }
+
+        pendingDeleteResponsesStats = null;
+    }
+
+    private void EditForm(Guid formId)
+    {
+        Navigation.NavigateTo($"/forms/edit/{formId}");
+    }
+
+    private void ViewForm(Guid formId)
+    {
+        Navigation.NavigateTo($"/forms/view/{formId}");
+    }
+
+    private async Task ViewStatistics(Guid formId)
+    {
+        try
+        {
+            currentStats = await FormsClient.GetFormStatisticsAsync(formId);
+            showStatsModal = true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load statistics: {ex.Message}";
+        }
+    }
+
+    private void CloseStatsModal()
+    {
+        showStatsModal = false;
+        currentStats = null;
+    }
+
+    private async Task DeleteForm(Guid formId)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this form?"))
+        {
+            try
+            {
+                await FormsClient.DeleteFormAsync(formId);
+                successMessage = "Form deleted successfully.";
+                await LoadAllForms();
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Failed to delete form: {ex.Message}";
+            }
+        }
+    }
+}

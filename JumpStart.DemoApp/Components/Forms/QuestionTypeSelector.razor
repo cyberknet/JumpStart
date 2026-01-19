@@ -1,0 +1,94 @@
+@* Copyright ©2026 Scott Blomfield *@
+@*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>.
+ *@
+
+@using JumpStart.Api.DTOs.Forms
+@using JumpStart.Api.Clients.Forms
+@inject IFormsApiClient FormsClient
+
+<div class="mb-3">
+    <label class="form-label">@Label</label>
+    <select class="form-select @CssClass" 
+            value="@SelectedQuestionTypeId" 
+            @onchange="OnQuestionTypeChanged"
+            disabled="@Disabled">
+        <option value="">-- Select Question Type --</option>
+        @if (questionTypes != null)
+        {
+            @foreach (var type in questionTypes)
+            {
+                <option value="@type.Id">@type.Name - @type.Description</option>
+            }
+        }
+    </select>
+</div>
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = "Question Type";
+    
+    [Parameter]
+    public Guid? SelectedQuestionTypeId { get; set; }
+    
+    [Parameter]
+    public EventCallback<Guid> SelectedQuestionTypeIdChanged { get; set; }
+    
+    [Parameter]
+    public EventCallback<QuestionTypeDto> OnQuestionTypeSelected { get; set; }
+    
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+    
+    [Parameter]
+    public bool Disabled { get; set; }
+    
+    private List<QuestionTypeDto>? questionTypes;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadQuestionTypesAsync();
+    }
+    
+    private async Task LoadQuestionTypesAsync()
+    {
+        try
+        {
+            var types = await FormsClient.GetQuestionTypesAsync();
+            questionTypes = types.OrderBy(t => t.DisplayOrder).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading question types: {ex.Message}");
+        }
+    }
+    
+    private async Task OnQuestionTypeChanged(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var typeId))
+        {
+            SelectedQuestionTypeId = typeId;
+            await SelectedQuestionTypeIdChanged.InvokeAsync(typeId);
+            
+            var selectedType = questionTypes?.FirstOrDefault(t => t.Id == typeId);
+            if (selectedType != null)
+            {
+                await OnQuestionTypeSelected.InvokeAsync(selectedType);
+            }
+        }
+        else
+        {
+            SelectedQuestionTypeId = null;
+            await SelectedQuestionTypeIdChanged.InvokeAsync(Guid.Empty);
+        }
+    }
+}

@@ -1,0 +1,33 @@
+@inherits QuestionInputBase
+
+@foreach (var option in Question.Options.OrderBy(o => o.DisplayOrder))
+{
+    <div class="form-check">
+        <input type="checkbox" 
+               class="form-check-input" 
+               value="@option.Id"
+               @onchange="@(e => ToggleOption(option.Id, (bool?)e.Value ?? false))" />
+        <label class="form-check-label">@option.OptionText</label>
+    </div>
+}
+
+@code {
+    private List<Guid> selectedOptions = new();
+
+    private void ToggleOption(Guid optionId, bool selected)
+    {
+        if (selected)
+        {
+            if (!selectedOptions.Contains(optionId))
+            {
+                selectedOptions.Add(optionId);
+            }
+        }
+        else
+        {
+            selectedOptions.Remove(optionId);
+        }
+
+        OnOptionAnswerChanged.InvokeAsync(selectedOptions.ToList());
+    }
+}

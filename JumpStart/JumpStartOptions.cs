@@ -43,8 +43,8 @@ namespace JumpStart;
 /// </para>
 /// <para>
 /// <strong>Default Behavior:</strong>
-/// - AutoDiscoverRepositories is enabled (true)
-/// - AutoDiscoverApiClients is enabled (true)
+/// - AutoDiscoverRepositories is disabled (false)
+/// - AutoDiscoverApiClients is disabled (false)
 /// - RepositoryLifetime is Scoped (recommended for EF Core)
 /// - ApiClientLifetime is Scoped (recommended for Blazor/HttpClient)
 /// - If no assemblies are specified, the calling assembly is scanned
@@ -108,7 +108,7 @@ namespace JumpStart;
 /// services.AddJumpStart(options =>
 /// {
 ///     options
-///         .DisableAutoDiscovery()
+///         .DisableRepositoryAutoDiscovery()
 ///         .RegisterRepository&lt;IProductRepository, ProductRepository&gt;()
 ///         .RegisterRepository&lt;IOrderRepository, OrderRepository&gt;();
 /// });
@@ -214,7 +214,7 @@ public class JumpStartOptions
     /// </summary>
     /// <value>
     /// <c>true</c> to enable automatic discovery; <c>false</c> to require manual registration.
-    /// Default is <c>true</c>.
+    /// Default is <c>false</c>.
     /// </value>
     /// <remarks>
     /// When enabled, the framework scans specified assemblies for classes that implement repository
@@ -222,14 +222,14 @@ public class JumpStartOptions
     /// the recommended approach for most applications as it eliminates manual registration boilerplate.
     /// Set to false if you prefer explicit control over repository registration.
     /// </remarks>
-    public bool AutoDiscoverRepositories { get; set; } = true;
+    public bool AutoDiscoverRepositories { get; set; } = false;
 
     /// <summary>
     /// Gets or sets whether to automatically discover and register API client implementations.
     /// </summary>
     /// <value>
     /// <c>true</c> to enable automatic discovery; <c>false</c> to require manual registration.
-    /// Default is <c>true</c>.
+    /// Default is <c>false</c>.
     /// </value>
     /// <remarks>
     /// When enabled, the framework scans specified assemblies for classes that implement API client
@@ -237,7 +237,7 @@ public class JumpStartOptions
     /// the recommended approach for most applications as it eliminates manual registration boilerplate.
     /// Set to false if you prefer explicit control over API client registration.
     /// </remarks>
-    public bool AutoDiscoverApiClients { get; set; } = true;
+    public bool AutoDiscoverApiClients { get; set; } = false;
 
     /// <summary>
     /// Gets the list of assemblies to scan for repository and API client implementations.
@@ -471,7 +471,7 @@ public class JumpStartOptions
     /// services.AddJumpStart(options =>
     /// {
     ///     options
-    ///         .DisableAutoDiscovery()
+    ///         .DisableRepositoryAutoDiscovery()
     ///         .RegisterRepository&lt;IProductRepository, ProductRepository&gt;()
     ///         .RegisterRepository&lt;IOrderRepository, OrderRepository&gt;()
     ///         .RegisterRepository&lt;ICustomerRepository, CustomerRepository&gt;();
@@ -518,15 +518,46 @@ public class JumpStartOptions
     /// services.AddJumpStart(options =>
     /// {
     ///     options
-    ///         .DisableAutoDiscovery()
+    ///         .DisableRepositoryAutoDiscovery()
     ///         .RegisterRepository&lt;IProductRepository, ProductRepository&gt;()
     ///         .RegisterRepository&lt;IOrderRepository, OrderRepository&gt;();
     /// });
     /// </code>
     /// </example>
-    public JumpStartOptions DisableAutoDiscovery()
+    public JumpStartOptions DisableRepositoryAutoDiscovery()
     {
         AutoDiscoverRepositories = false;
+        return this;
+    }
+
+    /// <summary>
+    /// Enables automatic repository discovery and registration.
+    /// </summary>
+    /// <returns>The options instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// Call this method if you want the framework to automatically discover and register repositories.
+    /// </para>
+    /// <para>
+    /// <strong>Use Cases:</strong>
+    /// - You do not want explicit control over registered repositories
+    /// - Scanning large assemblies at startup is acceptable
+    /// - You do not need to register only specific repositories
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Enable auto-discovery
+    /// services.AddJumpStart(options =>
+    /// {
+    ///     options
+    ///         .EnableRepositoryAutoDiscovery();
+    /// });
+    /// </code>
+    /// </example>
+    public JumpStartOptions EnableRepositoryAutoDiscovery()
+    {
+        AutoDiscoverRepositories = true;
         return this;
     }
 
@@ -570,8 +601,83 @@ public class JumpStartOptions
     /// </code>
     /// </example>
     public JumpStartOptions UseRepositoryLifetime(ServiceLifetime lifetime)
-    {
-        RepositoryLifetime = lifetime;
-        return this;
+        {
+            RepositoryLifetime = lifetime;
+            return this;
+        }
+
+        /// <summary>
+        /// Gets or sets whether to register the Forms API controller.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to register FormsController and expose RESTful Forms API endpoints;
+        /// otherwise, <c>false</c>. Default is <c>false</c>.
+        /// </value>
+        /// <remarks>
+        /// <para>
+        /// Set this to <c>true</c> in API projects to expose Forms CRUD endpoints.
+        /// The Forms controller provides RESTful operations for form management and response submission.
+        /// </para>
+        /// <para>
+        /// <strong>When to Enable:</strong>
+        /// - API projects that need to expose Forms functionality
+        /// - Microservices architecture where Forms is a separate service
+        /// </para>
+        /// <para>
+        /// <strong>When to Leave Disabled:</strong>
+        /// - Blazor Server apps accessing the database directly via repositories
+        /// - Client applications that only consume Forms APIs (enable RegisterFormsApiClient instead)
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// // API project - expose Forms endpoints
+        /// builder.Services.AddJumpStart(options =>
+        /// {
+        ///     options.RegisterFormsController = true;
+        ///     options.RegisterUserContext&lt;ApiUserContext&gt;();
+        /// });
+        /// </code>
+        /// </example>
+        public bool RegisterFormsController { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets whether to register the Forms API client.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to register Refit-based Forms API client for calling remote Forms API;
+        /// otherwise, <c>false</c>. Default is <c>false</c>.
+        /// </value>
+        /// <remarks>
+        /// <para>
+        /// Set this to <c>true</c> in Blazor Server apps that need to call a separate Forms API
+        /// instead of accessing the database directly via repositories.
+        /// </para>
+        /// <para>
+        /// <strong>Prerequisites:</strong>
+        /// Ensure <see cref="ApiBaseUrl"/> is configured to point to the Forms API.
+        /// </para>
+        /// <para>
+        /// <strong>When to Enable:</strong>
+        /// - Blazor Server apps calling a separate Forms API
+        /// - Client applications in a microservices architecture
+        /// </para>
+        /// <para>
+        /// <strong>When to Leave Disabled:</strong>
+        /// - Projects using repositories directly (with DbContext)
+        /// - API projects (enable RegisterFormsController instead)
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// // Blazor Server calling Forms API
+        /// builder.Services.AddJumpStart(options =>
+        /// {
+        ///     options.ApiBaseUrl = "https://localhost:7030";
+        ///     options.RegisterFormsApiClient = true;
+        ///     options.RegisterUserContext&lt;BlazorUserContext&gt;();
+        /// });
+        /// </code>
+        /// </example>
+        public bool RegisterFormsApiClient { get; set; } = false;
     }
-}

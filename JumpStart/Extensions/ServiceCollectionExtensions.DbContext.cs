@@ -116,7 +116,7 @@ public static partial class JumpStartServiceCollectionExtensions
         // Register DbContext
         services.AddDbContext<TContext>(optionsAction);
 
-        // Register JumpStart services
+        // Register JumpStart services (which will call EnsureDbContextResolution when repositories are enabled)
         services.AddJumpStart(options =>
         {
             // Apply custom configuration

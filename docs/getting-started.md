@@ -89,13 +89,16 @@ public class Product : SimpleEntity
 
 ### Step 3: Create a DbContext
 
+**⚠️ IMPORTANT:** Your DbContext must inherit from `JumpStartDbContext` to ensure framework data (like QuestionTypes for the Forms module) is automatically seeded.
+
 ```csharp
+using JumpStart.Data;
 using Microsoft.EntityFrameworkCore;
 using MyProductCatalog.Data;
 
 namespace MyProductCatalog.Data;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : JumpStartDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -106,6 +109,7 @@ public class ApplicationDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // ⚠️ IMPORTANT: Call base first to apply JumpStart configurations
         base.OnModelCreating(modelBuilder);
 
         // Configure Product entity
@@ -121,6 +125,12 @@ public class ApplicationDbContext : DbContext
     }
 }
 ```
+
+**What You Get:**
+- Inheriting from `JumpStartDbContext` provides DbSets for Forms module entities
+- Framework-required data (QuestionTypes) is automatically seeded via migrations
+- No manual seeding code needed - data is part of the schema definition
+- Runtime validation ensures you don't forget this requirement
 
 ### Step 4: Create a Repository
 
@@ -380,6 +390,36 @@ See [How-To: Custom Repository](how-to/custom-repository.md) for details.
 - **[Troubleshooting](troubleshooting.md)** - Common issues and solutions
 - **[GitHub Issues](https://github.com/cyberknet/JumpStart/issues)** - Report bugs or request features
 - **[Discussions](https://github.com/cyberknet/JumpStart/discussions)** - Ask questions and share ideas
+
+## Common Issues
+
+### "DbContext type must inherit from 'JumpStartDbContext'"
+
+**Problem:** You see this error when calling `AddJumpStart()`:
+```
+System.InvalidOperationException: DbContext type 'ApplicationDbContext' must inherit from 'JumpStartDbContext' to ensure framework data is seeded correctly.
+```
+
+**Solution:** Change your DbContext to inherit from `JumpStartDbContext` instead of `DbContext`:
+
+```csharp
+// ❌ Wrong
+public class ApplicationDbContext : DbContext
+
+// ✅ Correct
+public class ApplicationDbContext : JumpStartDbContext
+```
+
+**Why:** JumpStart framework features (like Forms) require reference data (QuestionTypes, etc.) to function. By inheriting from `JumpStartDbContext`, this data is automatically seeded via EF Core migrations. No manual seeding code is needed.
+
+### Missing QuestionTypes
+
+**Problem:** Forms module throws errors about missing QuestionTypes.
+
+**Solution:** 
+1. Ensure your DbContext inherits from `JumpStartDbContext`
+2. Create and apply migrations: `dotnet ef migrations add AddJumpStart`
+3. QuestionTypes are seeded automatically in the migration
 
 ## Next Steps
 

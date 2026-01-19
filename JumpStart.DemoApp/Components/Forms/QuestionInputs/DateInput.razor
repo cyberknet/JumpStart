@@ -1,0 +1,30 @@
+@inherits QuestionInputBase
+
+<input type="date" 
+       class="form-control"
+       @onchange="@(e => OnTextAnswerChanged.InvokeAsync(e.Value?.ToString()))"
+       required="@Question.IsRequired"
+       min="@Question.MinimumValue"
+       max="@Question.MaximumValue" />
+
+@if (!string.IsNullOrEmpty(Question.MinimumValue) || !string.IsNullOrEmpty(Question.MaximumValue))
+{
+    <div class="form-text">
+        @if (!string.IsNullOrEmpty(Question.MinimumValue) && !string.IsNullOrEmpty(Question.MaximumValue))
+        {
+            <text>Must be between @FormatDate(Question.MinimumValue) and @FormatDate(Question.MaximumValue)</text>
+        }
+        else if (!string.IsNullOrEmpty(Question.MinimumValue))
+        {
+            <text>Must be on or after @FormatDate(Question.MinimumValue)</text>
+        }
+        else
+        {
+            <text>Must be on or before @FormatDate(Question.MaximumValue)</text>
+        }
+    </div>
+}
+
+@code {
+    // Inherits all functionality from QuestionInputBase
+}

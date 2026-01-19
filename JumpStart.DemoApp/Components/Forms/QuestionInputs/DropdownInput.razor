@@ -1,0 +1,25 @@
+@inherits QuestionInputBase
+
+<select class="form-select"
+        @onchange="@(e => HandleSelectionChange(e.Value?.ToString()))"
+        required="@Question.IsRequired">
+    <option value="">-- Select an option --</option>
+    @foreach (var option in Question.Options.OrderBy(o => o.DisplayOrder))
+    {
+        <option value="@option.Id">@option.OptionText</option>
+    }
+</select>
+
+@code {
+    private void HandleSelectionChange(string? value)
+    {
+        if (Guid.TryParse(value, out var optionId))
+        {
+            OnOptionAnswerChanged.InvokeAsync(new List<Guid> { optionId });
+        }
+        else
+        {
+            OnOptionAnswerChanged.InvokeAsync(new List<Guid>());
+        }
+    }
+}

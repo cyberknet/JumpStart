@@ -112,7 +112,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// services.AddJumpStart(options =>
 /// {
 ///     options
-///         .DisableAutoDiscovery()
+///         .DisableRepositoryAutoDiscovery()
 ///         .RegisterRepository&lt;IProductRepository, ProductRepository&gt;()
 ///         .RegisterRepository&lt;IOrderRepository, OrderRepository&gt;();
 /// });
@@ -213,6 +213,12 @@ public static partial class JumpStartServiceCollectionExtensions
         // Auto-discover and register repositories if enabled
         if (options.AutoDiscoverRepositories)
         {
+            // Validate DbContext inheritance before registering repositories
+            ValidateDbContextInheritance(services);
+
+            // Ensure DbContext can be resolved for framework repositories
+            EnsureDbContextResolution(services);
+
             RegisterRepositories(services, options);
         }
 
@@ -221,7 +227,107 @@ public static partial class JumpStartServiceCollectionExtensions
             RegisterApiClients(services, options);
         }
 
+        // Register Forms module services if configured
+        if (options.RegisterFormsController || options.RegisterFormsApiClient)
+        {
+            RegisterFormsServices(services, options);
+        }
+
         return services;
+    }
+
+    /// <summary>
+    /// Validates that registered DbContext types inherit from JumpStartDbContext.
+    /// </summary>
+    /// <param name="services">The service collection to validate.</param>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown if a DbContext is registered that doesn't inherit from JumpStartDbContext.
+    /// </exception>
+    /// <remarks>
+    /// <para>
+    /// This validation runs only when repositories are being registered, since repository
+    /// usage requires a DbContext. If JumpStart is used only for API clients (no repositories),
+    /// DbContext validation is skipped.
+    /// </para>
+    /// <para>
+    /// The validation ensures that framework data (like QuestionTypes for Forms) is seeded
+    /// automatically via OnModelCreating in JumpStartDbContext.
+    /// </para>
+    /// </remarks>
+    private static void ValidateDbContextInheritance(IServiceCollection services)
+    {
+        // Find all registered DbContext types
+        var dbContextDescriptors = services
+            .Where(d => d.ServiceType.IsSubclassOf(typeof(DbContext)) || 
+                        (d.ImplementationType != null && d.ImplementationType.IsSubclassOf(typeof(DbContext))))
+            .ToList();
+
+        foreach (var descriptor in dbContextDescriptors)
+        {
+            var contextType = descriptor.ImplementationType ?? descriptor.ServiceType;
+
+            // Skip if it's JumpStartDbContext itself
+            if (contextType == typeof(JumpStartDbContext))
+                continue;
+
+            // Check if it inherits from JumpStartDbContext
+            if (!contextType.IsSubclassOf(typeof(JumpStartDbContext)))
+            {
+                throw new InvalidOperationException(
+                    $"DbContext type '{contextType.Name}' must inherit from 'JumpStartDbContext' to ensure framework data is seeded correctly. " +
+                    $"Change your DbContext declaration from 'public class {contextType.Name} : DbContext' " +
+                    $"to 'public class {contextType.Name} : JumpStartDbContext'. " +
+                    $"See documentation: https://github.com/cyberknet/JumpStart/blob/main/docs/getting-started.md#dbcontext-requirement");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ensures that DbContext can be resolved from DI for repositories that depend on it.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <remarks>
+    /// <para>
+    /// Framework repositories take DbContext (abstract base class) to remain framework-agnostic.
+    /// However, consumers register concrete types like ApiDbContext or ApplicationDbContext.
+    /// </para>
+    /// <para>
+    /// This method automatically bridges the gap by registering DbContext as a factory that resolves
+    /// to the first registered concrete DbContext type. This allows framework repositories to be injected
+    /// with DbContext while getting the consumer's actual context implementation.
+    /// </para>
+    /// <para>
+    /// The registration only occurs if:
+    /// - DbContext is not already registered (respects consumer customization)
+    /// - A concrete DbContext type is found in the service collection
+    /// </para>
+    /// <para>
+    /// This method is idempotent and safe to call multiple times.
+    /// </para>
+    /// </remarks>
+    private static void EnsureDbContextResolution(IServiceCollection services)
+    {
+        // Check if DbContext is already registered - respect consumer's explicit registration
+        if (services.Any(d => d.ServiceType == typeof(DbContext)))
+        {
+            return;
+        }
+
+        // Find the first registered concrete DbContext (like ApiDbContext, ApplicationDbContext, etc.)
+        var concreteDbContextDescriptor = services
+            .FirstOrDefault(d => 
+                d.ServiceType != typeof(DbContext) && 
+                typeof(DbContext).IsAssignableFrom(d.ServiceType));
+
+        if (concreteDbContextDescriptor != null)
+        {
+            var concreteType = concreteDbContextDescriptor.ServiceType;
+
+            // Register DbContext as a factory that resolves the concrete type
+            // This allows repositories with DbContext constructor parameters to work
+            services.AddScoped<DbContext>(provider => 
+                (DbContext)provider.GetRequiredService(concreteType));
+        }
     }
 
         /// <summary>

@@ -17,7 +17,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using JumpStart.Data;
-using JumpStart.Extensions;
 using JumpStart.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -295,7 +294,7 @@ public class JumpStartServiceCollectionExtensionsTests
         // Act
         services.AddJumpStart(options =>
         {
-            options.DisableAutoDiscovery();
+            options.DisableRepositoryAutoDiscovery();
         });
 
         // Assert
@@ -419,7 +418,7 @@ public class JumpStartServiceCollectionExtensionsTests
         services.AddJumpStart(options =>
         {
             options
-                .DisableAutoDiscovery()
+                .DisableRepositoryAutoDiscovery()
                 .RegisterUserContext<TestUserContext>();
         });
 

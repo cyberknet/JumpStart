@@ -15,8 +15,9 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using JumpStart;
+using JumpStart.Api.Clients;
 using JumpStart.Data;
-using JumpStart.Extensions;
 using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -31,9 +32,12 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <para>
 /// These extension methods configure the complete JumpStart framework, including:
 /// - Automatic repository discovery and registration
+/// - Automatic API client registration (Refit-based)
+/// - Entity Framework Core DbContext registration
+/// - AutoMapper profile registration
 /// - User context for audit tracking
 /// - Configurable service lifetimes
-/// - Assembly scanning for repositories
+/// - Assembly scanning for repositories, API clients, and mapping profiles
 /// </para>
 /// <para>
 /// <strong>Automatic Repository Discovery:</strong>
@@ -46,6 +50,35 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// The framework automatically discovers and registers implementations of:
 /// - <see cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/> - Simple Guid-based repositories
 /// - <see cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/> - Generic repositories with custom key types
+/// </para>
+/// <para>
+/// <strong>API Client Registration:</strong>
+/// Provides extension methods for registering Refit-based API clients:
+/// - <see cref="AddSimpleApiClient{TInterface}(IServiceCollection, string)"/> - Basic registration with base URL
+/// - Overloads for HttpClient configuration and IHttpClientBuilder customization
+/// - Support for authentication handlers, retry policies, and circuit breakers
+/// - Typical usage in Blazor Server applications calling separate API projects
+/// </para>
+/// <para>
+/// <strong>Supported API Client Interfaces:</strong>
+/// - <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/> - Simple Guid-based API clients
+/// - <see cref="JumpStart.Api.Clients.Advanced.IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/> - Advanced API clients with custom key types
+/// </para>
+/// <para>
+/// <strong>DbContext Integration:</strong>
+/// Provides convenience methods for registering Entity Framework Core DbContext with JumpStart:
+/// - <c>AddJumpStartWithDbContext&lt;TContext&gt;</c> - Combined DbContext and JumpStart registration
+/// - Automatically scans the DbContext's assembly for repository implementations
+/// - Supports all EF Core database providers (SQL Server, SQLite, PostgreSQL, MySQL, etc.)
+/// - Configures sensible defaults with Scoped lifetime for both DbContext and repositories
+/// </para>
+/// <para>
+/// <strong>AutoMapper Integration:</strong>
+/// Provides methods for registering AutoMapper profiles:
+/// - <c>AddJumpStartAutoMapper</c> - Scans assemblies for AutoMapper Profile classes
+/// - Automatically discovers and registers all mapping configurations
+/// - Supports scanning by explicit assemblies or marker types
+/// - Essential for DTO-Entity conversions in API controllers
 /// </para>
 /// </remarks>
 /// <example>
@@ -101,7 +134,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// var app = builder.Build();
 /// </code>
 /// </example>
-public static class JumpStartServiceCollectionExtensions
+public static partial class JumpStartServiceCollectionExtensions
 {
     /// <summary>
     /// Adds JumpStart framework services to the specified <see cref="IServiceCollection"/>.
@@ -183,103 +216,112 @@ public static class JumpStartServiceCollectionExtensions
             RegisterRepositories(services, options);
         }
 
+        if (options.AutoDiscoverApiClients)
+        {
+            RegisterApiClients(services, options);
+        }
+
         return services;
     }
 
-    /// <summary>
-    /// Registers core JumpStart services with the dependency injection container.
-    /// Currently registers the user context if one was specified in the options.
-    /// </summary>
-    /// <param name="services">The service collection to add services to.</param>
-    /// <param name="options">The JumpStart options containing configuration.</param>
-    private static void RegisterCoreServices(IServiceCollection services, JumpStartOptions options)
-    {
-        // User context is optional - only register if one was specified
-        if (options.UserContextType != null)
+        /// <summary>
+        /// Registers core JumpStart services with the dependency injection container.
+        /// Currently registers the user context if one was specified in the options.
+        /// </summary>
+        /// <param name="services">The service collection to add services to.</param>
+        /// <param name="options">The JumpStart options containing configuration.</param>
+        private static void RegisterCoreServices(IServiceCollection services, JumpStartOptions options)
         {
-            services.TryAddScoped(typeof(ISimpleUserContext), options.UserContextType);
-        }
-    }
-
-    /// <summary>
-    /// Discovers and registers repository implementations from specified assemblies.
-    /// Scans for classes implementing ISimpleRepository or IRepository interfaces.
-    /// Registers the concrete class and all repository-related interfaces it implements.
-    /// </summary>
-    /// <param name="services">The service collection to add repositories to.</param>
-    /// <param name="options">The JumpStart options containing assembly list and lifetime settings.</param>
-    private static void RegisterRepositories(IServiceCollection services, JumpStartOptions options)
-    {
-        var assemblies = options.RepositoryAssemblies.Any() 
-            ? options.RepositoryAssemblies.ToArray() 
-            : new[] { Assembly.GetCallingAssembly() };
-
-        foreach (var assembly in assemblies)
-        {
-            // Get all types in the assembly
-            var allTypes = assembly.GetTypes();
-            // find types that are classes and not abstract
-            var nonAbstractClasses = allTypes.Where(type => type.IsClass && !type.IsAbstract).ToList();
-
-            var repositoryTypes = nonAbstractClasses
-                .Where(type => type.GetInterfaces().Any(i => IsRepositoryInterface(i) || IsCustomRepositoryInterface(i)))
-                .ToList();
-
-            foreach (var repoType in repositoryTypes)
+            // User context is optional - only register if one was specified
+            if (options.UserContextType != null)
             {
-                // Get all interfaces that are repository-related
-                var repositoryInterfaces = repoType.GetInterfaces()
-                    .Where(i => IsRepositoryInterface(i) || IsCustomRepositoryInterface(i))
+                services.TryAddScoped(typeof(ISimpleUserContext), options.UserContextType);
+            }
+        }
+
+        /// <summary>
+        /// Generic method to discover and register service implementations by interface matching.
+        /// Eliminates code duplication between repository and API client registration.
+        /// </summary>
+        /// <param name="services">The service collection to add services to.</param>
+        /// <param name="options">The JumpStart options containing assembly list.</param>
+        /// <param name="isBaseInterface">Function to check if a type is a base framework interface.</param>
+        /// <param name="isCustomInterface">Function to check if a type is a custom interface extending the base.</param>
+        /// <param name="lifetime">The service lifetime to use for registration.</param>
+        private static void RegisterServicesByInterface(
+            IServiceCollection services,
+            JumpStartOptions options,
+            Func<Type, bool> isBaseInterface,
+            Func<Type, bool> isCustomInterface,
+            ServiceLifetime lifetime)
+        {
+            var assemblies = options.RepositoryAssemblies.Any()
+                ? options.RepositoryAssemblies.ToArray()
+                : new[] { Assembly.GetCallingAssembly() };
+
+            foreach (var assembly in assemblies)
+            {
+                // Get all non-abstract classes in the assembly
+                var nonAbstractClasses = assembly.GetTypes()
+                    .Where(type => type.IsClass && !type.IsAbstract)
                     .ToList();
 
-                // Register the concrete implementation first
-                services.TryAdd(new ServiceDescriptor(
-                    repoType,
-                    repoType,
-                    options.RepositoryLifetime));
+                // Find types that implement the target interfaces
+                var serviceTypes = nonAbstractClasses
+                    .Where(type => type.GetInterfaces().Any(i => isBaseInterface(i) || isCustomInterface(i)))
+                    .ToList();
 
-                // Then register each interface to resolve to the same concrete instance
-                foreach (var @interface in repositoryInterfaces)
+                foreach (var serviceType in serviceTypes)
                 {
+                    // Get all target interfaces that the type implements
+                    var serviceInterfaces = serviceType.GetInterfaces()
+                        .Where(i => isBaseInterface(i) || isCustomInterface(i))
+                        .ToList();
+
+                    // Register the concrete implementation first
                     services.TryAdd(new ServiceDescriptor(
-                        @interface,
-                        sp => sp.GetRequiredService(repoType),
-                        options.RepositoryLifetime));
+                        serviceType,
+                        serviceType,
+                        lifetime));
+
+                    // Then register each interface to resolve to the same concrete instance
+                    foreach (var @interface in serviceInterfaces)
+                    {
+                        services.TryAdd(new ServiceDescriptor(
+                            @interface,
+                            sp => sp.GetRequiredService(serviceType),
+                            lifetime));
+                    }
                 }
             }
         }
+
+        /// <summary>
+        /// Generic method to check if a type is one of the specified base generic interface types.
+        /// </summary>
+        /// <param name="type">The type to check.</param>
+        /// <param name="interfaceTypes">The generic interface types to check against.</param>
+        /// <returns><c>true</c> if the type is a generic type matching one of the interface types; otherwise, <c>false</c>.</returns>
+        private static bool IsBaseInterface(Type type, params Type[] interfaceTypes)
+        {
+            if (!type.IsGenericType)
+                return false;
+
+            var genericTypeDef = type.GetGenericTypeDefinition();
+            return interfaceTypes.Contains(genericTypeDef);
+        }
+
+        /// <summary>
+        /// Generic method to check if a type is a custom interface that inherits from a base interface.
+        /// </summary>
+        /// <param name="type">The type to check.</param>
+        /// <param name="baseInterfaceCheck">Function to check if a type is the target base interface.</param>
+        /// <returns><c>true</c> if the type is an interface inheriting from the base interface; otherwise, <c>false</c>.</returns>
+        private static bool IsCustomInterface(Type type, Func<Type, bool> baseInterfaceCheck)
+        {
+            if (!type.IsInterface)
+                return false;
+
+            return type.GetInterfaces().Any(baseInterfaceCheck);
+        }
     }
-
-    /// <summary>
-    /// Determines if a type is a recognized JumpStart repository interface.
-    /// Checks for ISimpleRepository{TEntity} or IRepository{TEntity, TKey}.
-    /// </summary>
-    /// <param name="type">The type to check.</param>
-    /// <returns><c>true</c> if the type is a repository interface; otherwise, <c>false</c>.</returns>
-    private static bool IsRepositoryInterface(Type type)
-    {
-        string name = type.Name;
-        if (!type.IsGenericType)
-            return false;
-
-        var genericTypeDef = type.GetGenericTypeDefinition();
-
-        return genericTypeDef == typeof(ISimpleRepository<>) ||
-               genericTypeDef == typeof(JumpStart.Repositories.Advanced.IRepository<,>);
-    }
-
-    /// <summary>
-    /// Determines if a type is a custom repository interface that inherits from a JumpStart repository interface.
-    /// This catches interfaces like IProductRepository that extend ISimpleRepository{Product}.
-    /// </summary>
-    /// <param name="type">The type to check.</param>
-    /// <returns><c>true</c> if the type is a custom repository interface; otherwise, <c>false</c>.</returns>
-    private static bool IsCustomRepositoryInterface(Type type)
-    {
-        if (!type.IsInterface)
-            return false;
-
-        // Check if any base interfaces are JumpStart repository interfaces
-        return type.GetInterfaces().Any(IsRepositoryInterface);
-    }
-}

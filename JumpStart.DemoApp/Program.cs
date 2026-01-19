@@ -78,10 +78,16 @@ builder.Services.AddTransient<JwtAuthenticationHandler>();
 // ============================================
 // 5. API CLIENT REGISTRATION
 // ============================================
+
 // Get the API base URL from configuration
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
+builder.Services.AddJumpStart(options =>
+{
+    options.ApiBaseUrl = apiBaseUrl;
+    options.AutoDiscoverApiClients = true;
+});
 
-// Register API clients with JWT authentication handler
+//// Register API clients with JWT authentication handler
 builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 

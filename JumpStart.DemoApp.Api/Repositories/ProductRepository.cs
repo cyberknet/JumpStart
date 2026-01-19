@@ -9,12 +9,9 @@ namespace JumpStart.DemoApp.Api.Repositories;
 /// Repository implementation for Product entities using JumpStart framework.
 /// Provides CRUD operations plus custom queries for products.
 /// </summary>
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository(ApiDbContext context, ISimpleUserContext? userContext = null)
+    : SimpleRepository<Product>(context, userContext), IProductRepository
 {
-    public ProductRepository(ApiDbContext context, ISimpleUserContext? userContext = null)
-        : base(context, userContext)
-    {
-    }
 
     /// <summary>
     /// Gets all products within a specified price range.

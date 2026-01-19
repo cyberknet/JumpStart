@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright Â©2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -19,7 +19,7 @@ using JumpStart.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace JumpStart.Extensions;
+namespace JumpStart;
 
 /// <summary>
 /// Provides configuration options for registering and configuring JumpStart services and repositories.
@@ -34,6 +34,7 @@ namespace JumpStart.Extensions;
 /// <para>
 /// <strong>Key Features:</strong>
 /// - Automatic repository discovery and registration
+/// - Automatic API client discovery and registration
 /// - Configurable assembly scanning
 /// - User context registration for audit tracking
 /// - Manual repository registration
@@ -43,7 +44,9 @@ namespace JumpStart.Extensions;
 /// <para>
 /// <strong>Default Behavior:</strong>
 /// - AutoDiscoverRepositories is enabled (true)
+/// - AutoDiscoverApiClients is enabled (true)
 /// - RepositoryLifetime is Scoped (recommended for EF Core)
+/// - ApiClientLifetime is Scoped (recommended for Blazor/HttpClient)
 /// - If no assemblies are specified, the calling assembly is scanned
 /// - No user context is registered by default
 /// </para>
@@ -54,6 +57,12 @@ namespace JumpStart.Extensions;
 /// the need for manual registration of every repository.
 /// </para>
 /// <para>
+/// <strong>API Client Discovery:</strong>
+/// When AutoDiscoverApiClients is enabled, the framework scans specified assemblies for API client
+/// interface implementations and automatically registers them with Refit. This is particularly useful
+/// in Blazor Server applications calling separate API projects.
+/// </para>
+/// <para>
 /// <strong>User Context:</strong>
 /// Register a user context implementation to enable automatic audit tracking (CreatedById, ModifiedById, etc.).
 /// The user context provides the current user's ID for audit fields.
@@ -61,6 +70,9 @@ namespace JumpStart.Extensions;
 /// </remarks>
 /// <example>
 /// <code>
+/// using JumpStart;
+/// using Microsoft.Extensions.DependencyInjection;
+/// 
 /// // Example 1: Basic setup with defaults
 /// services.AddJumpStart(options =>
 /// {
@@ -109,13 +121,13 @@ namespace JumpStart.Extensions;
 ///         .ScanAssembly(typeof(Program).Assembly);
 /// });
 /// 
-/// // Example 7: Complete configuration
+/// // Example 7: Complete Blazor Server configuration with API clients
 /// services.AddJumpStart(options =>
 /// {
 ///     options
+///         .ApiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030"
 ///         .RegisterUserContext&lt;CurrentUserService&gt;()
-///         .ScanAssembliesContaining(typeof(Program), typeof(DataModule))
-///         .UseRepositoryLifetime(ServiceLifetime.Scoped);
+///         .ScanAssembliesContaining(typeof(Program), typeof(DataModule));
 /// });
 /// </code>
 /// </example>
@@ -129,6 +141,73 @@ public class JumpStartOptions
     {
         _services = services;
     }
+
+    /// <summary>
+    /// Gets or sets the base URL for API client auto-discovery and registration.
+    /// </summary>
+    /// <value>
+    /// The base URL of the API server (e.g., "https://localhost:7030" or "https://api.example.com").
+    /// Default is an empty string.
+    /// </value>
+    /// <remarks>
+    /// <para>
+    /// This property is used by the front-end application (e.g., Blazor) to configure the base URL
+    /// for automatically discovered API clients. When <see cref="AutoDiscoverApiClients"/> is enabled,
+    /// the framework scans for API client interfaces and registers them with Refit, using this URL
+    /// as the base address for all HTTP requests.
+    /// </para>
+    /// <para>
+    /// <strong>Configuration Sources:</strong>
+    /// Typically set from configuration (appsettings.json) to allow different URLs per environment:
+    /// - Development: https://localhost:7030
+    /// - Staging: https://staging-api.example.com
+    /// - Production: https://api.example.com
+    /// </para>
+    /// <para>
+    /// <strong>Important:</strong>
+    /// This property is only used when API client auto-discovery is enabled. If you manually register
+    /// API clients using <c>AddSimpleApiClient</c> or <c>AddRefitClient</c>, this property is ignored
+    /// for those clients.
+    /// </para>
+    /// <para>
+    /// The URL should not include a trailing slash or the specific API route paths. Those are
+    /// defined by the API client interfaces using Refit attributes.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Example 1: Set from configuration
+    /// // appsettings.json:
+    /// // {
+    /// //   "ApiBaseUrl": "https://localhost:7030"
+    /// // }
+    /// 
+    /// services.AddJumpStart(options =>
+    /// {
+    ///     options.ApiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
+    ///     options.ScanAssembliesContaining(typeof(Program));
+    /// });
+    /// 
+    /// // Example 2: Different URLs per environment
+    /// var apiBaseUrl = builder.Environment.IsDevelopment()
+    ///     ? "https://localhost:7030"
+    ///     : builder.Configuration["ApiBaseUrl"] ?? throw new InvalidOperationException("ApiBaseUrl not configured");
+    /// 
+    /// services.AddJumpStart(options =>
+    /// {
+    ///     options.ApiBaseUrl = apiBaseUrl;
+    /// });
+    /// 
+    /// // Example 3: Disable auto-discovery and register manually
+    /// services.AddJumpStart(options =>
+    /// {
+    ///     options.AutoDiscoverApiClients = false;
+    ///     // ApiBaseUrl not needed when manually registering
+    /// });
+    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;("https://api.example.com/api/products");
+    /// </code>
+    /// </example>
+    public string ApiBaseUrl { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets whether to automatically discover and register repository implementations.
@@ -146,7 +225,22 @@ public class JumpStartOptions
     public bool AutoDiscoverRepositories { get; set; } = true;
 
     /// <summary>
-    /// Gets the list of assemblies to scan for repository implementations.
+    /// Gets or sets whether to automatically discover and register API client implementations.
+    /// </summary>
+    /// <value>
+    /// <c>true</c> to enable automatic discovery; <c>false</c> to require manual registration.
+    /// Default is <c>true</c>.
+    /// </value>
+    /// <remarks>
+    /// When enabled, the framework scans specified assemblies for classes that implement API client
+    /// interfaces and automatically registers them with the dependency injection container. This is
+    /// the recommended approach for most applications as it eliminates manual registration boilerplate.
+    /// Set to false if you prefer explicit control over API client registration.
+    /// </remarks>
+    public bool AutoDiscoverApiClients { get; set; } = true;
+
+    /// <summary>
+    /// Gets the list of assemblies to scan for repository and API client implementations.
     /// </summary>
     /// <value>
     /// A list of assemblies to scan. If empty, the calling assembly will be scanned by default.
@@ -154,12 +248,12 @@ public class JumpStartOptions
     /// <remarks>
     /// <para>
     /// Add assemblies using <see cref="ScanAssembly"/> or <see cref="ScanAssembliesContaining"/> methods.
-    /// The framework will scan these assemblies to find repository implementations and register them
-    /// automatically if <see cref="AutoDiscoverRepositories"/> is enabled.
+    /// The framework will scan these assemblies to find repository and API client implementations and register them
+    /// automatically if auto-discovery is enabled.
     /// </para>
     /// <para>
     /// <strong>Performance Consideration:</strong>
-    /// Scanning large assemblies can impact startup time. Only add assemblies that contain repositories.
+    /// Scanning large assemblies can impact startup time. Only add assemblies that contain repositories or API clients.
     /// </para>
     /// </remarks>
     public List<Assembly> RepositoryAssemblies { get; } = new();
@@ -183,6 +277,22 @@ public class JumpStartOptions
     /// </para>
     /// </remarks>
     public ServiceLifetime RepositoryLifetime { get; set; } = ServiceLifetime.Scoped;
+
+    /// <summary>
+    /// Gets or sets the service lifetime for automatically registered API clients.
+    /// </summary>
+    /// <value>
+    /// The service lifetime to use when registering API clients. Default is <see cref="ServiceLifetime.Scoped"/>.
+    /// </value>
+    /// <remarks>
+    /// <para>
+    /// <strong>Recommended Lifetimes:</strong>
+    /// - <see cref="ServiceLifetime.Scoped"/> (default): Best for API clients in Blazor Server. One instance per circuit/request.
+    /// - <see cref="ServiceLifetime.Transient"/>: New instance every time. Use for stateless clients.
+    /// - <see cref="ServiceLifetime.Singleton"/>: Single instance for application lifetime. Rarely appropriate for API clients.
+    /// </para>
+    /// </remarks>
+    public ServiceLifetime ApiClientLifetime { get; set; } = ServiceLifetime.Scoped;
 
     /// <summary>
     /// The type of the user context implementation to register.
@@ -252,15 +362,15 @@ public class JumpStartOptions
     }
 
     /// <summary>
-    /// Adds an assembly to scan for repository implementations.
+    /// Adds an assembly to scan for repository and API client implementations.
     /// </summary>
-    /// <param name="assembly">The assembly to scan for repository implementations.</param>
+    /// <param name="assembly">The assembly to scan for implementations.</param>
     /// <returns>The options instance for method chaining.</returns>
     /// <remarks>
     /// <para>
-    /// Call this method for each assembly that contains repository implementations you want to
+    /// Call this method for each assembly that contains repository or API client implementations you want to
     /// automatically register. The assembly will be scanned during service registration if
-    /// <see cref="AutoDiscoverRepositories"/> is enabled.
+    /// auto-discovery is enabled.
     /// </para>
     /// <para>
     /// Duplicate assemblies are ignored - each assembly is only scanned once.
@@ -293,11 +403,11 @@ public class JumpStartOptions
     }
 
     /// <summary>
-    /// Adds assemblies to scan for repository implementations based on marker types.
+    /// Adds assemblies to scan for repository and API client implementations based on marker types.
     /// </summary>
     /// <param name="markerTypes">
     /// Types whose containing assemblies should be scanned. Typically use types from each
-    /// assembly you want to scan (e.g., Program, Startup, or any repository type).
+    /// assembly you want to scan (e.g., Program, Startup, or any repository/client type).
     /// </param>
     /// <returns>The options instance for method chaining.</returns>
     /// <remarks>
@@ -307,7 +417,7 @@ public class JumpStartOptions
     /// without explicitly getting the Assembly object.
     /// </para>
     /// <para>
-    /// This method is particularly useful in modular applications where repositories are spread
+    /// This method is particularly useful in modular applications where repositories and API clients are spread
     /// across multiple assemblies or class libraries.
     /// </para>
     /// </remarks>

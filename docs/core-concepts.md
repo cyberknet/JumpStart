@@ -440,13 +440,17 @@ Use convenience methods for common scenarios:
 #### Register DbContext and Repositories
 
 ```csharp
+using JumpStart;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
 builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
     options => options.UseSqlServer(connectionString),
     jumpStart =>
     {
         // Register user context
         jumpStart.RegisterUserContext<BlazorUserContext>();
-        
+
         // Scan assembly for repositories
         jumpStart.ScanAssembly(typeof(Program).Assembly);
     });
@@ -460,6 +464,8 @@ This automatically:
 #### Register AutoMapper
 
 ```csharp
+using Microsoft.Extensions.DependencyInjection;
+
 builder.Services.AddJumpStartAutoMapper(typeof(Program).Assembly);
 ```
 

@@ -138,6 +138,10 @@ public class BlazorUserContext : ISimpleUserContext
 **Program.cs:**
 
 ```csharp
+using JumpStart;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
 // Add JumpStart with DbContext
 builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
     options => options.UseSqlServer(connectionString),

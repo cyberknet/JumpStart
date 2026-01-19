@@ -17,67 +17,8 @@ using System.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>
-/// Provides extension methods for registering AutoMapper profiles with the JumpStart framework.
-/// These extensions simplify AutoMapper configuration by providing convenient assembly scanning.
-/// </summary>
-/// <remarks>
-/// <para>
-/// These extension methods wrap AutoMapper's standard registration to provide JumpStart-specific
-/// conventions and simplified configuration. They automatically scan specified assemblies for
-/// all classes that inherit from AutoMapper.Profile and register them with the dependency injection container.
-/// </para>
-/// <para>
-/// <strong>Key Features:</strong>
-/// - Automatic profile discovery from assemblies
-/// - Scan by explicit assemblies or marker types
-/// - Default to calling assembly if none specified
-/// - Fluent API for chaining with other service registrations
-/// </para>
-/// <para>
-/// <strong>AutoMapper Integration:</strong>
-/// AutoMapper is used to map between different object models (DTOs, entities, view models) without
-/// writing manual mapping code. Profiles define the mapping rules between types. These extensions
-/// automatically discover and register all profiles in specified assemblies.
-/// </para>
-/// </remarks>
-/// <example>
-/// <code>
-/// // Example 1: Register AutoMapper from calling assembly (default)
-/// services.AddJumpStartAutoMapper();
-/// 
-/// // Example 2: Register from specific assemblies
-/// services.AddJumpStartAutoMapper(
-///     typeof(ProductProfile).Assembly,
-///     typeof(OrderProfile).Assembly);
-/// 
-/// // Example 3: Register using marker types
-/// services.AddJumpStartAutoMapper(
-///     typeof(Program),
-///     typeof(DataModule));
-/// 
-/// // Example 4: Chain with other JumpStart configuration
-/// services.AddJumpStart(options =>
-///     {
-///         options.RegisterUserContext&lt;CurrentUserService&gt;();
-///     })
-///     .AddJumpStartAutoMapper(typeof(Program));
-/// 
-/// // Example AutoMapper Profile
-/// public class ProductProfile : Profile
-/// {
-///     public ProductProfile()
-///     {
-///         CreateMap&lt;Product, ProductDto&gt;()
-///             .ForMember(dest => dest.CategoryName, 
-///                 opt => opt.MapFrom(src => src.Category.Name));
-///         
-///         CreateMap&lt;ProductDto, Product&gt;()
-///             .ForMember(dest => dest.Category, opt => opt.Ignore());
-///     }
-/// }
-/// </code>
-/// </example>
+// Partial class containing AutoMapper registration extension methods.
+// See ServiceCollectionExtensions.cs for complete class-level documentation.
 public static class JumpStartAutoMapperExtensions
 {
     /// <summary>

@@ -13,107 +13,14 @@
  */
 
 using System;
-using JumpStart.Extensions;
+using JumpStart;
 using Microsoft.EntityFrameworkCore;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>
-/// Provides extension methods for configuring JumpStart framework with Entity Framework Core DbContext.
-/// This convenience method combines DbContext registration with JumpStart framework setup.
-/// </summary>
-/// <remarks>
-/// <para>
-/// These extension methods simplify the common scenario of registering both Entity Framework Core's DbContext
-/// and the JumpStart framework together. This is a convenience wrapper that combines two registrations into one
-/// fluent call while automatically configuring sensible defaults.
-/// </para>
-/// <para>
-/// <strong>Automatic Configuration:</strong>
-/// When using these methods, the framework automatically:
-/// - Registers the specified DbContext with Entity Framework Core
-/// - Registers all JumpStart framework services
-/// - Scans the DbContext's assembly for repository implementations
-/// - Applies any custom JumpStart configuration provided
-/// </para>
-/// <para>
-/// <strong>Supported Database Providers:</strong>
-/// Works with all Entity Framework Core database providers, including:
-/// - SQL Server (Microsoft.EntityFrameworkCore.SqlServer)
-/// - SQLite (Microsoft.EntityFrameworkCore.Sqlite)
-/// - PostgreSQL (Npgsql.EntityFrameworkCore.PostgreSQL)
-/// - MySQL (Pomelo.EntityFrameworkCore.MySql)
-/// - In-Memory (Microsoft.EntityFrameworkCore.InMemory) - for testing
-/// - And any other EF Core provider
-/// </para>
-/// <para>
-/// <strong>When to Use:</strong>
-/// Use this method when:
-/// - Your repositories are in the same assembly as your DbContext
-/// - You want simplified setup with sensible defaults
-/// - You're following the standard pattern of DbContext + repositories in one assembly
-/// </para>
-/// <para>
-/// <strong>Alternative Approach:</strong>
-/// For more control, you can register DbContext and JumpStart separately:
-/// <code>
-/// services.AddDbContext&lt;AppDbContext&gt;(options => options.UseSqlServer(connectionString));
-/// services.AddJumpStart(options => options.ScanAssembly(typeof(AppDbContext).Assembly));
-/// </code>
-/// </para>
-/// </remarks>
-/// <example>
-/// <code>
-/// // Example 1: SQL Server setup
-/// services.AddJumpStartWithDbContext&lt;ApplicationDbContext&gt;(
-///     options => options.UseSqlServer(connectionString),
-///     jumpStart => jumpStart.RegisterUserContext&lt;CurrentUserService&gt;());
-/// 
-/// // Example 2: SQLite setup
-/// services.AddJumpStartWithDbContext&lt;ApplicationDbContext&gt;(
-///     options => options.UseSqlite("Data Source=app.db"),
-///     jumpStart => jumpStart.RegisterUserContext&lt;UserContext&gt;());
-/// 
-/// // Example 3: PostgreSQL setup
-/// services.AddJumpStartWithDbContext&lt;ApplicationDbContext&gt;(
-///     options => options.UseNpgsql(connectionString));
-/// 
-/// // Example 4: In-Memory database for testing
-/// services.AddJumpStartWithDbContext&lt;TestDbContext&gt;(
-///     options => options.UseInMemoryDatabase("TestDb"));
-/// 
-/// // Example 5: Complete application setup
-/// var builder = WebApplication.CreateBuilder(args);
-/// 
-/// builder.Services
-///     .AddJumpStartWithDbContext&lt;ApplicationDbContext&gt;(
-///         options => options.UseSqlServer(
-///             builder.Configuration.GetConnectionString("DefaultConnection")),
-///         jumpStart => jumpStart
-///             .RegisterUserContext&lt;HttpUserContext&gt;()
-///             .UseRepositoryLifetime(ServiceLifetime.Scoped))
-///     .AddJumpStartAutoMapper(typeof(Program));
-/// 
-/// // Example DbContext
-/// public class ApplicationDbContext : DbContext
-/// {
-///     public ApplicationDbContext(DbContextOptions&lt;ApplicationDbContext&gt; options)
-///         : base(options)
-///     {
-///     }
-///     
-///     public DbSet&lt;Product&gt; Products { get; set; }
-///     public DbSet&lt;Order&gt; Orders { get; set; }
-///     
-///     protected override void OnModelCreating(ModelBuilder modelBuilder)
-///     {
-///         base.OnModelCreating(modelBuilder);
-///         // Configure entities
-///     }
-/// }
-/// </code>
-/// </example>
-public static class JumpStartServiceCollectionExtensionsDbContext
+// Partial class containing DbContext registration extension methods.
+// See ServiceCollectionExtensions.cs for complete class-level documentation.
+public static partial class JumpStartServiceCollectionExtensions
 {
     /// <summary>
     /// Adds JumpStart framework services along with Entity Framework Core DbContext registration.

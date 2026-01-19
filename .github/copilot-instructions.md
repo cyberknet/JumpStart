@@ -33,6 +33,9 @@
 * Always use DataAnnotations where possible for entity configuration.
 * If it is not possible to use DataAnnotations, consider creating new reusable attributes that accomplish the task and handle them in OnModelCreating.
 * Fluent API is to be used only when DataAnnotations are impossible.
+* Never use plural table names.
+* Always use a Table attribute to specify the table name
+* Always add navigation properties for foreign keys.
 
 # Exception Handling
 * Implement error handling and exception management to ensure application stability. 

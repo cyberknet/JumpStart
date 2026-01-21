@@ -1,0 +1,253 @@
+@* Copyright ©2026 Scott Blomfield *@
+@*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>. 
+ *@
+
+@using JumpStart.Api.DTOs.Forms
+@inherits QuestionInputBase
+
+<div class="ranking-input">
+    @if (Question.Options.Any())
+    {
+        <p class="form-text mb-3">
+            <i class="bi bi-info-circle"></i> Drag items to reorder them from most preferred (top) to least preferred (bottom), or use the arrow buttons.
+        </p>
+
+        <div class="ranking-list">
+            @for (int i = 0; i < rankedOptions.Count; i++)
+            {
+                var option = rankedOptions[i];
+                var index = i;
+                var isFirst = i == 0;
+                var isLast = i == rankedOptions.Count - 1;
+
+                <div class="ranking-item @(draggedIndex == index ? "dragging" : "") @(dragOverIndex == index ? "drag-over" : "")"
+                     draggable="true"
+                     @ondragstart="() => HandleDragStart(index)"
+                     @ondragover:preventDefault
+                     @ondragover="() => HandleDragOver(index)"
+                     @ondrop="() => HandleDrop(index)"
+                     @ondragend="HandleDragEnd">
+                    
+                    <div class="ranking-number">
+                        <span class="badge bg-primary">@(index + 1)</span>
+                    </div>
+
+                    <div class="ranking-content">
+                        <div class="ranking-text">@option.OptionText</div>
+                    </div>
+
+                    <div class="ranking-controls">
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-secondary" 
+                                @onclick="() => MoveUp(index)"
+                                disabled="@isFirst"
+                                title="Move up">
+                            <i class="bi bi-arrow-up"></i>
+                        </button>
+                        <button type="button" 
+                                class="btn btn-sm btn-outline-secondary" 
+                                @onclick="() => MoveDown(index)"
+                                disabled="@isLast"
+                                title="Move down">
+                            <i class="bi bi-arrow-down"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (Question.IsRequired && !IsValid)
+        {
+            <div class="invalid-feedback d-block">
+                Please rank all items.
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> No options configured for this ranking question.
+        </div>
+    }
+</div>
+
+<style>
+    .ranking-input {
+        width: 100%;
+    }
+
+    .ranking-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .ranking-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: white;
+        border: 2px solid #dee2e6;
+        border-radius: 0.375rem;
+        cursor: move;
+        transition: all 0.2s ease;
+    }
+
+    .ranking-item:hover {
+        border-color: #0d6efd;
+        box-shadow: 0 2px 8px rgba(13, 110, 253, 0.15);
+    }
+
+    .ranking-item.dragging {
+        opacity: 0.5;
+        transform: scale(0.98);
+    }
+
+    .ranking-item.drag-over {
+        border-color: #0d6efd;
+        border-style: dashed;
+        background-color: #f8f9fa;
+    }
+
+    .ranking-number {
+        flex-shrink: 0;
+    }
+
+    .ranking-number .badge {
+        font-size: 1rem;
+        min-width: 2rem;
+        padding: 0.5rem;
+    }
+
+    .ranking-content {
+        flex-grow: 1;
+    }
+
+    .ranking-text {
+        font-weight: 500;
+        color: #212529;
+    }
+
+    .ranking-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        flex-shrink: 0;
+    }
+
+    .ranking-controls .btn {
+        padding: 0.25rem 0.5rem;
+        line-height: 1;
+    }
+
+    .ranking-controls .btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    @@media (max-width: 576px) {
+        .ranking-item {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+
+        .ranking-controls {
+            flex-direction: row;
+            justify-content: center;
+        }
+    }
+</style>
+
+@code {
+    private List<QuestionOptionDto> rankedOptions = new();
+    private int? draggedIndex;
+    private int? dragOverIndex;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Initialize with options in their default order
+        if (!rankedOptions.Any() && Question.Options.Any())
+        {
+            rankedOptions = Question.Options.OrderBy(o => o.DisplayOrder).ToList();
+        }
+    }
+
+    private void MoveUp(int index)
+    {
+        if (index > 0)
+        {
+            var temp = rankedOptions[index];
+            rankedOptions[index] = rankedOptions[index - 1];
+            rankedOptions[index - 1] = temp;
+            NotifyRankingChanged();
+        }
+    }
+
+    private void MoveDown(int index)
+    {
+        if (index < rankedOptions.Count - 1)
+        {
+            var temp = rankedOptions[index];
+            rankedOptions[index] = rankedOptions[index + 1];
+            rankedOptions[index + 1] = temp;
+            NotifyRankingChanged();
+        }
+    }
+
+    private void HandleDragStart(int index)
+    {
+        draggedIndex = index;
+    }
+
+    private void HandleDragOver(int index)
+    {
+        dragOverIndex = index;
+    }
+
+    private void HandleDrop(int index)
+    {
+        if (draggedIndex.HasValue && draggedIndex.Value != index)
+        {
+            var draggedItem = rankedOptions[draggedIndex.Value];
+            rankedOptions.RemoveAt(draggedIndex.Value);
+            rankedOptions.Insert(index, draggedItem);
+            NotifyRankingChanged();
+        }
+
+        draggedIndex = null;
+        dragOverIndex = null;
+    }
+
+    private void HandleDragEnd()
+    {
+        draggedIndex = null;
+        dragOverIndex = null;
+    }
+
+    private void NotifyRankingChanged()
+    {
+        // Store the ranking as a comma-separated list of option IDs in rank order
+        var rankedIds = string.Join(",", rankedOptions.Select(o => o.Id));
+        OnTextAnswerChanged.InvokeAsync(rankedIds);
+
+        // Also notify via option answer for consistency
+        var optionIds = rankedOptions.Select(o => o.Id).ToList();
+        OnOptionAnswerChanged.InvokeAsync(optionIds);
+    }
+
+    private bool IsValid => !Question.IsRequired || rankedOptions.Any();
+}

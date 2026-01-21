@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using JumpStart.Api.DTOs.Forms;
 using JumpStart.Forms;
 
 namespace JumpStart.Repositories.Forms;
@@ -265,4 +266,24 @@ public interface IFormRepository : ISimpleRepository<Form>
                 /// Use with caution - this operation cannot be undone.
                 /// </remarks>
                 Task<int> DeleteAllFormResponsesAsync(Guid formId);
+                
+                /// <summary>
+                /// Updates a form including its questions and options.
+                /// </summary>
+                /// <param name="formId">The ID of the form to update.</param>
+                /// <param name="updateDto">The update data.</param>
+                /// <returns>A task representing the operation.</returns>
+                Task UpdateFormWithQuestionsAsync(Guid formId, UpdateFormDto updateDto);
+                
+                /// <summary>
+                /// Saves all pending changes to the database.
+                /// </summary>
+                /// <returns>
+                /// A task that represents the asynchronous operation.
+                /// </returns>
+                /// <remarks>
+                /// Use this method when you've modified tracked entities and need to persist changes
+                /// without calling UpdateAsync (which assumes entities are detached).
+                /// </remarks>
+                Task SaveChangesAsync();
             }

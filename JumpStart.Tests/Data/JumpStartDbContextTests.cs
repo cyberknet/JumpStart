@@ -147,20 +147,20 @@ public class JumpStartDbContextTests
     [Fact]
     public void JumpStartDbContext_SeedsQuestionTypes()
     {
-        // Arrange
-        var options = new DbContextOptionsBuilder<TestDbContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
-        
-        using var context = new TestDbContext(options);
-        context.Database.EnsureCreated();
-        
-        // Act
-        var questionTypes = context.QuestionTypes.ToList();
-        
-        // Assert - Should have 8 question types seeded
-        Assert.Equal(8, questionTypes.Count);
-    }
+            // Arrange
+            var options = new DbContextOptionsBuilder<TestDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new TestDbContext(options);
+            context.Database.EnsureCreated();
+
+            // Act
+            var questionTypes = context.QuestionTypes.ToList();
+
+            // Assert - Should have 9 question types seeded (added Ranking)
+            Assert.Equal(9, questionTypes.Count);
+        }
     
     [Fact]
     public void JumpStartDbContext_SeedsQuestionTypesWithCorrectCodes()
@@ -172,28 +172,29 @@ public class JumpStartDbContextTests
         
         using var context = new TestDbContext(options);
         context.Database.EnsureCreated();
-        
-        var expectedCodes = new[]
-        {
-            "ShortText",
-            "LongText",
-            "Number",
-            "Date",
-            "Boolean",
-            "SingleChoice",
-            "MultipleChoice",
-            "Dropdown"
-        };
-        
-        // Act
-        var actualCodes = context.QuestionTypes
-            .OrderBy(qt => qt.DisplayOrder)
-            .Select(qt => qt.Code)
-            .ToList();
-        
-        // Assert
-        Assert.Equal(expectedCodes, actualCodes);
-    }
+
+            var expectedCodes = new[]
+            {
+                "ShortText",
+                "LongText",
+                "Number",
+                "Date",
+                "Boolean",
+                "SingleChoice",
+                "MultipleChoice",
+                "Dropdown",
+                "Ranking"
+            };
+
+            // Act
+            var actualCodes = context.QuestionTypes
+                .OrderBy(qt => qt.DisplayOrder)
+                .Select(qt => qt.Code)
+                .ToList();
+
+            // Assert
+            Assert.Equal(expectedCodes, actualCodes);
+        }
     
     [Fact]
     public void JumpStartDbContext_SeedsQuestionTypesWithFixedGuids()
@@ -202,10 +203,10 @@ public class JumpStartDbContextTests
         var options = new DbContextOptionsBuilder<TestDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
+
         using var context = new TestDbContext(options);
         context.Database.EnsureCreated();
-        
+
         var expectedGuids = new[]
         {
             new Guid("10000000-0000-0000-0000-000000000001"), // ShortText
@@ -215,15 +216,16 @@ public class JumpStartDbContextTests
             new Guid("10000000-0000-0000-0000-000000000005"), // Boolean
             new Guid("10000000-0000-0000-0000-000000000006"), // SingleChoice
             new Guid("10000000-0000-0000-0000-000000000007"), // MultipleChoice
-            new Guid("10000000-0000-0000-0000-000000000008")  // Dropdown
+            new Guid("10000000-0000-0000-0000-000000000008"), // Dropdown
+            new Guid("10000000-0000-0000-0000-000000000009")  // Ranking
         };
-        
+
         // Act
         var actualGuids = context.QuestionTypes
             .OrderBy(qt => qt.DisplayOrder)
             .Select(qt => qt.Id)
             .ToList();
-        
+
         // Assert
         Assert.Equal(expectedGuids, actualGuids);
     }

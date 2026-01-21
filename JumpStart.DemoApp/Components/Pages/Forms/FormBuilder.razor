@@ -281,6 +281,7 @@ else
                 AllowAnonymous = form.AllowAnonymous,
                 Questions = form.Questions.Select(q => new QuestionBuilderModel
                 {
+                    Id = q.Id, // Preserve existing question ID
                     QuestionText = q.QuestionText,
                     HelpText = q.HelpText ?? string.Empty,
                     QuestionTypeId = q.QuestionType.Id,
@@ -290,6 +291,7 @@ else
                     DisplayOrder = q.DisplayOrder,
                     Options = q.Options.Select(o => new OptionBuilderModel
                     {
+                        Id = o.Id, // Preserve existing option ID
                         OptionText = o.OptionText,
                         OptionValue = o.OptionValue ?? string.Empty,
                         DisplayOrder = o.DisplayOrder
@@ -396,7 +398,25 @@ else
                     Description = formModel.Description,
                     IsActive = formModel.IsActive,
                     AllowMultipleResponses = formModel.AllowMultipleResponses,
-                    AllowAnonymous = formModel.AllowAnonymous
+                    AllowAnonymous = formModel.AllowAnonymous,
+                    Questions = formModel.Questions.Select(q => new UpdateQuestionDto
+                    {
+                        Id = q.Id == Guid.Empty ? null : q.Id,
+                        QuestionText = q.QuestionText,
+                        HelpText = q.HelpText,
+                        QuestionTypeId = q.QuestionTypeId,
+                        IsRequired = q.IsRequired,
+                        MinimumValue = q.MinimumValue,
+                        MaximumValue = q.MaximumValue,
+                        DisplayOrder = q.DisplayOrder,
+                        Options = q.Options.Select(o => new UpdateQuestionOptionDto
+                        {
+                            Id = o.Id == Guid.Empty ? null : o.Id,
+                            OptionText = o.OptionText,
+                            OptionValue = string.IsNullOrWhiteSpace(o.OptionValue) ? null : o.OptionValue,
+                            DisplayOrder = o.DisplayOrder
+                        }).ToList()
+                    }).ToList()
                 };
 
                 await FormsClient.UpdateFormAsync(FormId.Value, updateDto);
@@ -467,6 +487,7 @@ else
 
     private class QuestionBuilderModel
     {
+        public Guid Id { get; set; } // For tracking existing questions
         public string QuestionText { get; set; } = string.Empty;
         public string HelpText { get; set; } = string.Empty;
         public Guid QuestionTypeId { get; set; }
@@ -479,6 +500,7 @@ else
 
     private class OptionBuilderModel
     {
+        public Guid Id { get; set; } // For tracking existing options
         public string OptionText { get; set; } = string.Empty;
         public string OptionValue { get; set; } = string.Empty;
         public int DisplayOrder { get; set; }

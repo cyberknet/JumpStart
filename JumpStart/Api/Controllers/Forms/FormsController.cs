@@ -14,9 +14,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using JumpStart.Api.DTOs.Forms;
+using JumpStart.Data.Advanced.Auditing;
 using JumpStart.Forms;
 using JumpStart.Repositories.Forms;
 using Microsoft.AspNetCore.Mvc;
@@ -423,19 +425,17 @@ public class FormsController(
             return BadRequest(new { message = "Form ID in URL does not match ID in request body." });
         }
         
-        var existingForm = await formRepository.GetByIdAsync(id);
-        if (existingForm == null)
+        try
+        {
+            await formRepository.UpdateFormWithQuestionsAsync(id, updateDto);
+            logger.LogInformation("Form {FormId} updated successfully", id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
         {
             logger.LogWarning("Form {FormId} not found for update", id);
-            return NotFound(new { message = $"Form with ID {id} not found." });
+            return NotFound(new { message = ex.Message });
         }
-        
-        mapper.Map(updateDto, existingForm);
-        await formRepository.UpdateAsync(existingForm);
-        
-        logger.LogInformation("Form {FormId} updated successfully", id);
-        
-        return NoContent();
     }
 
     /// <summary>

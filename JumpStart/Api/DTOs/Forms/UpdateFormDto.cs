@@ -44,4 +44,7 @@ public class UpdateFormDto
     
     /// <summary>Gets or sets whether anonymous responses are allowed.</summary>
     public bool AllowAnonymous { get; set; }
+    
+    /// <summary>Gets or sets the questions for the form.</summary>
+    public List<UpdateQuestionDto> Questions { get; set; } = new();
 }

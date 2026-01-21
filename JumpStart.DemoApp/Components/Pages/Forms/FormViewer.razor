@@ -272,6 +272,7 @@ else if (form != null)
                 "SingleChoiceInput" => typeof(SingleChoiceInput),
                 "MultipleChoiceInput" => typeof(MultipleChoiceInput),
                 "DropdownInput" => typeof(DropdownInput),
+                "RankingInput" => typeof(RankingInput),
 
                 // Fallback to Code-based matching for backwards compatibility
                 "ShortText" => typeof(ShortTextInput),
@@ -282,6 +283,7 @@ else if (form != null)
                 "SingleChoice" => typeof(SingleChoiceInput),
                 "MultipleChoice" => typeof(MultipleChoiceInput),
                 "Dropdown" => typeof(DropdownInput),
+                "Ranking" => typeof(RankingInput),
 
                 _ => null
             };

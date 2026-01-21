@@ -191,6 +191,42 @@ public interface IFormRepository : ISimpleRepository<Form>
             Task<IList<QuestionType>> GetAllQuestionTypesAsync();
 
             /// <summary>
+            /// Gets a question type by its ID.
+            /// </summary>
+            /// <param name="id">The unique identifier of the question type.</param>
+            /// <returns>
+            /// The <see cref="QuestionType"/> with the specified ID, or null if not found.
+            /// </returns>
+            Task<QuestionType?> GetQuestionTypeByIdAsync(Guid id);
+
+            /// <summary>
+            /// Creates a new question type.
+            /// </summary>
+            /// <param name="questionType">The question type to create.</param>
+            /// <returns>
+            /// A task that represents the asynchronous operation.
+            /// The task result contains the created <see cref="QuestionType"/> with assigned ID.
+            /// </returns>
+            Task<QuestionType> CreateQuestionTypeAsync(QuestionType questionType);
+
+            /// <summary>
+            /// Updates an existing question type.
+            /// </summary>
+            /// <param name="questionType">The question type to update.</param>
+            /// <returns>A task that represents the asynchronous operation.</returns>
+            Task UpdateQuestionTypeAsync(QuestionType questionType);
+
+            /// <summary>
+            /// Deletes a question type.
+            /// </summary>
+            /// <param name="id">The unique identifier of the question type to delete.</param>
+            /// <returns>A task that represents the asynchronous operation.</returns>
+            /// <remarks>
+            /// This will fail if there are questions referencing this question type.
+            /// </remarks>
+            Task DeleteQuestionTypeAsync(Guid id);
+
+            /// <summary>
             /// Saves a form response with all question responses.
             /// </summary>
             /// <param name="formResponse">The form response to save.</param>

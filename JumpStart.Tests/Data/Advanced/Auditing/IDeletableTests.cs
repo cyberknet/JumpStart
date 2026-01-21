@@ -242,7 +242,7 @@ public class IDeletableTests
 
         // Assert
         Assert.True(isNullable);
-        Assert.Equal(typeof(DateTime?), propertyType);
+        Assert.Equal(typeof(DateTimeOffset?), propertyType);
     }
 
     #endregion

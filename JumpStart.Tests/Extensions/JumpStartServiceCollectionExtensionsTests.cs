@@ -273,7 +273,7 @@ public class JumpStartServiceCollectionExtensionsTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var autoDiscoveryEnabled = false;
+        var autoDiscoveryEnabled = true;
 
         // Act
         services.AddJumpStart(options =>
@@ -281,8 +281,8 @@ public class JumpStartServiceCollectionExtensionsTests
             autoDiscoveryEnabled = options.AutoDiscoverRepositories;
         });
 
-        // Assert
-        Assert.True(autoDiscoveryEnabled);
+        // Assert - AutoDiscoverRepositories defaults to false
+        Assert.False(autoDiscoveryEnabled);
     }
 
     [Fact]
@@ -336,8 +336,11 @@ public class JumpStartServiceCollectionExtensionsTests
             .ToArray();
 
         // Act & Assert
-        Assert.Single(publicMethods);
-        Assert.Equal(nameof(JumpStartServiceCollectionExtensions.AddJumpStart), publicMethods[0].Name);
+        // Now has 5 methods: 3 AddSimpleApiClient overloads, AddJumpStart, AddJumpStartWithDbContext
+        Assert.Equal(5, publicMethods.Length);
+        Assert.Contains(publicMethods, m => m.Name == nameof(JumpStartServiceCollectionExtensions.AddJumpStart));
+        Assert.Contains(publicMethods, m => m.Name == "AddSimpleApiClient");
+        Assert.Contains(publicMethods, m => m.Name == "AddJumpStartWithDbContext");
     }
 
     #endregion

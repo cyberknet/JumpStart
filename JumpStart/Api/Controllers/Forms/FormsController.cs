@@ -748,6 +748,166 @@ public class FormsController(
 
                     logger.LogInformation("Deleted {Count} responses for form {FormId}", deletedCount, formId);
 
-                    return Ok(deletedCount);
-                }
-            }
+                            return Ok(deletedCount);
+                        }
+
+                        /// <summary>
+                        /// Creates a new question type.
+                        /// </summary>
+                        /// <param name="createDto">The question type creation data.</param>
+                        /// <returns>
+                        /// The created question type with its assigned ID.
+                        /// Returns 201 Created with the question type details.
+                        /// Returns 400 Bad Request if validation fails or a type with the same code already exists.
+                        /// </returns>
+                        /// <response code="201">The question type was created successfully.</response>
+                        /// <response code="400">The request was invalid.</response>
+                        [HttpPost("question-types")]
+                        [ProducesResponseType(typeof(QuestionTypeDto), 201)]
+                        [ProducesResponseType(400)]
+                        public async Task<ActionResult<QuestionTypeDto>> CreateQuestionType([FromBody] CreateQuestionTypeDto createDto)
+                        {
+                            logger.LogInformation("Creating question type with code {Code}", createDto.Code);
+
+                            if (!ModelState.IsValid)
+                            {
+                                return BadRequest(ModelState);
+                            }
+
+                            // Check if a question type with the same code already exists
+                            var existing = await formRepository.GetQuestionTypeByCodeAsync(createDto.Code);
+                            if (existing != null)
+                            {
+                                logger.LogWarning("Question type with code {Code} already exists", createDto.Code);
+                                return BadRequest(new { message = $"A question type with code '{createDto.Code}' already exists." });
+                            }
+
+                            var questionType = mapper.Map<QuestionType>(createDto);
+                            var created = await formRepository.CreateQuestionTypeAsync(questionType);
+
+                            var dto = mapper.Map<QuestionTypeDto>(created);
+                            logger.LogInformation("Created question type {Id} with code {Code}", created.Id, created.Code);
+
+                            return CreatedAtAction(nameof(GetQuestionTypeById), new { id = created.Id }, dto);
+                        }
+
+                        /// <summary>
+                        /// Gets a specific question type by ID.
+                        /// </summary>
+                        /// <param name="id">The unique identifier of the question type.</param>
+                        /// <returns>
+                        /// The question type details.
+                        /// Returns 200 OK if found, 404 Not Found if the question type doesn't exist.
+                        /// </returns>
+                        /// <response code="200">Returns the question type.</response>
+                        /// <response code="404">The question type was not found.</response>
+                        [HttpGet("question-types/{id:guid}")]
+                        [ProducesResponseType(typeof(QuestionTypeDto), 200)]
+                        [ProducesResponseType(404)]
+                        public async Task<ActionResult<QuestionTypeDto>> GetQuestionTypeById(Guid id)
+                        {
+                            logger.LogInformation("Retrieving question type {Id}", id);
+
+                            var questionType = await formRepository.GetQuestionTypeByIdAsync(id);
+                            if (questionType == null)
+                            {
+                                logger.LogWarning("Question type {Id} not found", id);
+                                return NotFound(new { message = $"Question type with ID {id} not found." });
+                            }
+
+                            var dto = mapper.Map<QuestionTypeDto>(questionType);
+                            return Ok(dto);
+                        }
+
+                        /// <summary>
+                        /// Updates an existing question type.
+                        /// </summary>
+                        /// <param name="id">The unique identifier of the question type to update.</param>
+                        /// <param name="updateDto">The updated question type data.</param>
+                        /// <returns>
+                        /// Returns 204 No Content if successful.
+                        /// Returns 400 Bad Request if validation fails.
+                        /// Returns 404 Not Found if the question type doesn't exist.
+                        /// </returns>
+                        /// <response code="204">The question type was updated successfully.</response>
+                        /// <response code="400">The request was invalid.</response>
+                        /// <response code="404">The question type was not found.</response>
+                        [HttpPut("question-types/{id:guid}")]
+                        [ProducesResponseType(204)]
+                        [ProducesResponseType(400)]
+                        [ProducesResponseType(404)]
+                        public async Task<IActionResult> UpdateQuestionType(Guid id, [FromBody] UpdateQuestionTypeDto updateDto)
+                        {
+                            logger.LogInformation("Updating question type {Id}", id);
+
+                            if (!ModelState.IsValid)
+                            {
+                                return BadRequest(ModelState);
+                            }
+
+                            var questionType = await formRepository.GetQuestionTypeByIdAsync(id);
+                            if (questionType == null)
+                            {
+                                logger.LogWarning("Question type {Id} not found", id);
+                                return NotFound(new { message = $"Question type with ID {id} not found." });
+                            }
+
+                            // Update only provided fields
+                            if (updateDto.Code != null) questionType.Code = updateDto.Code;
+                            if (updateDto.Name != null) questionType.Name = updateDto.Name;
+                            if (updateDto.Description != null) questionType.Description = updateDto.Description;
+                            if (updateDto.HasOptions.HasValue) questionType.HasOptions = updateDto.HasOptions.Value;
+                            if (updateDto.AllowsMultipleValues.HasValue) questionType.AllowsMultipleValues = updateDto.AllowsMultipleValues.Value;
+                            if (updateDto.InputType != null) questionType.InputType = updateDto.InputType;
+                            if (updateDto.DisplayOrder.HasValue) questionType.DisplayOrder = updateDto.DisplayOrder.Value;
+                            if (updateDto.ApplicationData != null) questionType.ApplicationData = updateDto.ApplicationData;
+
+                            await formRepository.UpdateQuestionTypeAsync(questionType);
+
+                            logger.LogInformation("Updated question type {Id}", id);
+                            return NoContent();
+                        }
+
+                        /// <summary>
+                        /// Deletes a question type.
+                        /// </summary>
+                        /// <param name="id">The unique identifier of the question type to delete.</param>
+                        /// <returns>
+                        /// Returns 204 No Content if successful.
+                        /// Returns 404 Not Found if the question type doesn't exist.
+                        /// Returns 400 Bad Request if the question type is in use.
+                        /// </returns>
+                        /// <remarks>
+                        /// This will fail if there are questions referencing this question type.
+                        /// </remarks>
+                        /// <response code="204">The question type was deleted successfully.</response>
+                        /// <response code="400">The question type is in use and cannot be deleted.</response>
+                        /// <response code="404">The question type was not found.</response>
+                        [HttpDelete("question-types/{id:guid}")]
+                        [ProducesResponseType(204)]
+                        [ProducesResponseType(400)]
+                        [ProducesResponseType(404)]
+                        public async Task<IActionResult> DeleteQuestionType(Guid id)
+                        {
+                            logger.LogInformation("Deleting question type {Id}", id);
+
+                            var questionType = await formRepository.GetQuestionTypeByIdAsync(id);
+                            if (questionType == null)
+                            {
+                                logger.LogWarning("Question type {Id} not found", id);
+                                return NotFound(new { message = $"Question type with ID {id} not found." });
+                            }
+
+                            try
+                            {
+                                await formRepository.DeleteQuestionTypeAsync(id);
+                                logger.LogInformation("Deleted question type {Id}", id);
+                                return NoContent();
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogWarning(ex, "Failed to delete question type {Id} - may be in use", id);
+                                return BadRequest(new { message = "Cannot delete question type because it is in use by existing questions." });
+                            }
+                        }
+                    }

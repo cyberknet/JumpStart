@@ -136,6 +136,39 @@ public interface IFormsApiClient
             Task<IEnumerable<QuestionTypeDto>> GetQuestionTypesAsync();
 
             /// <summary>
+            /// Gets a specific question type by ID.
+            /// </summary>
+            /// <param name="id">The unique identifier of the question type.</param>
+            /// <returns>The question type details.</returns>
+            [Get("/api/forms/question-types/{id}")]
+            Task<QuestionTypeDto> GetQuestionTypeByIdAsync(Guid id);
+
+            /// <summary>
+            /// Creates a new question type.
+            /// </summary>
+            /// <param name="createDto">The question type creation data.</param>
+            /// <returns>The created question type with its assigned ID.</returns>
+            [Post("/api/forms/question-types")]
+            Task<QuestionTypeDto> CreateQuestionTypeAsync([Body] CreateQuestionTypeDto createDto);
+
+            /// <summary>
+            /// Updates an existing question type.
+            /// </summary>
+            /// <param name="id">The unique identifier of the question type to update.</param>
+            /// <param name="updateDto">The updated question type data.</param>
+            /// <returns>A task representing the asynchronous operation.</returns>
+            [Put("/api/forms/question-types/{id}")]
+            Task UpdateQuestionTypeAsync(Guid id, [Body] UpdateQuestionTypeDto updateDto);
+
+            /// <summary>
+            /// Deletes a question type.
+            /// </summary>
+            /// <param name="id">The unique identifier of the question type to delete.</param>
+            /// <returns>A task representing the asynchronous operation.</returns>
+            [Delete("/api/forms/question-types/{id}")]
+            Task DeleteQuestionTypeAsync(Guid id);
+
+            /// <summary>
             /// Submits a response to a form.
             /// </summary>
             /// <param name="formId">The unique identifier of the form.</param>

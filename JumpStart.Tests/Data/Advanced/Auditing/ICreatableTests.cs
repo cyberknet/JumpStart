@@ -212,7 +212,7 @@ public class ICreatableTests
         var propertyType = property!.PropertyType;
 
         // Assert
-        Assert.Equal(typeof(DateTime), propertyType);
+        Assert.Equal(typeof(DateTimeOffset), propertyType);
     }
 
     #endregion

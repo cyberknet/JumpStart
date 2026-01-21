@@ -30,6 +30,9 @@ public class FormsProfile : Profile
     {
         // QuestionType mappings
         CreateMap<QuestionType, QuestionTypeDto>();
+        CreateMap<CreateQuestionTypeDto, QuestionType>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Questions, opt => opt.Ignore());
 
         // Form mappings
         CreateMap<Form, FormDto>()
@@ -74,11 +77,18 @@ public class FormsProfile : Profile
         
         // QuestionOption mappings
         CreateMap<QuestionOption, QuestionOptionDto>();
-        
+
         CreateMap<CreateQuestionOptionDto, QuestionOption>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.QuestionId, opt => opt.Ignore())
-            .ForMember(dest => dest.Question, opt => opt.Ignore());
+            .ForMember(dest => dest.Question, opt => opt.Ignore())
+            .ForMember(dest => dest.ResponseSelections, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedById, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedOn, opt => opt.Ignore())
+            .ForMember(dest => dest.ModifiedById, opt => opt.Ignore())
+            .ForMember(dest => dest.ModifiedOn, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedById, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedOn, opt => opt.Ignore());
         
                                 // FormWithQuestions mapping
                                 CreateMap<Form, FormWithQuestionsDto>()

@@ -351,8 +351,11 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
             .ToArray();
 
         // Act & Assert
-        Assert.Single(publicMethods);
-        Assert.Equal(nameof(JumpStartServiceCollectionExtensions.AddJumpStartWithDbContext), publicMethods[0].Name);
+        // Now has 5 methods: 3 AddSimpleApiClient overloads, AddJumpStart, AddJumpStartWithDbContext
+        Assert.Equal(5, publicMethods.Length);
+        Assert.Contains(publicMethods, m => m.Name == "AddJumpStartWithDbContext");
+        Assert.Contains(publicMethods, m => m.Name == "AddJumpStart");
+        Assert.Contains(publicMethods, m => m.Name == "AddSimpleApiClient");
     }
 
     #endregion
@@ -438,7 +441,7 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
         // Act & Assert
         Assert.Equal("JumpStartServiceCollectionExtensions", extensionType.Name);
         Assert.True(extensionType.Name.StartsWith("JumpStart"));
-        Assert.True(extensionType.Name.EndsWith("DbContext"));
+        Assert.True(extensionType.Name.EndsWith("Extensions"));
     }
 
     [Fact]

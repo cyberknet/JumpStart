@@ -177,6 +177,47 @@ public class FormRepository(DbContext context, ISimpleUserContext? userContext)
             }
 
             /// <summary>
+            /// Gets a question type by its ID.
+            /// </summary>
+            public async Task<QuestionType?> GetQuestionTypeByIdAsync(Guid id)
+            {
+                return await _context.Set<QuestionType>()
+                    .FirstOrDefaultAsync(qt => qt.Id == id);
+            }
+
+            /// <summary>
+            /// Creates a new question type.
+            /// </summary>
+            public async Task<QuestionType> CreateQuestionTypeAsync(QuestionType questionType)
+            {
+                await _context.Set<QuestionType>().AddAsync(questionType);
+                await _context.SaveChangesAsync();
+                return questionType;
+            }
+
+            /// <summary>
+            /// Updates an existing question type.
+            /// </summary>
+            public async Task UpdateQuestionTypeAsync(QuestionType questionType)
+            {
+                _context.Set<QuestionType>().Update(questionType);
+                await _context.SaveChangesAsync();
+            }
+
+            /// <summary>
+            /// Deletes a question type.
+            /// </summary>
+            public async Task DeleteQuestionTypeAsync(Guid id)
+            {
+                var questionType = await GetQuestionTypeByIdAsync(id);
+                if (questionType != null)
+                {
+                    _context.Set<QuestionType>().Remove(questionType);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            /// <summary>
             /// Saves a form response with all question responses and selected options.
             /// </summary>
             public async Task<FormResponse> SaveFormResponseAsync(FormResponse formResponse)

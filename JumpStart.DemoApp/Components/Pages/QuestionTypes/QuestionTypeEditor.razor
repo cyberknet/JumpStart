@@ -1,0 +1,301 @@
+@* Copyright ©2026 Scott Blomfield *@
+@*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>. 
+ *@
+
+@page "/question-types/new"
+@page "/question-types/edit/{Id:guid}"
+@using System.ComponentModel.DataAnnotations
+@using System.Text.Json
+@using JumpStart.Api.DTOs.Forms
+@using JumpStart.Api.Clients.Forms
+@using JumpStart.DemoApp.Models.Forms
+@inject IFormsApiClient FormsClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Question Type" : "Create Question Type")</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@(IsEditMode ? "Edit Question Type" : "Create Question Type")</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <EditForm Model="@model" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="code" class="form-label">Code <span class="text-danger">*</span></label>
+                            <InputText id="code" class="form-control" @bind-Value="model.Code" disabled="@IsEditMode" />
+                            <div class="form-text">Unique identifier (e.g., "ShortText", "MultipleChoice")</div>
+                            <ValidationMessage For="@(() => model.Code)" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                            <InputText id="name" class="form-control" @bind-Value="model.Name" />
+                            <div class="form-text">Display name (e.g., "Short Text", "Multiple Choice")</div>
+                            <ValidationMessage For="@(() => model.Name)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <InputTextArea id="description" class="form-control" rows="3" @bind-Value="model.Description" />
+                    <div class="form-text">Brief description of this question type</div>
+                    <ValidationMessage For="@(() => model.Description)" />
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="inputType" class="form-label">Input Type <span class="text-danger">*</span></label>
+                            <InputText id="inputType" class="form-control" @bind-Value="model.InputType" />
+                            <div class="form-text">HTML input type (e.g., "text", "number", "date")</div>
+                            <ValidationMessage For="@(() => model.InputType)" />
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="displayOrder" class="form-label">Display Order</label>
+                            <InputNumber id="displayOrder" class="form-control" @bind-Value="model.DisplayOrder" />
+                            <div class="form-text">Order in which this type appears in lists</div>
+                            <ValidationMessage For="@(() => model.DisplayOrder)" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <InputCheckbox id="hasOptions" class="form-check-input" @bind-Value="model.HasOptions" />
+                            <label class="form-check-label" for="hasOptions">
+                                Requires Options
+                            </label>
+                            <div class="form-text">Check if this question type requires pre-defined options (e.g., radio buttons, checkboxes)</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <InputCheckbox id="allowsMultipleValues" class="form-check-input" @bind-Value="model.AllowsMultipleValues" />
+                            <label class="form-check-label" for="allowsMultipleValues">
+                                Allows Multiple Values
+                            </label>
+                            <div class="form-text">Check if multiple values can be selected (e.g., checkboxes)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="componentName" class="form-label">Razor Component Name</label>
+                    <InputText id="componentName" class="form-control" @bind-Value="componentName" />
+                    <div class="form-text">Name of the Blazor component to render this question type (e.g., "ShortTextInput")</div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @if (saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        <i class="bi bi-check-circle"></i> Save
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private bool loading = true;
+    private bool saving = false;
+    private string? errorMessage;
+    private QuestionTypeEditModel model = new();
+    private string componentName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode && Id.HasValue)
+        {
+            await LoadQuestionType();
+        }
+        else
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadQuestionType()
+    {
+        loading = true;
+        errorMessage = null;
+
+        try
+        {
+            var questionType = await FormsClient.GetQuestionTypeByIdAsync(Id!.Value);
+            model = new QuestionTypeEditModel
+            {
+                Code = questionType.Code,
+                Name = questionType.Name,
+                Description = questionType.Description,
+                HasOptions = questionType.HasOptions,
+                AllowsMultipleValues = questionType.AllowsMultipleValues,
+                InputType = questionType.InputType,
+                DisplayOrder = questionType.DisplayOrder
+            };
+
+            // Parse ApplicationData for component name
+            if (!string.IsNullOrEmpty(questionType.ApplicationData))
+            {
+                try
+                {
+                    var metadata = JsonSerializer.Deserialize<QuestionTypeMetadata>(questionType.ApplicationData);
+                    componentName = metadata?.RazorComponentName ?? string.Empty;
+                }
+                catch
+                {
+                    // Ignore parsing errors
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load question type: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task Save()
+    {
+        saving = true;
+        errorMessage = null;
+
+        try
+        {
+            // Build ApplicationData JSON
+            string? applicationData = null;
+            if (!string.IsNullOrWhiteSpace(componentName))
+            {
+                var metadata = new QuestionTypeMetadata
+                {
+                    RazorComponentName = componentName
+                };
+                applicationData = JsonSerializer.Serialize(metadata);
+            }
+
+            if (IsEditMode && Id.HasValue)
+            {
+                var updateDto = new UpdateQuestionTypeDto
+                {
+                    Code = model.Code,
+                    Name = model.Name,
+                    Description = model.Description,
+                    HasOptions = model.HasOptions,
+                    AllowsMultipleValues = model.AllowsMultipleValues,
+                    InputType = model.InputType,
+                    DisplayOrder = model.DisplayOrder,
+                    ApplicationData = applicationData
+                };
+
+                await FormsClient.UpdateQuestionTypeAsync(Id.Value, updateDto);
+            }
+            else
+            {
+                var createDto = new CreateQuestionTypeDto
+                {
+                    Code = model.Code,
+                    Name = model.Name,
+                    Description = model.Description,
+                    HasOptions = model.HasOptions,
+                    AllowsMultipleValues = model.AllowsMultipleValues,
+                    InputType = model.InputType,
+                    DisplayOrder = model.DisplayOrder,
+                    ApplicationData = applicationData
+                };
+
+                await FormsClient.CreateQuestionTypeAsync(createDto);
+            }
+
+            Navigation.NavigateTo("/question-types");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to save question type: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/question-types");
+    }
+
+    private class QuestionTypeEditModel
+    {
+        [Required(ErrorMessage = "Code is required")]
+        [StringLength(50, ErrorMessage = "Code cannot exceed 50 characters")]
+        public string Code { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+        public string Description { get; set; } = string.Empty;
+
+        public bool HasOptions { get; set; }
+        
+        public bool AllowsMultipleValues { get; set; }
+
+        [Required(ErrorMessage = "Input type is required")]
+        [StringLength(50, ErrorMessage = "Input type cannot exceed 50 characters")]
+        public string InputType { get; set; } = string.Empty;
+
+        public int DisplayOrder { get; set; }
+    }
+}

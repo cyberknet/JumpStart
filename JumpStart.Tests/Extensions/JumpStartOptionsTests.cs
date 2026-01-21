@@ -213,7 +213,7 @@ public class JumpStartOptionsTests
             .ToArray();
 
         // Act & Assert
-        Assert.Equal(6, publicMethods.Length); // 6 fluent methods
+        Assert.Equal(7, publicMethods.Length); // 7 fluent methods (added EnableRepositoryAutoDiscovery)
     }
 
     #endregion
@@ -239,7 +239,7 @@ public class JumpStartOptionsTests
         var optionsType = typeof(JumpStartOptions);
 
         // Act & Assert
-        Assert.Equal("JumpStart.Extensions", optionsType.Namespace);
+        Assert.Equal("JumpStart", optionsType.Namespace);
     }
 
     [Fact]
@@ -302,19 +302,19 @@ public class JumpStartOptionsTests
     [Fact]
     public void JumpStartOptions_HasExpectedPublicMembers()
     {
-        // Arrange
-        var optionsType = typeof(JumpStartOptions);
-        
-        // Act
-        var publicProperties = optionsType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        var publicMethods = optionsType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
-            .Where(m => !m.IsSpecialName)
-            .ToArray();
+            // Arrange
+            var optionsType = typeof(JumpStartOptions);
 
-        // Assert
-        Assert.Equal(3, publicProperties.Length); // 3 properties
-        Assert.Equal(6, publicMethods.Length); // 6 methods
-    }
+            // Act
+            var publicProperties = optionsType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            var publicMethods = optionsType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(m => !m.IsSpecialName)
+                .ToArray();
+
+            // Assert
+            Assert.Equal(8, publicProperties.Length); // 8 properties (added RegisterFormsController, RegisterFormsApiClient, AutoDiscoverApiClients, ApiClientLifetime, ApiBaseUrl)
+            Assert.Equal(7, publicMethods.Length); // 7 methods (added EnableRepositoryAutoDiscovery)
+        }
 
     [Fact]
     public void JumpStartOptions_HasAllExpectedProperties()

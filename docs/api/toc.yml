@@ -32,36 +32,36 @@
       items:
       - name: Entity Types
         items:
-        - name: IEntity<TKey>
+        - name: IEntity
           href: JumpStart.Data.Advanced.IEntity-1.html
-        - name: Entity<TKey>
+        - name: Entity
           href: JumpStart.Data.Advanced.Entity-1.html
-        - name: NamedEntity<TKey>
+        - name: NamedEntity
           href: JumpStart.Data.Advanced.NamedEntity-1.html
       - name: Auditing
         href: JumpStart.Data.Advanced.Auditing.html
         items:
-        - name: IAuditable<TKey>
+        - name: IAuditable
           href: JumpStart.Data.Advanced.Auditing.IAuditable-1.html
-        - name: ICreatable<TKey>
+        - name: ICreatable
           href: JumpStart.Data.Advanced.Auditing.ICreatable-1.html
-        - name: IModifiable<TKey>
+        - name: IModifiable
           href: JumpStart.Data.Advanced.Auditing.IModifiable-1.html
-        - name: IDeletable<TKey>
+        - name: IDeletable
           href: JumpStart.Data.Advanced.Auditing.IDeletable-1.html
-        - name: AuditableEntity<TKey>
+        - name: AuditableEntity
           href: JumpStart.Data.Advanced.Auditing.AuditableEntity-1.html
-        - name: AuditableNamedEntity<TKey>
+        - name: AuditableNamedEntity
           href: JumpStart.Data.Advanced.Auditing.AuditableNamedEntity-1.html
   - name: Repositories
     href: JumpStart.Repositories.html
     items:
-    - name: ISimpleRepository<TEntity>
-      href: JumpStart.Repositories.ISimpleRepository-1.html
-    - name: SimpleRepository<TEntity>
-      href: JumpStart.Repositories.SimpleRepository-1.html
-    - name: ISimpleUserContext
-      href: JumpStart.Repositories.ISimpleUserContext.html
+    - name: IRepository<TEntity>
+      href: JumpStart.Repositories.IRepository-1.html
+    - name: Repository<TEntity>
+      href: JumpStart.Repositories.Repository-1.html
+    - name: IUserContext
+      href: JumpStart.Repositories.IUserContext.html
     - name: PagedResult<TEntity>
       href: JumpStart.Repositories.PagedResult-1.html
     - name: QueryOptions<TEntity>
@@ -69,19 +69,19 @@
     - name: Advanced
       href: JumpStart.Repositories.Advanced.html
       items:
-      - name: IRepository<TEntity, TKey>
+      - name: IRepository<TEntity>
         href: JumpStart.Repositories.Advanced.IRepository-2.html
-      - name: Repository<TEntity, TKey>
+      - name: Repository<TEntity>
         href: JumpStart.Repositories.Advanced.Repository-2.html
-      - name: IUserContext<TKey>
+      - name: IUserContext
         href: JumpStart.Repositories.Advanced.IUserContext-1.html
   - name: API
     href: JumpStart.Api.html
     items:
     - name: Controllers
       items:
-      - name: SimpleApiControllerBase
-        href: JumpStart.Api.Controllers.SimpleApiControllerBase-4.html
+      - name: ApiControllerBase
+        href: JumpStart.Api.Controllers.ApiControllerBase-4.html
       - name: AdvancedApiControllerBase
         href: JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase-5.html
     - name: DTOs
@@ -91,7 +91,7 @@
         href: JumpStart.Api.DTOs.IDto.html
       - name: ICreateDto
         href: JumpStart.Api.DTOs.ICreateDto.html
-      - name: IUpdateDto<TKey>
+      - name: IUpdateDto
         href: JumpStart.Api.DTOs.IUpdateDto-1.html
       - name: SimpleEntityDto
         href: JumpStart.Api.DTOs.SimpleEntityDto.html
@@ -99,15 +99,15 @@
         href: JumpStart.Api.DTOs.SimpleAuditableEntityDto.html
       - name: Advanced
         items:
-        - name: EntityDto<TKey>
+        - name: EntityDto
           href: JumpStart.Api.DTOs.Advanced.EntityDto-1.html
-        - name: AuditableEntityDto<TKey>
+        - name: AuditableEntityDto
           href: JumpStart.Api.DTOs.Advanced.AuditableEntityDto-1.html
     - name: Clients
       href: JumpStart.Api.Clients.html
       items:
-      - name: ISimpleApiClient
-        href: JumpStart.Api.Clients.ISimpleApiClient-3.html
+      - name: IApiClient
+        href: JumpStart.Api.Clients.IApiClient-3.html
       - name: SimpleApiClientExtensions
         href: JumpStart.Api.Clients.SimpleApiClientExtensions.html
       - name: Advanced

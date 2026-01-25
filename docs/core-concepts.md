@@ -15,18 +15,15 @@ JumpStart is built around several core concepts that work together to provide a 
 
 ## Entity System
 
-JumpStart provides two entity systems to balance ease of use with flexibility.
 
-### Simple Entities (Guid-based)
+JumpStart provides a flexible entity system based on a single set of base classes with Guid keys by default, but extensible for custom key types.
 
-**Purpose:** Quick and easy development with sensible defaults.
+### Entity (Guid-based)
 
-#### SimpleEntity
-
-The most basic entity with just an ID:
+**Purpose:** Quick and easy development with sensible defaults for most applications.
 
 ```csharp
-public class Product : SimpleEntity
+public class Product : Entity
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -35,14 +32,14 @@ public class Product : SimpleEntity
 
 **Provides:**
 - `Id` property of type `Guid`
-- Implements `ISimpleEntity`
+- Implements `IEntity`
 
-#### SimpleAuditableEntity
+### AuditableEntity
 
 Adds automatic audit tracking:
 
 ```csharp
-public class Product : SimpleAuditableEntity
+public class Product : AuditableEntity
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -50,113 +47,42 @@ public class Product : SimpleAuditableEntity
 ```
 
 **Provides:**
-- Everything from `SimpleEntity`
+- Everything from `Entity`
 - `CreatedById` - Who created this entity
 - `CreatedOn` - When it was created
 - `ModifiedById` - Who last modified it
 - `ModifiedOn` - When it was last modified
-- Implements `ISimpleAuditable`
+- Implements `IAuditable`
 
-#### SimpleNamedEntity
+### NamedEntity
 
 For entities that have a name:
 
 ```csharp
-public class Category : SimpleNamedEntity
+public class Category : NamedEntity
 {
     public string Description { get; set; } = string.Empty;
 }
 ```
 
 **Provides:**
-- Everything from `SimpleEntity`
+- Everything from `Entity`
 - `Name` property (required, max 100 chars)
 - Implements `INamed`
 
-#### SimpleAuditableNamedEntity
+### AuditableNamedEntity
 
 Combines naming and auditing:
 
 ```csharp
-public class Category : SimpleAuditableNamedEntity
+public class Category : AuditableNamedEntity
 {
     public string Description { get; set; } = string.Empty;
 }
 ```
 
 **Provides:**
-- Everything from `SimpleAuditableEntity` and `SimpleNamedEntity`
-
-### Advanced Entities (Generic Key Types)
-
-**Purpose:** Maximum flexibility with custom key types and strongly-typed user IDs.
-
-#### Entity<TKey>
-
-Custom key type:
-
-```csharp
-// Using int as primary key
-public class Product : Entity<int>
-{
-    public string Name { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-}
-
-// Using string as primary key
-public class CountryCode : Entity<string>
-{
-    public string CountryName { get; set; } = string.Empty;
-}
-```
-
-**Provides:**
-- `Id` property of type `TKey`
-- Implements `IEntity<TKey>`
-
-#### AuditableEntity<TKey, TUserKey>
-
-Advanced auditing with strongly-typed user IDs:
-
-```csharp
-// Using int for entity key, Guid for user key
-public class Product : AuditableEntity<int, Guid>
-{
-    public string Name { get; set; } = string.Empty;
-}
-
-// Using int for both entity and user keys
-public class Order : AuditableEntity<int, int>
-{
-    public decimal Total { get; set; }
-}
-```
-
-**Provides:**
-- Everything from `Entity<TKey>`
-- `CreatedById` of type `TUserKey`
-- `CreatedOn` of type `DateTime`
-- `ModifiedById` of type `TUserKey?`
-- `ModifiedOn` of type `DateTime?`
-- Implements `IAuditable<TUserKey>`
-
-#### NamedEntity<TKey> and AuditableNamedEntity<TKey, TUserKey>
-
-Similar to Simple versions but with generic keys.
-
-### Choosing Between Simple and Advanced
-
-**Use Simple When:**
-- Starting a new project
-- Guids are acceptable as primary keys
-- Guid user IDs work for your scenario
-- You want faster development
-
-**Use Advanced When:**
-- You need specific key types (int, long, custom)
-- Working with existing databases
-- Need strongly-typed user IDs
-- Require maximum type safety
+- Everything from `AuditableEntity` and `NamedEntity`
 
 ## Repository Pattern
 
@@ -174,16 +100,16 @@ Repositories provide an abstraction layer between your domain/business logic and
 For Guid-based entities:
 
 ```csharp
-public interface IProductRepository : ISimpleRepository<Product, Guid>
+public interface IProductRepository : IRepository<Product, Guid>
 {
     // Add custom methods here
 }
 
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
     public ProductRepository(
         DbContext context,
-        ISimpleUserContext? userContext = null)
+        IUserContext? userContext = null)
         : base(context, userContext)
     {
     }
@@ -216,46 +142,25 @@ Task<bool> ExistsAsync(Guid id);
 Task<int> CountAsync();
 ```
 
-### Advanced Repositories
 
-For custom key types:
-
-```csharp
-public interface IProductRepository : IRepository<Product, int, Guid>
-{
-    // Custom methods
-}
-
-public class ProductRepository : Repository<Product, int, Guid>, IProductRepository
-{
-    public ProductRepository(
-        DbContext context,
-        IUserContext<Guid>? userContext = null)
-        : base(context, userContext)
-    {
-    }
-}
-```
-
-**Same methods as Simple, but with your custom key types.**
 
 ### Adding Custom Methods
 
 Extend repositories with domain-specific queries:
 
 ```csharp
-public interface IProductRepository : ISimpleRepository<Product, Guid>
+public interface IProductRepository : IRepository<Product>
 {
     Task<IList<Product>> GetLowStockProductsAsync(int threshold);
     Task<IList<Product>> GetProductsByCategoryAsync(Guid categoryId);
     Task<Product?> GetBySkuAsync(string sku);
 }
 
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
     public ProductRepository(
         DbContext context,
-        ISimpleUserContext? userContext)
+        IUserContext? userContext)
         : base(context, userContext)
     {
     }
@@ -305,25 +210,14 @@ var page2 = await repository.GetPagedAsync(page: 2, pageSize: 20);
 
 User Context provides information about the current user, enabling automatic audit tracking.
 
-### ISimpleUserContext (Guid Users)
+### IUserContext (Guid Users)
 
 For Simple entities:
 
 ```csharp
-public interface ISimpleUserContext
+public interface IUserContext
 {
     Task<Guid?> GetCurrentUserIdAsync();
-}
-```
-
-### IUserContext<TUserKey> (Custom User Key Types)
-
-For Advanced entities:
-
-```csharp
-public interface IUserContext<TUserKey>
-{
-    Task<TUserKey?> GetCurrentUserIdAsync();
 }
 ```
 
@@ -332,7 +226,7 @@ public interface IUserContext<TUserKey>
 #### Blazor Server (Cookie Authentication)
 
 ```csharp
-public class BlazorUserContext : ISimpleUserContext
+public class BlazorUserContext : IUserContext
 {
     private readonly AuthenticationStateProvider _authenticationStateProvider;
 
@@ -359,7 +253,7 @@ public class BlazorUserContext : ISimpleUserContext
 #### Web API (JWT Bearer Tokens)
 
 ```csharp
-public class ApiUserContext : ISimpleUserContext
+public class ApiUserContext : IUserContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -388,7 +282,7 @@ public class ApiUserContext : ISimpleUserContext
 #### Testing (Mock Context)
 
 ```csharp
-public class MockUserContext : ISimpleUserContext
+public class MockUserContext : IUserContext
 {
     private readonly Guid? _userId;
 
@@ -427,7 +321,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 // User Context
-builder.Services.AddScoped<ISimpleUserContext, BlazorUserContext>();
+builder.Services.AddScoped<IUserContext, BlazorUserContext>();
 
 // Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -488,7 +382,7 @@ JumpStart provides base DTOs that correspond to entity types:
 
 ```csharp
 // Read DTO
-public class ProductDto : SimpleEntityDto
+public class ProductDto : EntityDto
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -537,15 +431,14 @@ Base controllers provide standard RESTful endpoints with minimal code.
 ```csharp
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : SimpleApiControllerBase<
+public class ProductsController : ApiControllerBase<
     Product,           // Entity type
     ProductDto,        // Read DTO
     CreateProductDto,  // Create DTO
-    UpdateProductDto,  // Update DTO
-    Guid>              // Key type
+    UpdateProductDto>  // Update DTO
 {
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product> repository,
         IMapper mapper)
         : base(repository, mapper)
     {
@@ -566,7 +459,7 @@ public class ProductsController : SimpleApiControllerBase<
 Extend base controllers with custom actions:
 
 ```csharp
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     private readonly IProductRepository _productRepository;
 
@@ -606,11 +499,11 @@ Here's how all the concepts work together in a typical application:
 ```
 User Request
     ?
-API Controller (SimpleApiControllerBase)
+API Controller (ApiControllerBase)
     ?
 AutoMapper (DTO ? Entity)
     ?
-Repository (SimpleRepository)
+Repository (Repository)
     ?
 User Context (Gets current user)
     ?

@@ -48,58 +48,32 @@ namespace JumpStart.Api.DTOs;
 /// </remarks>
 /// <example>
 /// <code>
-/// // Example 1: Simple create DTO for a Product
-/// public class CreateProductDto : ICreateDto
+/// // Example: Simple create DTO for a form
+/// public class CreateFormDto : JumpStart.Api.DTOs.ICreateDto
 /// {
-///     [Required]
-///     [StringLength(200)]
+///     [System.ComponentModel.DataAnnotations.Required]
+///     [System.ComponentModel.DataAnnotations.StringLength(200)]
 ///     public string Name { get; set; } = string.Empty;
 ///     
-///     [Required]
-///     [Range(0.01, double.MaxValue)]
-///     public decimal Price { get; set; }
-///     
-///     [StringLength(1000)]
+///     [System.ComponentModel.DataAnnotations.StringLength(1000)]
 ///     public string? Description { get; set; }
-///     
-///     public int CategoryId { get; set; }
 /// }
 /// 
-/// // Example 2: Create DTO with nested objects
-/// public class CreateOrderDto : ICreateDto
-/// {
-///     [Required]
-///     public DateTime OrderDate { get; set; }
-///     
-///     [Required]
-///     public List&lt;CreateOrderItemDto&gt; Items { get; set; } = new();
-///     
-///     public string? Notes { get; set; }
-/// }
-/// 
-/// public class CreateOrderItemDto : ICreateDto
-/// {
-///     public int ProductId { get; set; }
-///     
-///     [Range(1, int.MaxValue)]
-///     public int Quantity { get; set; }
-/// }
-/// 
-/// // Example 3: Usage in API controller
-/// [HttpPost]
-/// public async Task&lt;ActionResult&lt;ProductDto&gt;&gt; Create([FromBody] CreateProductDto createDto)
+/// // Example: Usage in API controller
+/// [Microsoft.AspNetCore.Mvc.HttpPost]
+/// public async System.Threading.Tasks.Task&lt;Microsoft.AspNetCore.Mvc.ActionResult&lt;FormDto&gt;&gt; Create([Microsoft.AspNetCore.Mvc.FromBody] CreateFormDto createDto)
 /// {
 ///     // The controller receives only the fields the client should provide
 ///     // System fields (Id, CreatedOn, etc.) are added by the repository
-///     var entity = _mapper.Map&lt;Product&gt;(createDto);
+///     var entity = _mapper.Map&lt;JumpStart.Forms.Form&gt;(createDto);
 ///     var created = await _repository.AddAsync(entity);
-///     var dto = _mapper.Map&lt;ProductDto&gt;(created);
+///     var dto = _mapper.Map&lt;JumpStart.Api.DTOs.Forms.FormDto&gt;(created);
 ///     return CreatedAtAction(nameof(GetById), new { id = created.Id }, dto);
 /// }
 /// </code>
 /// </example>
 /// <seealso cref="JumpStart.Api.DTOs.IDto"/>
-/// <seealso cref="JumpStart.Api.DTOs.IUpdateDto{TKey}"/>
+/// <seealso cref="JumpStart.Api.DTOs.IUpdateDto"/>
 public interface ICreateDto : IDto
 {
 }

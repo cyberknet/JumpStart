@@ -21,6 +21,33 @@ namespace JumpStart.Api.DTOs.Forms;
 /// <summary>
 /// Data transfer object for updating an existing form.
 /// </summary>
+/// <remarks>
+/// Used for updating a form and its questions. See also: <see cref="JumpStart.Api.DTOs.Forms.UpdateQuestionDto"/>
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Updating a form with questions
+/// var updateForm = new JumpStart.Api.DTOs.Forms.UpdateFormDto
+/// {
+///     Id = Guid.NewGuid(),
+///     Name = "Customer Feedback",
+///     Description = "Please rate our service",
+///     IsActive = true,
+///     AllowMultipleResponses = false,
+///     AllowAnonymous = true,
+///     Questions = new List&lt;JumpStart.Api.DTOs.Forms.UpdateQuestionDto&gt;
+///     {
+///         new JumpStart.Api.DTOs.Forms.UpdateQuestionDto
+///         {
+///             Id = Guid.NewGuid(),
+///             QuestionText = "How satisfied are you?",
+///             QuestionTypeId = Guid.NewGuid(),
+///             IsRequired = true
+///         }
+///     }
+/// };
+/// </code>
+/// </example>
 public class UpdateFormDto
 {
     /// <summary>Gets or sets the form ID (must match URL parameter).</summary>

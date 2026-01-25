@@ -21,6 +21,22 @@ namespace JumpStart.Api.Mapping;
 /// <summary>
 /// AutoMapper profile for Forms module entity to DTO mappings.
 /// </summary>
+/// <remarks>
+/// Configures mappings between <see cref="JumpStart.Forms.Form"/>, <see cref="JumpStart.Api.DTOs.Forms.FormDto"/>, <see cref="JumpStart.Api.DTOs.Forms.FormWithQuestionsDto"/>, and related question/option/response DTOs. Ensures audit fields and navigation properties are handled according to JumpStart best practices.
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Registering FormsProfile in Program.cs
+/// builder.Services.AddAutoMapper(cfg =&gt;
+/// {
+///     cfg.AddProfile&lt;JumpStart.Api.Mapping.FormsProfile&gt;();
+/// });
+/// 
+/// // Example: Using AutoMapper in a Blazor service or controller
+/// var formDto = _mapper.Map&lt;JumpStart.Api.DTOs.Forms.FormDto&gt;(formEntity);
+/// var entity = _mapper.Map&lt;JumpStart.Forms.Form&gt;(createFormDto);
+/// </code>
+/// </example>
 public class FormsProfile : Profile
 {
     /// <summary>
@@ -47,7 +63,7 @@ public class FormsProfile : Profile
             .ForMember(dest => dest.DeletedById, opt => opt.Ignore())
             .ForMember(dest => dest.DeletedOn, opt => opt.Ignore())
             .ForMember(dest => dest.Responses, opt => opt.Ignore());
-        
+
         CreateMap<UpdateFormDto, Form>()
             .ForMember(dest => dest.CreatedById, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedOn, opt => opt.Ignore())
@@ -57,11 +73,11 @@ public class FormsProfile : Profile
             .ForMember(dest => dest.DeletedOn, opt => opt.Ignore())
             .ForMember(dest => dest.Questions, opt => opt.Ignore())
             .ForMember(dest => dest.Responses, opt => opt.Ignore());
-        
+
         // Question mappings
         CreateMap<Question, QuestionDto>()
             .ForMember(dest => dest.QuestionType, opt => opt.MapFrom(src => src.QuestionType));
-        
+
         CreateMap<CreateQuestionDto, Question>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.FormId, opt => opt.Ignore())
@@ -74,7 +90,7 @@ public class FormsProfile : Profile
             .ForMember(dest => dest.DeletedById, opt => opt.Ignore())
             .ForMember(dest => dest.DeletedOn, opt => opt.Ignore())
             .ForMember(dest => dest.Responses, opt => opt.Ignore());
-        
+
         // QuestionOption mappings
         CreateMap<QuestionOption, QuestionOptionDto>();
 
@@ -89,42 +105,42 @@ public class FormsProfile : Profile
             .ForMember(dest => dest.ModifiedOn, opt => opt.Ignore())
             .ForMember(dest => dest.DeletedById, opt => opt.Ignore())
             .ForMember(dest => dest.DeletedOn, opt => opt.Ignore());
-        
-                                // FormWithQuestions mapping
-                                CreateMap<Form, FormWithQuestionsDto>()
-                                    .ForMember(dest => dest.Questions, opt => opt.MapFrom(src => src.Questions));
 
-                                        // FormResponse mappings
-                                        CreateMap<CreateFormResponseDto, FormResponse>()
-                                            .ForMember(dest => dest.Id, opt => opt.Ignore())
-                                            .ForMember(dest => dest.SubmittedOn, opt => opt.Ignore())
-                                            .ForMember(dest => dest.Form, opt => opt.Ignore())
-                                            .ForMember(dest => dest.Answers, opt => opt.MapFrom(src => src.QuestionResponses))
-                                            .ForMember(dest => dest.CreatedById, opt => opt.Ignore())
-                                            .ForMember(dest => dest.CreatedOn, opt => opt.Ignore())
-                                            .ForMember(dest => dest.ModifiedById, opt => opt.Ignore())
-                                            .ForMember(dest => dest.ModifiedOn, opt => opt.Ignore())
-                                            .ForMember(dest => dest.DeletedById, opt => opt.Ignore())
-                                            .ForMember(dest => dest.DeletedOn, opt => opt.Ignore());
+        // FormWithQuestions mapping
+        CreateMap<Form, FormWithQuestionsDto>()
+            .ForMember(dest => dest.Questions, opt => opt.MapFrom(src => src.Questions));
 
-                                        CreateMap<CreateQuestionResponseDto, QuestionResponse>()
-                                            .ForMember(dest => dest.Id, opt => opt.Ignore())
-                                            .ForMember(dest => dest.FormResponseId, opt => opt.Ignore())
-                                            .ForMember(dest => dest.FormResponse, opt => opt.Ignore())
-                                            .ForMember(dest => dest.Question, opt => opt.Ignore())
-                                            .ForMember(dest => dest.ResponseText, opt => opt.MapFrom(src => src.ResponseValue))
-                                            .ForMember(dest => dest.SelectedOptions, opt => opt.MapFrom(src =>
-                                                src.SelectedOptionIds.Select(id => new QuestionResponseOption { QuestionOptionId = id })));
+        // FormResponse mappings
+        CreateMap<CreateFormResponseDto, FormResponse>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.SubmittedOn, opt => opt.Ignore())
+            .ForMember(dest => dest.Form, opt => opt.Ignore())
+            .ForMember(dest => dest.Answers, opt => opt.MapFrom(src => src.QuestionResponses))
+            .ForMember(dest => dest.CreatedById, opt => opt.Ignore())
+            .ForMember(dest => dest.CreatedOn, opt => opt.Ignore())
+            .ForMember(dest => dest.ModifiedById, opt => opt.Ignore())
+            .ForMember(dest => dest.ModifiedOn, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedById, opt => opt.Ignore())
+            .ForMember(dest => dest.DeletedOn, opt => opt.Ignore());
 
-                                        CreateMap<FormResponse, FormResponseDto>()
-                                            .ForMember(dest => dest.FormName, opt => opt.MapFrom(src => src.Form.Name))
-                                            .ForMember(dest => dest.SubmittedOn, opt => opt.MapFrom(src => src.SubmittedOn))
-                                            .ForMember(dest => dest.QuestionResponses, opt => opt.MapFrom(src => src.Answers));
+        CreateMap<CreateQuestionResponseDto, QuestionResponse>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.FormResponseId, opt => opt.Ignore())
+            .ForMember(dest => dest.FormResponse, opt => opt.Ignore())
+            .ForMember(dest => dest.Question, opt => opt.Ignore())
+            .ForMember(dest => dest.ResponseText, opt => opt.MapFrom(src => src.ResponseValue))
+            .ForMember(dest => dest.SelectedOptions, opt => opt.MapFrom(src =>
+                src.SelectedOptionIds.Select(id => new QuestionResponseOption { QuestionOptionId = id })));
 
-                                        CreateMap<QuestionResponse, QuestionResponseDto>()
-                                            .ForMember(dest => dest.QuestionText, opt => opt.MapFrom(src => src.Question.QuestionText))
-                                            .ForMember(dest => dest.ResponseValue, opt => opt.MapFrom(src => src.ResponseText))
-                                            .ForMember(dest => dest.SelectedOptions, opt => opt.MapFrom(src =>
-                                                src.SelectedOptions.Select(so => so.QuestionOption.OptionText).ToList()));
-                                    }
-                                }
+        CreateMap<FormResponse, FormResponseDto>()
+            .ForMember(dest => dest.FormName, opt => opt.MapFrom(src => src.Form.Name))
+            .ForMember(dest => dest.SubmittedOn, opt => opt.MapFrom(src => src.SubmittedOn))
+            .ForMember(dest => dest.QuestionResponses, opt => opt.MapFrom(src => src.Answers));
+
+        CreateMap<QuestionResponse, QuestionResponseDto>()
+            .ForMember(dest => dest.QuestionText, opt => opt.MapFrom(src => src.Question.QuestionText))
+            .ForMember(dest => dest.ResponseValue, opt => opt.MapFrom(src => src.ResponseText))
+            .ForMember(dest => dest.SelectedOptions, opt => opt.MapFrom(src =>
+                src.SelectedOptions.Select(so => so.QuestionOption.OptionText).ToList()));
+    }
+}

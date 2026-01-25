@@ -22,8 +22,42 @@ namespace JumpStart.Api.DTOs.Forms;
 /// Data transfer object for form with complete question details.
 /// </summary>
 /// <remarks>
-/// Used when retrieving a form for display, including all questions and options.
+/// Used when retrieving a form for display, including all questions and options. See also:
+/// <list type="bullet">
+/// <item><description><see cref="JumpStart.Api.DTOs.Forms.QuestionDto"/></description></item>
+/// <item><description><see cref="JumpStart.Api.DTOs.Forms.QuestionOptionDto"/></description></item>
+/// </list>
 /// </remarks>
+/// <example>
+/// <code>
+/// // Example: Creating a form with questions and options
+/// var form = new JumpStart.Api.DTOs.Forms.FormWithQuestionsDto
+/// {
+///     Id = Guid.NewGuid(),
+///     Name = "Customer Feedback",
+///     Description = "Please rate our service",
+///     IsActive = true,
+///     AllowMultipleResponses = false,
+///     AllowAnonymous = true,
+///     Questions = new List&lt;JumpStart.Api.DTOs.Forms.QuestionDto&gt;
+///     {
+///         new JumpStart.Api.DTOs.Forms.QuestionDto
+///         {
+///             Id = Guid.NewGuid(),
+///             QuestionText = "How satisfied are you?",
+///             QuestionType = new JumpStart.Api.DTOs.Forms.QuestionTypeDto { Code = "Choice", Name = "Choice" },
+///             IsRequired = true,
+///             Options = new List&lt;JumpStart.Api.DTOs.Forms.QuestionOptionDto&gt;
+///             {
+///                 new JumpStart.Api.DTOs.Forms.QuestionOptionDto { OptionText = "Very Satisfied" },
+///                 new JumpStart.Api.DTOs.Forms.QuestionOptionDto { OptionText = "Satisfied" },
+///                 new JumpStart.Api.DTOs.Forms.QuestionOptionDto { OptionText = "Dissatisfied" }
+///             }
+///         }
+///     }
+/// };
+/// </code>
+/// </example>
 public class FormWithQuestionsDto
 {
     /// <summary>Gets or sets the form ID.</summary>
@@ -49,78 +83,4 @@ public class FormWithQuestionsDto
     
     /// <summary>Gets or sets the list of questions.</summary>
     public List<QuestionDto> Questions { get; set; } = [];
-}
-
-/// <summary>
-/// Data transfer object for a form question.
-/// </summary>
-public class QuestionDto
-{
-    /// <summary>Gets or sets the question ID.</summary>
-    public Guid Id { get; set; }
-
-    /// <summary>Gets or sets the question text.</summary>
-    [Required]
-    [MaxLength(500)]
-    public string QuestionText { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets optional help text.</summary>
-    [MaxLength(1000)]
-    public string? HelpText { get; set; }
-
-    /// <summary>Gets or sets the question type information.</summary>
-    [Required]
-    public QuestionTypeDto QuestionType { get; set; } = null!;
-
-    /// <summary>Gets or sets whether the question is required.</summary>
-    public bool IsRequired { get; set; }
-
-    /// <summary>
-    /// Gets or sets the minimum allowed value (interpretation depends on question type).
-    /// </summary>
-    /// <remarks>
-    /// For Number: Minimum numeric value (e.g., "18").
-    /// For ShortText/LongText: Minimum character count (e.g., "8").
-    /// For Date: Minimum date in ISO format (e.g., "1900-01-01").
-    /// </remarks>
-    [MaxLength(100)]
-    public string? MinimumValue { get; set; }
-
-    /// <summary>
-    /// Gets or sets the maximum allowed value (interpretation depends on question type).
-    /// </summary>
-    /// <remarks>
-    /// For Number: Maximum numeric value (e.g., "120").
-    /// For ShortText/LongText: Maximum character count (e.g., "50").
-    /// For Date: Maximum date in ISO format (e.g., "2100-12-31").
-    /// </remarks>
-    [MaxLength(100)]
-    public string? MaximumValue { get; set; }
-
-    /// <summary>Gets or sets the display order.</summary>
-    public int DisplayOrder { get; set; }
-
-    /// <summary>Gets or sets the list of options (for choice questions).</summary>
-    public List<QuestionOptionDto> Options { get; set; } = [];
-}
-
-/// <summary>
-/// Data transfer object for a question option.
-/// </summary>
-public class QuestionOptionDto
-{
-    /// <summary>Gets or sets the option ID.</summary>
-    public Guid Id { get; set; }
-    
-    /// <summary>Gets or sets the option text.</summary>
-    [Required]
-    [MaxLength(200)]
-    public string OptionText { get; set; } = string.Empty;
-    
-    /// <summary>Gets or sets the optional internal value.</summary>
-    [MaxLength(100)]
-    public string? OptionValue { get; set; }
-    
-    /// <summary>Gets or sets the display order.</summary>
-    public int DisplayOrder { get; set; }
 }

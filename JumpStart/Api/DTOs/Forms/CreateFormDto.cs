@@ -20,6 +20,47 @@ namespace JumpStart.Api.DTOs.Forms;
 /// <summary>
 /// Data transfer object for creating a new form.
 /// </summary>
+/// <remarks>
+/// See also:
+/// <list type="bullet">
+/// <item><description><see cref="JumpStart.Api.DTOs.Forms.CreateQuestionDto"/></description></item>
+/// <item><description><see cref="JumpStart.Api.DTOs.Forms.CreateQuestionOptionDto"/></description></item>
+/// </list>
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Creating a form with two questions and options
+/// var form = new JumpStart.Api.DTOs.Forms.CreateFormDto
+/// {
+///     Name = "Customer Feedback",
+///     Description = "Please rate our service",
+///     IsActive = true,
+///     AllowMultipleResponses = false,
+///     AllowAnonymous = true,
+///     Questions = new List&lt;JumpStart.Api.DTOs.Forms.CreateQuestionDto&gt;
+///     {
+///         new JumpStart.Api.DTOs.Forms.CreateQuestionDto
+///         {
+///             QuestionText = "How satisfied are you?",
+///             QuestionTypeId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
+///             IsRequired = true,
+///             Options = new List&lt;JumpStart.Api.DTOs.Forms.CreateQuestionOptionDto&gt;
+///             {
+///                 new JumpStart.Api.DTOs.Forms.CreateQuestionOptionDto { OptionText = "Very Satisfied" },
+///                 new JumpStart.Api.DTOs.Forms.CreateQuestionOptionDto { OptionText = "Satisfied" },
+///                 new JumpStart.Api.DTOs.Forms.CreateQuestionOptionDto { OptionText = "Dissatisfied" }
+///             }
+///         },
+///         new JumpStart.Api.DTOs.Forms.CreateQuestionDto
+///         {
+///             QuestionText = "Additional comments?",
+///             QuestionTypeId = Guid.Parse("00000000-0000-0000-0000-000000000002"),
+///             IsRequired = false
+///         }
+///     }
+/// };
+/// </code>
+/// </example>
 public class CreateFormDto
 {
     /// <summary>Gets or sets the form name.</summary>
@@ -42,72 +83,4 @@ public class CreateFormDto
     
     /// <summary>Gets or sets the list of questions to create.</summary>
     public List<CreateQuestionDto> Questions { get; set; } = [];
-}
-
-/// <summary>
-/// Data transfer object for creating a question.
-/// </summary>
-public class CreateQuestionDto
-{
-    /// <summary>Gets or sets the question text.</summary>
-    [Required]
-    [MaxLength(500)]
-    public string QuestionText { get; set; } = string.Empty;
-
-    /// <summary>Gets or sets optional help text.</summary>
-    [MaxLength(1000)]
-    public string? HelpText { get; set; }
-
-    /// <summary>Gets or sets the question type ID.</summary>
-    [Required]
-    public Guid QuestionTypeId { get; set; }
-
-    /// <summary>Gets or sets whether the question is required.</summary>
-    public bool IsRequired { get; set; }
-
-    /// <summary>
-    /// Gets or sets the minimum allowed value (interpretation depends on question type).
-    /// </summary>
-    /// <remarks>
-    /// For Number: Minimum numeric value (e.g., "18").
-    /// For ShortText/LongText: Minimum character count (e.g., "8").
-    /// For Date: Minimum date in ISO format (e.g., "1900-01-01").
-    /// </remarks>
-    [MaxLength(100)]
-    public string? MinimumValue { get; set; }
-
-    /// <summary>
-    /// Gets or sets the maximum allowed value (interpretation depends on question type).
-    /// </summary>
-    /// <remarks>
-    /// For Number: Maximum numeric value (e.g., "120").
-    /// For ShortText/LongText: Maximum character count (e.g., "50").
-    /// For Date: Maximum date in ISO format (e.g., "2100-12-31").
-    /// </remarks>
-    [MaxLength(100)]
-    public string? MaximumValue { get; set; }
-
-    /// <summary>Gets or sets the display order (optional, will be assigned if 0).</summary>
-    public int DisplayOrder { get; set; }
-
-    /// <summary>Gets or sets the list of options (for choice questions).</summary>
-    public List<CreateQuestionOptionDto> Options { get; set; } = [];
-}
-
-/// <summary>
-/// Data transfer object for creating a question option.
-/// </summary>
-public class CreateQuestionOptionDto
-{
-    /// <summary>Gets or sets the option text.</summary>
-    [Required]
-    [MaxLength(200)]
-    public string OptionText { get; set; } = string.Empty;
-    
-    /// <summary>Gets or sets the optional internal value.</summary>
-    [MaxLength(100)]
-    public string? OptionValue { get; set; }
-    
-    /// <summary>Gets or sets the display order (optional, will be assigned if 0).</summary>
-    public int DisplayOrder { get; set; }
 }

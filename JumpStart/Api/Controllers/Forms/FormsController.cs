@@ -18,7 +18,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using JumpStart.Api.DTOs.Forms;
-using JumpStart.Data.Advanced.Auditing;
+using JumpStart.Data.Auditing;
 using JumpStart.Forms;
 using JumpStart.Repositories.Forms;
 using Microsoft.AspNetCore.Mvc;
@@ -31,28 +31,27 @@ namespace JumpStart.Api.Controllers.Forms;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This controller provides RESTful endpoints for creating and managing forms,
-/// retrieving form definitions with questions, and handling form responses.
-/// All endpoints follow standard HTTP conventions and return appropriate status codes.
+/// Provides RESTful endpoints for creating, updating, retrieving, and deleting forms, as well as handling form responses and statistics. All endpoints follow standard HTTP conventions and return appropriate status codes.
 /// </para>
 /// <para>
 /// <strong>Key Operations:</strong>
-/// - List all forms or filter by active status
-/// - Retrieve form details including questions and options
-/// - Create, update, and delete forms
-/// - Submit and retrieve form responses
-/// - Get form statistics (response counts)
+/// <list type="bullet">
+/// <item>List all forms or filter by active status</item>
+/// <item>Retrieve form details including questions and options</item>
+/// <item>Create, update, and delete forms</item>
+/// <item>Submit and retrieve form responses</item>
+/// <item>Get form statistics (response counts)</item>
+/// </list>
 /// </para>
 /// </remarks>
 /// <example>
-/// <code>
+/// <code language="csharp">
 /// // Register controller in API project
-/// builder.Services.AddJumpStart(options =>
+/// builder.Services.AddJumpStart(options =&gt;
 /// {
 ///     options.RegisterFormsController = true;
-///     options.RegisterUserContext&lt;ApiUserContext&gt;();
+///     options.RegisterUserContext&lt;JumpStart.Api.Controllers.ApiUserContext&gt;();
 /// });
-/// 
 /// builder.Services.AddControllers();
 /// 
 /// // Endpoints are available at:

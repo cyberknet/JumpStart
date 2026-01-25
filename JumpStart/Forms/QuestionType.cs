@@ -71,7 +71,11 @@ namespace JumpStart.Forms;
 /// };
 /// </code>
 /// </example>
-public class QuestionType : SimpleNamedEntity
+using Microsoft.EntityFrameworkCore;
+
+[Index(nameof(Code), IsUnique = true)]
+[Index(nameof(DisplayOrder))]
+public class QuestionType : NamedEntity
 {
     /// <summary>
     /// Gets or sets the unique code identifying this question type.

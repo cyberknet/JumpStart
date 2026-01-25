@@ -155,7 +155,8 @@ public class ProductApiClient
 ### Pagination with Filtering
 
 ```csharp
-public interface IProductRepository : ISimpleRepository<Product, Guid>
+
+public interface IProductRepository : IRepository<Product>
 {
     Task<PagedResult<Product>> GetPagedWithFilterAsync(
         ProductFilter filter,
@@ -163,9 +164,9 @@ public interface IProductRepository : ISimpleRepository<Product, Guid>
         int pageSize);
 }
 
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
-    public ProductRepository(DbContext context, ISimpleUserContext? userContext)
+    public ProductRepository(DbContext context, IUserContext? userContext)
         : base(context, userContext)
     {
     }

@@ -18,6 +18,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using JumpStart.Data;
 
+
 namespace JumpStart.Forms;
 
 /// <summary>
@@ -90,7 +91,7 @@ namespace JumpStart.Forms;
 /// };
 /// </code>
 /// </example>
-public class QuestionResponse : SimpleEntity
+public class QuestionResponse : Entity
 {
     /// <summary>
     /// Gets or sets the ID of the form response this answer belongs to.
@@ -148,6 +149,7 @@ public class QuestionResponse : SimpleEntity
     /// The <see cref="Question"/> this response answers.
     /// </value>
     [ForeignKey(nameof(QuestionId))]
+    [Microsoft.EntityFrameworkCore.DeleteBehavior(Microsoft.EntityFrameworkCore.DeleteBehavior.Restrict)]
     public Question Question { get; set; } = null!;
     
     /// <summary>

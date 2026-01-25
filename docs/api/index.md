@@ -31,13 +31,13 @@ Welcome to the JumpStart API reference documentation with detailed information a
 
 ## Popular Types
 
-**Entity Classes:** [SimpleEntity](JumpStart.Data.SimpleEntity.html) · [SimpleAuditableEntity](JumpStart.Data.Auditing.SimpleAuditableEntity.html) · [Entity&lt;TKey&gt;](JumpStart.Data.Advanced.Entity-1.html)
+**Entity Classes:** [SimpleEntity](JumpStart.Data.SimpleEntity.html) · [SimpleAuditableEntity](JumpStart.Data.Auditing.SimpleAuditableEntity.html) · [Entity](JumpStart.Data.Advanced.Entity-1.html)
 
-**Repositories:** [ISimpleRepository](JumpStart.Repositories.ISimpleRepository-1.html) · [SimpleRepository](JumpStart.Repositories.SimpleRepository-1.html) · [QueryOptions](JumpStart.Repositories.QueryOptions-1.html)
+**Repositories:** [IRepository](JumpStart.Repositories.IRepository-1.html) · [Repository](JumpStart.Repositories.Repository-1.html) · [QueryOptions](JumpStart.Repositories.QueryOptions-1.html)
 
-**API Controllers:** [SimpleApiControllerBase](JumpStart.Api.Controllers.SimpleApiControllerBase-5.html) · [AdvancedApiControllerBase](JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase-6.html)
+**API Controllers:** [ApiControllerBase](JumpStart.Api.Controllers.ApiControllerBase-5.html) · [AdvancedApiControllerBase](JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase-6.html)
 
-**API Clients:** [ISimpleApiClient](JumpStart.Api.Clients.ISimpleApiClient-3.html) · [IAdvancedApiClient](JumpStart.Api.Clients.Advanced.IAdvancedApiClient-4.html)
+**API Clients:** [IApiClient](JumpStart.Api.Clients.IApiClient-3.html) · [IAdvancedApiClient](JumpStart.Api.Clients.Advanced.IAdvancedApiClient-4.html)
 
 ## Getting Started
 

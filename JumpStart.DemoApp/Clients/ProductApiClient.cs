@@ -8,7 +8,7 @@ namespace JumpStart.DemoApp.Clients;
 /// API client interface for product operations using DTOs with Refit.
 /// </summary>
 /// <remarks>
-/// This interface inherits standard CRUD operations from ISimpleApiClient and adds
+/// This interface inherits standard CRUD operations from IApiClient and adds
 /// custom product-specific operations. Refit automatically generates the implementation.
 /// </remarks>
 /// <example>
@@ -21,7 +21,7 @@ namespace JumpStart.DemoApp.Clients;
 /// var products = await ProductClient.GetByPriceRangeAsync(10.00m, 50.00m);
 /// </code>
 /// </example>
-public interface IProductApiClient : ISimpleApiClient<ProductDto, CreateProductDto, UpdateProductDto>
+public interface IProductApiClient : IApiClient<ProductDto, CreateProductDto, UpdateProductDto>
 {
     /// <summary>
     /// Gets products within a specified price range.

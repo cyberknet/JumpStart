@@ -132,7 +132,7 @@ namespace JumpStart;
 /// </code>
 /// </example>
 /// <seealso cref="Microsoft.Extensions.DependencyInjection.JumpStartServiceCollectionExtensions"/>
-/// <seealso cref="JumpStart.Repositories.ISimpleUserContext"/>
+/// <seealso cref="JumpStart.Repositories.IUserContext"/>
 public class JumpStartOptions
 {
     private readonly IServiceCollection _services;
@@ -304,7 +304,7 @@ public class JumpStartOptions
     /// </summary>
     /// <typeparam name="TUserContext">
     /// The user context implementation type that provides the current user's ID.
-    /// Must implement <see cref="JumpStart.Repositories.ISimpleUserContext"/>.
+    /// Must implement <see cref="JumpStart.Repositories.IUserContext"/>.
     /// </typeparam>
     /// <returns>The options instance for method chaining.</returns>
     /// <remarks>
@@ -333,7 +333,7 @@ public class JumpStartOptions
     /// });
     /// 
     /// // Example user context implementation
-    /// public class CurrentUserService : ISimpleUserContext
+    /// public class CurrentUserService : IUserContext
     /// {
     ///     private readonly IHttpContextAccessor _httpContextAccessor;
     ///     
@@ -355,7 +355,7 @@ public class JumpStartOptions
     /// </code>
     /// </example>
     public JumpStartOptions RegisterUserContext<TUserContext>() 
-        where TUserContext : class, ISimpleUserContext
+        where TUserContext : class, IUserContext
     {
         UserContextType = typeof(TUserContext);
         return this;

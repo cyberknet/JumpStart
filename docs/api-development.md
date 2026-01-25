@@ -21,7 +21,7 @@ Define data transfer objects for your API:
 
 ```csharp
 // Read DTO (what API returns)
-public class ProductDto : SimpleEntityDto
+public class ProductDto : EntityDto
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -89,15 +89,14 @@ Use base controller for instant CRUD endpoints:
 ```csharp
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : SimpleApiControllerBase<
+public class ProductsController : ApiControllerBase<
     Product,           // Entity
     ProductDto,        // Read DTO
     CreateProductDto,  // Create DTO
-    UpdateProductDto,  // Update DTO
-    Guid>              // Key type
+    UpdateProductDto>  // Update DTO
 {
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product> repository,
         IMapper mapper)
         : base(repository, mapper)
     {
@@ -257,10 +256,10 @@ Extend base controllers with custom actions:
 ### Simple Custom Endpoint
 
 ```csharp
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product> repository,
         IMapper mapper)
         : base(repository, mapper)
     {
@@ -293,7 +292,7 @@ public class ProductsController : SimpleApiControllerBase<Product, ProductDto, C
 ### Using Custom Repository
 
 ```csharp
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     private readonly IProductRepository _productRepository;
 
@@ -361,7 +360,7 @@ public class RestockRequest
 Simple, flat structure:
 
 ```csharp
-public class ProductDto : SimpleEntityDto
+public class ProductDto : EntityDto
 {
     public string Name { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
@@ -380,14 +379,14 @@ CreateMap<Product, ProductDto>()
 Related entities as nested objects:
 
 ```csharp
-public class ProductDto : SimpleEntityDto
+public class ProductDto : EntityDto
 {
     public string Name { get; set; } = string.Empty;
     public CategoryDto Category { get; set; } = null!;
     public decimal Price { get; set; }
 }
 
-public class CategoryDto : SimpleEntityDto
+public class CategoryDto : EntityDto
 {
     public string Name { get; set; } = string.Empty;
 }
@@ -404,14 +403,14 @@ Different views for different scenarios:
 
 ```csharp
 // Summary (for lists)
-public class ProductSummaryDto : SimpleEntityDto
+public class ProductSummaryDto : EntityDto
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
 }
 
 // Detailed (for single item)
-public class ProductDetailDto : SimpleEntityDto
+public class ProductDetailDto : EntityDto
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -479,7 +478,7 @@ JumpStart uses Refit to create type-safe HTTP clients.
 ### Define API Client Interface
 
 ```csharp
-public interface IProductApiClient : ISimpleApiClient<ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public interface IProductApiClient : IApiClient<ProductDto, CreateProductDto, UpdateProductDto>
 {
     // Custom endpoints
     [Get("/api/products/search")]
@@ -572,7 +571,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 [ApiController]
 [Route("api/[controller]")]
 [Authorize] // Requires authentication
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     // ... endpoints require valid JWT token
 }
@@ -635,7 +634,7 @@ JumpStart controllers return standard problem details:
 ### Custom Error Handling
 
 ```csharp
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     [HttpPost("{id}/restock")]
     public async Task<ActionResult<ProductDto>> Restock(Guid id, [FromBody] RestockRequest request)

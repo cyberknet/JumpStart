@@ -21,6 +21,28 @@ namespace JumpStart.Api.DTOs.Forms;
 /// <summary>
 /// Data transfer object for updating an existing question within a form.
 /// </summary>
+/// <remarks>
+/// Use <c>Id</c> = null for new questions, or set to the existing question's ID to update. For choice questions, use the <see cref="JumpStart.Api.DTOs.Forms.UpdateQuestionOptionDto"/> list in <c>Options</c>.
+/// See also: <see cref="JumpStart.Api.DTOs.Forms.UpdateFormDto"/>
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Updating a choice question with options
+/// var updateQuestion = new JumpStart.Api.DTOs.Forms.UpdateQuestionDto
+/// {
+///     Id = Guid.NewGuid(),
+///     QuestionText = "How satisfied are you?",
+///     QuestionTypeId = Guid.NewGuid(),
+///     IsRequired = true,
+///     Options = new List&lt;JumpStart.Api.DTOs.Forms.UpdateQuestionOptionDto&gt;
+///     {
+///         new JumpStart.Api.DTOs.Forms.UpdateQuestionOptionDto { Id = Guid.NewGuid(), OptionText = "Very Satisfied" },
+///         new JumpStart.Api.DTOs.Forms.UpdateQuestionOptionDto { Id = Guid.NewGuid(), OptionText = "Satisfied" },
+///         new JumpStart.Api.DTOs.Forms.UpdateQuestionOptionDto { Id = Guid.NewGuid(), OptionText = "Dissatisfied" }
+///     }
+/// };
+/// </code>
+/// </example>
 public class UpdateQuestionDto
 {
     /// <summary>Gets or sets the question ID. Null for new questions.</summary>

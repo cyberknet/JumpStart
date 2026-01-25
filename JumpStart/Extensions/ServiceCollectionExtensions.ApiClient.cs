@@ -25,7 +25,7 @@ public static partial class JumpStartServiceCollectionExtensions
 {
     /// <summary>
     /// Discovers and registers API client implementations from specified assemblies.
-    /// Scans for classes implementing ISimpleApiClient or IAdvancedApiClient interfaces.
+    /// Scans for classes implementing IApiClient or IAdvancedApiClient interfaces.
     /// Registers the concrete class and all API client-related interfaces it implements.
     /// </summary>
     /// <param name="services">The service collection to add API clients to.</param>
@@ -42,16 +42,16 @@ public static partial class JumpStartServiceCollectionExtensions
 
     /// <summary>
     /// Determines if a type is a recognized JumpStart API client interface.
-    /// Checks for ISimpleApiClient{TDto, TCreateDto, TUpdateDto} or IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}.
+    /// Checks for IApiClient{TDto, TCreateDto, TUpdateDto} or IAdvancedApiClient{TDto, TCreateDto, TUpdateDto}.
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns><c>true</c> if the type is an API client interface; otherwise, <c>false</c>.</returns>
     private static bool IsApiClientInterface(Type type) =>
-        IsBaseInterface(type, typeof(ISimpleApiClient<,,>), typeof(JumpStart.Api.Clients.Advanced.IAdvancedApiClient<,,,>));
+        IsBaseInterface(type, typeof(IApiClient<,,>));
 
     /// <summary>
     /// Determines if a type is a custom API client interface that inherits from a JumpStart API client interface.
-    /// This catches interfaces like IProductApiClient that extend ISimpleApiClient{ProductDto, CreateProductDto, UpdateProductDto}.
+    /// This catches interfaces like IProductApiClient that extend IApiClient{ProductDto, CreateProductDto, UpdateProductDto}.
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns><c>true</c> if the type is a custom API client interface; otherwise, <c>false</c>.</returns>
@@ -62,7 +62,7 @@ public static partial class JumpStartServiceCollectionExtensions
     /// Registers a Refit-based API client for a Simple entity with Guid identifier.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>.
     /// Must be an interface decorated with Refit attributes.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
@@ -103,23 +103,23 @@ public static partial class JumpStartServiceCollectionExtensions
     /// <code>
     /// // Example 1: Basic registration in Blazor Program.cs
     /// var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
-    /// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// builder.Services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     $"{apiBaseUrl}/api/products");
-    /// 
+    ///
     /// // Example 2: With JWT authentication handler
-    /// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// builder.Services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     "https://api.example.com/api/products")
     ///     .AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
-    /// 
+    ///
     /// // Example 3: With retry policy using Polly
-    /// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// builder.Services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     "https://api.example.com/api/products")
-    ///     .AddTransientHttpErrorPolicy(p => 
-    ///         p.WaitAndRetryAsync(3, retryAttempt => 
+    ///     .AddTransientHttpErrorPolicy(p =&gt; 
+    ///         p.WaitAndRetryAsync(3, retryAttempt =&gt; 
     ///             TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
-    /// 
+    ///
     /// // Example 4: Use in Blazor component
-    /// // @inject IProductApiClient ProductClient
+    /// // @inject JumpStart.Api.Clients.IProductApiClient ProductClient
     /// // var products = await ProductClient.GetAllAsync();
     /// </code>
     /// </example>
@@ -147,7 +147,7 @@ public static partial class JumpStartServiceCollectionExtensions
     /// Registers a Refit-based API client with additional HTTP client configuration.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
     /// <param name="baseAddress">The base address of the API endpoint.</param>
@@ -176,20 +176,20 @@ public static partial class JumpStartServiceCollectionExtensions
     /// <example>
     /// <code>
     /// // Example 1: Configure timeout and headers
-    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     "https://api.example.com/api/products",
-    ///     client =>
+    ///     client =&gt;
     ///     {
     ///         client.Timeout = TimeSpan.FromSeconds(30);
     ///         client.DefaultRequestHeaders.Add("X-Api-Version", "2.0");
     ///         client.DefaultRequestHeaders.Add("User-Agent", "JumpStart/1.0");
     ///     });
-    /// 
+    ///
     /// // Example 2: Add API key header
     /// var apiKey = builder.Configuration["ApiKey"];
-    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     "https://api.example.com/api/products",
-    ///     client =>
+    ///     client =&gt;
     ///     {
     ///         client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
     ///     });
@@ -222,7 +222,7 @@ public static partial class JumpStartServiceCollectionExtensions
     /// Registers a Refit-based API client with full HTTP client builder configuration.
     /// </summary>
     /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/>.
+    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>.
     /// </typeparam>
     /// <param name="services">The service collection to register the client in.</param>
     /// <param name="baseAddress">The base address of the API endpoint.</param>
@@ -253,46 +253,46 @@ public static partial class JumpStartServiceCollectionExtensions
     /// <example>
     /// <code>
     /// // Example 1: Complete resilience configuration
-    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     "https://api.example.com/api/products",
-    ///     builder =>
+    ///     builder =&gt;
     ///     {
     ///         // Retry policy with exponential backoff
-    ///         builder.AddTransientHttpErrorPolicy(p => 
-    ///             p.WaitAndRetryAsync(3, retryAttempt => 
+    ///         builder.AddTransientHttpErrorPolicy(p =&gt; 
+    ///             p.WaitAndRetryAsync(3, retryAttempt =&gt; 
     ///                 TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
-    ///         
+    ///
     ///         // Circuit breaker after 5 failures for 30 seconds
-    ///         builder.AddTransientHttpErrorPolicy(p =>
+    ///         builder.AddTransientHttpErrorPolicy(p =&gt;
     ///             p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
-    ///         
+    ///
     ///         // Timeout policy
-    ///         builder.AddPolicyHandler(Policy.TimeoutAsync&lt;HttpResponseMessage&gt;(
+    ///         builder.AddPolicyHandler(Policy.TimeoutAsync&lt;System.Net.Http.HttpResponseMessage&gt;(
     ///             TimeSpan.FromSeconds(10)));
     ///     });
-    /// 
+    ///
     /// // Example 2: Add multiple handlers
-    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     "https://api.example.com/api/products",
-    ///     builder =>
+    ///     builder =&gt;
     ///     {
     ///         builder.AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
     ///         builder.AddHttpMessageHandler&lt;LoggingHandler&gt;();
     ///         builder.AddHttpMessageHandler&lt;CachingHandler&gt;();
     ///     });
-    /// 
+    ///
     /// // Example 3: Real-world Blazor Server configuration
     /// var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
-    /// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;(
+    /// builder.Services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     $"{apiBaseUrl}/api/products",
-    ///     clientBuilder =>
+    ///     clientBuilder =&gt;
     ///     {
     ///         // Add JWT authentication
     ///         clientBuilder.AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
-    ///         
+    ///
     ///         // Add retry for transient failures
-    ///         clientBuilder.AddTransientHttpErrorPolicy(p => 
-    ///             p.WaitAndRetryAsync(2, _ => TimeSpan.FromSeconds(1)));
+    ///         clientBuilder.AddTransientHttpErrorPolicy(p =&gt; 
+    ///             p.WaitAndRetryAsync(2, _ =&gt; TimeSpan.FromSeconds(1)));
     ///     });
     /// </code>
     /// </example>

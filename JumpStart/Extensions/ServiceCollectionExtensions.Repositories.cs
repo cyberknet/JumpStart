@@ -24,7 +24,7 @@ public static partial class JumpStartServiceCollectionExtensions
 {
     /// <summary>
     /// Discovers and registers repository implementations from specified assemblies.
-    /// Scans for classes implementing ISimpleRepository or IRepository interfaces.
+    /// Scans for classes implementing IRepository or IRepository interfaces.
     /// Registers the concrete class and all repository-related interfaces it implements.
     /// </summary>
     /// <param name="services">The service collection to add repositories to.</param>
@@ -41,16 +41,16 @@ public static partial class JumpStartServiceCollectionExtensions
 
     /// <summary>
     /// Determines if a type is a recognized JumpStart repository interface.
-    /// Checks for ISimpleRepository{TEntity} or IRepository{TEntity, TKey}.
+    /// Checks for IRepository{TEntity} or IRepository{TEntity}.
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns><c>true</c> if the type is a repository interface; otherwise, <c>false</c>.</returns>
     private static bool IsRepositoryInterface(Type type) =>
-        IsBaseInterface(type, typeof(ISimpleRepository<>), typeof(JumpStart.Repositories.Advanced.IRepository<,>));
+        IsBaseInterface(type, typeof(IRepository<>));
 
     /// <summary>
     /// Determines if a type is a custom repository interface that inherits from a JumpStart repository interface.
-    /// This catches interfaces like IProductRepository that extend ISimpleRepository{Product}.
+    /// This catches interfaces like IProductRepository that extend IRepository{Product}.
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns><c>true</c> if the type is a custom repository interface; otherwise, <c>false</c>.</returns>

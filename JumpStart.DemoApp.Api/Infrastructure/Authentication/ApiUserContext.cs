@@ -45,7 +45,7 @@ namespace JumpStart.DemoApp.Api.Infrastructure.Authentication;
 /// <code>
 /// // Registration in Program.cs
 /// builder.Services.AddHttpContextAccessor();
-/// builder.Services.AddScoped&lt;ISimpleUserContext, ApiUserContext&gt;();
+/// builder.Services.AddScoped&lt;IUserContext, ApiUserContext&gt;();
 /// 
 /// // JWT token generation (in Blazor Server)
 /// var claims = new[]
@@ -56,11 +56,11 @@ namespace JumpStart.DemoApp.Api.Infrastructure.Authentication;
 /// };
 /// 
 /// // Repository automatically uses ApiUserContext
-/// public class ProductRepository : SimpleRepository&lt;Product&gt;
+/// public class ProductRepository : Repository&lt;Product&gt;
 /// {
 ///     public ProductRepository(
 ///         DbContext context,
-///         ISimpleUserContext userContext) // ApiUserContext injected here
+///         IUserContext userContext) // ApiUserContext injected here
 ///         : base(context, userContext)
 ///     {
 ///     }
@@ -72,7 +72,7 @@ namespace JumpStart.DemoApp.Api.Infrastructure.Authentication;
 /// // product.CreatedById is automatically set from JWT claims
 /// </code>
 /// </example>
-public class ApiUserContext : ISimpleUserContext
+public class ApiUserContext : IUserContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 

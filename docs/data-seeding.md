@@ -301,6 +301,9 @@ await app.Services.EnsureFrameworkDataSeededAsync();
 
 ## Best Practices
 
+### ✅ DO - All Seeders
+- **Populate Ids** - Use fixed GUIDs for framework data, never `Guid.NewGuid()`
+
 ### ✅ DO - Framework Seeders
 
 - **Mark essential data as framework-required** - Data the framework needs to function
@@ -320,7 +323,7 @@ await app.Services.EnsureFrameworkDataSeededAsync();
 ### ❌ DON'T
 
 - **Don't duplicate data** - Always check if records exist first
-- **Don't hard-code IDs** - Use `Guid.NewGuid()` or auto-increment
+- **Don't use `Guid.NewGuid()`** - use hard coded ids, or new initial records will be generated at every migration.
 - **Don't seed production data** - Keep seeders for dev/test only (check environment)
 - **Don't throw on duplicates** - Return early if data exists
 - **Don't modify existing data** - Only add new records

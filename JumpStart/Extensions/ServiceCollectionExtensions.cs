@@ -16,7 +16,6 @@ using System;
 using System.Linq;
 using System.Reflection;
 using JumpStart;
-using JumpStart.Api.Clients;
 using JumpStart.Data;
 using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -47,9 +46,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </para>
 /// <para>
 /// <strong>Supported Repository Interfaces:</strong>
-/// The framework automatically discovers and registers implementations of:
-/// - <see cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/> - Simple Guid-based repositories
-/// - <see cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/> - Generic repositories with custom key types
+/// The framework automatically discovers and registers implementations of <see cref="JumpStart.Repositories.IRepository{TEntity}"/>
 /// </para>
 /// <para>
 /// <strong>API Client Registration:</strong>
@@ -61,8 +58,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// </para>
 /// <para>
 /// <strong>Supported API Client Interfaces:</strong>
-/// - <see cref="JumpStart.Api.Clients.ISimpleApiClient{TDto, TCreateDto, TUpdateDto}"/> - Simple Guid-based API clients
-/// - <see cref="JumpStart.Api.Clients.Advanced.IAdvancedApiClient{TDto, TCreateDto, TUpdateDto, TKey}"/> - Advanced API clients with custom key types
+/// - <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/> - Guid-based API clients
 /// </para>
 /// <para>
 /// <strong>DbContext Integration:</strong>
@@ -85,52 +81,52 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <code>
 /// // Example 1: Basic registration with defaults
 /// services.AddJumpStart();
-/// 
+///
 /// // Example 2: With user context for audit tracking
 /// services.AddJumpStart(options =>
 /// {
-///     options.RegisterUserContext&lt;CurrentUserService&gt;();
+///     options.RegisterUserContext&lt;MyApp.Services.CurrentUserService&gt;();
 /// });
-/// 
+///
 /// // Example 3: Scan specific assemblies
 /// services.AddJumpStart(options =>
 /// {
-///     options.ScanAssembly(typeof(ProductRepository).Assembly);
-///     options.RegisterUserContext&lt;CurrentUserService&gt;();
+///     options.ScanAssembly(typeof(MyApp.Data.ProductRepository).Assembly);
+///     options.RegisterUserContext&lt;MyApp.Services.CurrentUserService&gt;();
 /// });
-/// 
+///
 /// // Example 4: Complete configuration
 /// services.AddJumpStart(options =>
 /// {
 ///     options
-///         .RegisterUserContext&lt;CurrentUserService&gt;()
-///         .ScanAssembliesContaining(typeof(Program), typeof(DataModule))
-///         .UseRepositoryLifetime(ServiceLifetime.Scoped);
+///         .RegisterUserContext&lt;MyApp.Services.CurrentUserService&gt;()
+///         .ScanAssembliesContaining(typeof(Program), typeof(MyApp.Data.DataModule))
+///         .UseRepositoryLifetime(Microsoft.Extensions.DependencyInjection.ServiceLifetime.Scoped);
 /// });
-/// 
+///
 /// // Example 5: Manual repository registration only
 /// services.AddJumpStart(options =>
 /// {
 ///     options
 ///         .DisableRepositoryAutoDiscovery()
-///         .RegisterRepository&lt;IProductRepository, ProductRepository&gt;()
-///         .RegisterRepository&lt;IOrderRepository, OrderRepository&gt;();
+///         .RegisterRepository&lt;MyApp.Data.IProductRepository, MyApp.Data.ProductRepository&gt;()
+///         .RegisterRepository&lt;MyApp.Data.IOrderRepository, MyApp.Data.OrderRepository&gt;();
 /// });
-/// 
+///
 /// // Example 6: Complete application setup
 /// var builder = WebApplication.CreateBuilder(args);
-/// 
+///
 /// builder.Services
 ///     .AddJumpStart(options =>
 ///     {
 ///         options
-///             .RegisterUserContext&lt;HttpUserContext&gt;()
+///             .RegisterUserContext&lt;MyApp.Services.HttpUserContext&gt;()
 ///             .ScanAssembly(typeof(Program).Assembly);
 ///     })
 ///     .AddJumpStartAutoMapper(typeof(Program))
-///     .AddDbContext&lt;ApplicationDbContext&gt;(options =>
+///     .AddDbContext&lt;MyApp.Data.ApplicationDbContext&gt;(options =>
 ///         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-/// 
+///
 /// var app = builder.Build();
 /// </code>
 /// </example>
@@ -258,7 +254,7 @@ public static partial class JumpStartServiceCollectionExtensions
     {
         // Find all registered DbContext types
         var dbContextDescriptors = services
-            .Where(d => d.ServiceType.IsSubclassOf(typeof(DbContext)) || 
+            .Where(d => d.ServiceType.IsSubclassOf(typeof(DbContext)) ||
                         (d.ImplementationType != null && d.ImplementationType.IsSubclassOf(typeof(DbContext))))
             .ToList();
 
@@ -315,8 +311,8 @@ public static partial class JumpStartServiceCollectionExtensions
 
         // Find the first registered concrete DbContext (like ApiDbContext, ApplicationDbContext, etc.)
         var concreteDbContextDescriptor = services
-            .FirstOrDefault(d => 
-                d.ServiceType != typeof(DbContext) && 
+            .FirstOrDefault(d =>
+                d.ServiceType != typeof(DbContext) &&
                 typeof(DbContext).IsAssignableFrom(d.ServiceType));
 
         if (concreteDbContextDescriptor != null)
@@ -325,109 +321,109 @@ public static partial class JumpStartServiceCollectionExtensions
 
             // Register DbContext as a factory that resolves the concrete type
             // This allows repositories with DbContext constructor parameters to work
-            services.AddScoped<DbContext>(provider => 
+            services.AddScoped<DbContext>(provider =>
                 (DbContext)provider.GetRequiredService(concreteType));
         }
     }
 
-        /// <summary>
-        /// Registers core JumpStart services with the dependency injection container.
-        /// Currently registers the user context if one was specified in the options.
-        /// </summary>
-        /// <param name="services">The service collection to add services to.</param>
-        /// <param name="options">The JumpStart options containing configuration.</param>
-        private static void RegisterCoreServices(IServiceCollection services, JumpStartOptions options)
+    /// <summary>
+    /// Registers core JumpStart services with the dependency injection container.
+    /// Currently registers the user context if one was specified in the options.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="options">The JumpStart options containing configuration.</param>
+    private static void RegisterCoreServices(IServiceCollection services, JumpStartOptions options)
+    {
+        // User context is optional - only register if one was specified
+        if (options.UserContextType != null)
         {
-            // User context is optional - only register if one was specified
-            if (options.UserContextType != null)
-            {
-                services.TryAddScoped(typeof(ISimpleUserContext), options.UserContextType);
-            }
+            services.TryAddScoped(typeof(IUserContext), options.UserContextType);
         }
+    }
 
-        /// <summary>
-        /// Generic method to discover and register service implementations by interface matching.
-        /// Eliminates code duplication between repository and API client registration.
-        /// </summary>
-        /// <param name="services">The service collection to add services to.</param>
-        /// <param name="options">The JumpStart options containing assembly list.</param>
-        /// <param name="isBaseInterface">Function to check if a type is a base framework interface.</param>
-        /// <param name="isCustomInterface">Function to check if a type is a custom interface extending the base.</param>
-        /// <param name="lifetime">The service lifetime to use for registration.</param>
-        private static void RegisterServicesByInterface(
-            IServiceCollection services,
-            JumpStartOptions options,
-            Func<Type, bool> isBaseInterface,
-            Func<Type, bool> isCustomInterface,
-            ServiceLifetime lifetime)
+    /// <summary>
+    /// Generic method to discover and register service implementations by interface matching.
+    /// Eliminates code duplication between repository and API client registration.
+    /// </summary>
+    /// <param name="services">The service collection to add services to.</param>
+    /// <param name="options">The JumpStart options containing assembly list.</param>
+    /// <param name="isBaseInterface">Function to check if a type is a base framework interface.</param>
+    /// <param name="isCustomInterface">Function to check if a type is a custom interface extending the base.</param>
+    /// <param name="lifetime">The service lifetime to use for registration.</param>
+    private static void RegisterServicesByInterface(
+        IServiceCollection services,
+        JumpStartOptions options,
+        Func<Type, bool> isBaseInterface,
+        Func<Type, bool> isCustomInterface,
+        ServiceLifetime lifetime)
+    {
+        var assemblies = options.RepositoryAssemblies.Any()
+            ? options.RepositoryAssemblies.ToArray()
+            : new[] { Assembly.GetCallingAssembly() };
+
+        foreach (var assembly in assemblies)
         {
-            var assemblies = options.RepositoryAssemblies.Any()
-                ? options.RepositoryAssemblies.ToArray()
-                : new[] { Assembly.GetCallingAssembly() };
+            // Get all non-abstract classes in the assembly
+            var nonAbstractClasses = assembly.GetTypes()
+                .Where(type => type.IsClass && !type.IsAbstract)
+                .ToList();
 
-            foreach (var assembly in assemblies)
+            // Find types that implement the target interfaces
+            var serviceTypes = nonAbstractClasses
+                .Where(type => type.GetInterfaces().Any(i => isBaseInterface(i) || isCustomInterface(i)))
+                .ToList();
+
+            foreach (var serviceType in serviceTypes)
             {
-                // Get all non-abstract classes in the assembly
-                var nonAbstractClasses = assembly.GetTypes()
-                    .Where(type => type.IsClass && !type.IsAbstract)
+                // Get all target interfaces that the type implements
+                var serviceInterfaces = serviceType.GetInterfaces()
+                    .Where(i => isBaseInterface(i) || isCustomInterface(i))
                     .ToList();
 
-                // Find types that implement the target interfaces
-                var serviceTypes = nonAbstractClasses
-                    .Where(type => type.GetInterfaces().Any(i => isBaseInterface(i) || isCustomInterface(i)))
-                    .ToList();
+                // Register the concrete implementation first
+                services.TryAdd(new ServiceDescriptor(
+                    serviceType,
+                    serviceType,
+                    lifetime));
 
-                foreach (var serviceType in serviceTypes)
+                // Then register each interface to resolve to the same concrete instance
+                foreach (var @interface in serviceInterfaces)
                 {
-                    // Get all target interfaces that the type implements
-                    var serviceInterfaces = serviceType.GetInterfaces()
-                        .Where(i => isBaseInterface(i) || isCustomInterface(i))
-                        .ToList();
-
-                    // Register the concrete implementation first
                     services.TryAdd(new ServiceDescriptor(
-                        serviceType,
-                        serviceType,
+                        @interface,
+                        sp => sp.GetRequiredService(serviceType),
                         lifetime));
-
-                    // Then register each interface to resolve to the same concrete instance
-                    foreach (var @interface in serviceInterfaces)
-                    {
-                        services.TryAdd(new ServiceDescriptor(
-                            @interface,
-                            sp => sp.GetRequiredService(serviceType),
-                            lifetime));
-                    }
                 }
             }
         }
-
-        /// <summary>
-        /// Generic method to check if a type is one of the specified base generic interface types.
-        /// </summary>
-        /// <param name="type">The type to check.</param>
-        /// <param name="interfaceTypes">The generic interface types to check against.</param>
-        /// <returns><c>true</c> if the type is a generic type matching one of the interface types; otherwise, <c>false</c>.</returns>
-        private static bool IsBaseInterface(Type type, params Type[] interfaceTypes)
-        {
-            if (!type.IsGenericType)
-                return false;
-
-            var genericTypeDef = type.GetGenericTypeDefinition();
-            return interfaceTypes.Contains(genericTypeDef);
-        }
-
-        /// <summary>
-        /// Generic method to check if a type is a custom interface that inherits from a base interface.
-        /// </summary>
-        /// <param name="type">The type to check.</param>
-        /// <param name="baseInterfaceCheck">Function to check if a type is the target base interface.</param>
-        /// <returns><c>true</c> if the type is an interface inheriting from the base interface; otherwise, <c>false</c>.</returns>
-        private static bool IsCustomInterface(Type type, Func<Type, bool> baseInterfaceCheck)
-        {
-            if (!type.IsInterface)
-                return false;
-
-            return type.GetInterfaces().Any(baseInterfaceCheck);
-        }
     }
+
+    /// <summary>
+    /// Generic method to check if a type is one of the specified base generic interface types.
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <param name="interfaceTypes">The generic interface types to check against.</param>
+    /// <returns><c>true</c> if the type is a generic type matching one of the interface types; otherwise, <c>false</c>.</returns>
+    private static bool IsBaseInterface(Type type, params Type[] interfaceTypes)
+    {
+        if (!type.IsGenericType)
+            return false;
+
+        var genericTypeDef = type.GetGenericTypeDefinition();
+        return interfaceTypes.Contains(genericTypeDef);
+    }
+
+    /// <summary>
+    /// Generic method to check if a type is a custom interface that inherits from a base interface.
+    /// </summary>
+    /// <param name="type">The type to check.</param>
+    /// <param name="baseInterfaceCheck">Function to check if a type is the target base interface.</param>
+    /// <returns><c>true</c> if the type is an interface inheriting from the base interface; otherwise, <c>false</c>.</returns>
+    private static bool IsCustomInterface(Type type, Func<Type, bool> baseInterfaceCheck)
+    {
+        if (!type.IsInterface)
+            return false;
+
+        return type.GetInterfaces().Any(baseInterfaceCheck);
+    }
+}

@@ -211,8 +211,7 @@ namespace JumpStart.Repositories;
 /// </code>
 /// </example>
 /// <seealso cref="JumpStart.Repositories.QueryOptions{TEntity}"/>
-/// <seealso cref="JumpStart.Repositories.Advanced.IRepository{TEntity, TKey}"/>
-/// <seealso cref="JumpStart.Repositories.ISimpleRepository{TEntity}"/>
+/// <seealso cref="JumpStart.Repositories.IRepository{TEntity}"/>
 public class PagedResult<T>
 {
     /// <summary>

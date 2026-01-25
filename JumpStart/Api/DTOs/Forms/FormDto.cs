@@ -21,8 +21,24 @@ namespace JumpStart.Api.DTOs.Forms;
 /// Data transfer object for form summary information.
 /// </summary>
 /// <remarks>
-/// Used when listing forms without full question details.
+/// Used when listing forms without full question details. For full form details including questions, see <see cref="JumpStart.Api.DTOs.Forms.FormWithQuestionsDto"/>.
 /// </remarks>
+/// <example>
+/// <code>
+/// // Example: Creating a form summary DTO
+/// var form = new JumpStart.Api.DTOs.Forms.FormDto
+/// {
+///     Id = Guid.NewGuid(),
+///     Name = "Customer Feedback",
+///     Description = "Please rate our service",
+///     IsActive = true,
+///     AllowMultipleResponses = false,
+///     AllowAnonymous = true,
+///     CreatedOn = DateTime.UtcNow,
+///     CreatedById = Guid.NewGuid()
+/// };
+/// </code>
+/// </example>
 public class FormDto
 {
     /// <summary>Gets or sets the form ID.</summary>

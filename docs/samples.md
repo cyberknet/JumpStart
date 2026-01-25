@@ -52,7 +52,7 @@ JumpStart.DemoApp/
 **Data/Product.cs:**
 
 ```csharp
-public class Product : SimpleAuditableNamedEntity
+public class Product : AuditableNamedEntity
 {
     public string Description { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -70,17 +70,17 @@ public class Product : SimpleAuditableNamedEntity
 **Repositories/ProductRepository.cs:**
 
 ```csharp
-public interface IProductRepository : ISimpleRepository<Product, Guid>
+public interface IProductRepository : IRepository<Product>
 {
     Task<IList<Product>> GetLowStockProductsAsync(int threshold);
     Task<IList<Product>> GetProductsByCategoryAsync(Guid categoryId);
 }
 
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
     public ProductRepository(
         ApplicationDbContext context,
-        ISimpleUserContext? userContext)
+        IUserContext? userContext)
         : base(context, userContext)
     {
     }
@@ -109,7 +109,7 @@ public class ProductRepository : SimpleRepository<Product>, IProductRepository
 **Services/BlazorUserContext.cs:**
 
 ```csharp
-public class BlazorUserContext : ISimpleUserContext
+public class BlazorUserContext : IUserContext
 {
     private readonly AuthenticationStateProvider _authenticationStateProvider;
 
@@ -228,7 +228,7 @@ public class JwtSettings
 **Infrastructure/Authentication/ApiUserContext.cs:**
 
 ```csharp
-public class ApiUserContext : ISimpleUserContext
+public class ApiUserContext : IUserContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -296,7 +296,7 @@ builder.Services.AddCors(options =>
 
 // User Context
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ISimpleUserContext, ApiUserContext>();
+builder.Services.AddScoped<IUserContext, ApiUserContext>();
 ```
 
 **appsettings.json:**
@@ -325,9 +325,9 @@ builder.Services.AddScoped<ISimpleUserContext, ApiUserContext>();
 [Authorize] // Requires JWT authentication
 public class ExampleController : ControllerBase
 {
-    private readonly ISimpleUserContext _userContext;
+    private readonly IUserContext _userContext;
 
-    public ExampleController(ISimpleUserContext userContext)
+    public ExampleController(IUserContext userContext)
     {
         _userContext = userContext;
     }

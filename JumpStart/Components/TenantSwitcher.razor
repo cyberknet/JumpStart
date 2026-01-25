@@ -1,0 +1,189 @@
+@*
+Copyright ©2026 Scott Blomfield
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not,
+see <https://www.gnu.org/licenses/>.
+*@
+
+@using JumpStart.Data
+@using JumpStart.Services
+@inject ITenantSelectionService TenantSelection
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="tenant-switcher">
+    @if (_availableTenants.Count > 1)
+    {
+        <div class="tenant-dropdown">
+            <label for="tenant-select" class="tenant-label">Organization:</label>
+            <select id="tenant-select" 
+                    class="tenant-select" 
+                    value="@_currentTenantId" 
+                    @onchange="OnTenantChanged">
+                @foreach (var tenant in _availableTenants)
+                {
+                    <option value="@tenant.Id">@tenant.Name</option>
+                }
+            </select>
+        </div>
+    }
+    else if (_availableTenants.Count == 1)
+    {
+        <div class="tenant-display">
+            <span class="tenant-label">Organization:</span>
+            <span class="tenant-name">@_availableTenants[0].Name</span>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Tenant> _availableTenants = new();
+    private Guid _currentTenantId;
+
+    /// <summary>
+    /// If true, reloads the entire page when the tenant changes. Default is true to ensure all data is refreshed with the new tenant context.
+    /// </summary>
+    [Parameter]
+    public bool ReloadOnChange { get; set; } = true;
+
+    /// <summary>
+    /// The URL to navigate to after a tenant change. Default is "/" (home page).
+    /// </summary>
+    [Parameter]
+    public string NavigateToUrl { get; set; } = "/";
+
+    /// <summary>
+    /// Event callback invoked when the tenant changes. The callback receives the new tenant's Guid.
+    /// </summary>
+    [Parameter]
+    public EventCallback<Guid> OnTenantChangedCallback { get; set; }
+
+    /// <summary>
+    /// Called by the Blazor framework when the component is initialized. Subscribes to tenant change events and loads available tenants.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    protected override async Task OnInitializedAsync()
+    {
+        TenantSelection.TenantChanged += HandleTenantChanged;
+        await LoadTenantsAsync();
+    }
+
+    /// <summary>
+    /// Loads the list of available tenants and sets the current tenant.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task LoadTenantsAsync()
+    {
+        _availableTenants = await TenantSelection.GetAvailableTenantsAsync();
+        
+        var currentTenant = await TenantSelection.GetCurrentTenantAsync();
+        _currentTenantId = currentTenant?.Id ?? (_availableTenants.FirstOrDefault()?.Id ?? Guid.Empty);
+    }
+
+    /// <summary>
+    /// Handles the tenant selection change event from the dropdown.
+    /// Sets the current tenant, invokes the callback, and reloads the page if configured.
+    /// </summary>
+    /// <param name="e">The change event arguments.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    private async Task OnTenantChanged(ChangeEventArgs e)
+    {
+        if (Guid.TryParse(e.Value?.ToString(), out var tenantId))
+        {
+            var success = await TenantSelection.SetCurrentTenantAsync(tenantId);
+            
+            if (success)
+            {
+                _currentTenantId = tenantId;
+                
+                // Invoke callback if provided
+                if (OnTenantChangedCallback.HasDelegate)
+                {
+                    await OnTenantChangedCallback.InvokeAsync(tenantId);
+                }
+                
+                // Reload page to refresh all data with new tenant context
+                if (ReloadOnChange)
+                {
+                    Navigation.NavigateTo(NavigateToUrl, forceLoad: true);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles the tenant changed event from the tenant selection service.
+    /// Updates the current tenant and triggers a UI refresh.
+    /// </summary>
+    /// <param name="tenantId">The new tenant's Guid, or null if none.</param>
+    private void HandleTenantChanged(Guid? tenantId)
+    {
+        if (tenantId.HasValue)
+        {
+            _currentTenantId = tenantId.Value;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Disposes the component and unsubscribes from tenant change events.
+    /// </summary>
+    public void Dispose()
+    {
+        TenantSelection.TenantChanged -= HandleTenantChanged;
+    }
+}
+
+<style>
+    .tenant-switcher {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+    }
+
+    .tenant-dropdown, .tenant-display {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .tenant-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: var(--text-secondary, #6b7280);
+    }
+
+    .tenant-select {
+        padding: 0.375rem 0.75rem;
+        border: 1px solid var(--border-color, #d1d5db);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        background-color: var(--background, white);
+        color: var(--text-primary, #111827);
+        cursor: pointer;
+    }
+
+    .tenant-select:hover {
+        border-color: var(--border-hover, #9ca3af);
+    }
+
+    .tenant-select:focus {
+        outline: 2px solid var(--focus-color, #3b82f6);
+        outline-offset: 2px;
+    }
+
+    .tenant-name {
+        font-weight: 500;
+        font-size: 0.875rem;
+        color: var(--text-primary, #111827);
+    }
+</style>

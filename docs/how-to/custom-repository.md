@@ -23,7 +23,7 @@ using JumpStart.Repositories;
 
 namespace MyApp.Repositories;
 
-public interface IProductRepository : ISimpleRepository<Product, Guid>
+public interface IProductRepository : IRepository<Product>
 {
     Task<IList<Product>> GetLowStockProductsAsync(int threshold);
     Task<IList<Product>> GetProductsByCategoryAsync(Guid categoryId);
@@ -43,12 +43,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MyApp.Repositories;
 
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
-    public ProductRepository(
-        DbContext context,
-        ISimpleUserContext? userContext = null)
-        : base(context, userContext)
+    public ProductRepository(DbContext context) : base(context)
     {
     }
 

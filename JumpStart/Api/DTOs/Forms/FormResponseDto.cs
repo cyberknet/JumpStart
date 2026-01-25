@@ -20,6 +20,41 @@ namespace JumpStart.Api.DTOs.Forms;
 /// <summary>
 /// Data transfer object for a saved form response.
 /// </summary>
+/// <remarks>
+/// Contains a list of <see cref="JumpStart.Api.DTOs.Forms.QuestionResponseDto"/> for each answered question.
+/// See also: <see cref="JumpStart.Api.DTOs.Forms.CreateFormResponseDto"/>
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Creating a form response DTO with question responses
+/// var response = new JumpStart.Api.DTOs.Forms.FormResponseDto
+/// {
+///     Id = Guid.NewGuid(),
+///     FormId = Guid.NewGuid(),
+///     FormName = "Customer Feedback",
+///     RespondentUserId = null,
+///     SubmittedOn = DateTime.UtcNow,
+///     IsComplete = true,
+///     QuestionResponses = new List&lt;JumpStart.Api.DTOs.Forms.QuestionResponseDto&gt;
+///     {
+///         new JumpStart.Api.DTOs.Forms.QuestionResponseDto
+///         {
+///             Id = Guid.NewGuid(),
+///             QuestionId = Guid.NewGuid(),
+///             QuestionText = "How satisfied are you?",
+///             SelectedOptions = new List&lt;string&gt; { "Very Satisfied" }
+///         },
+///         new JumpStart.Api.DTOs.Forms.QuestionResponseDto
+///         {
+///             Id = Guid.NewGuid(),
+///             QuestionId = Guid.NewGuid(),
+///             QuestionText = "Additional comments?",
+///             ResponseValue = "Great service!"
+///         }
+///     }
+/// };
+/// </code>
+/// </example>
 public class FormResponseDto
 {
     /// <summary>Gets or sets the response ID.</summary>
@@ -42,25 +77,4 @@ public class FormResponseDto
     
     /// <summary>Gets or sets the question responses.</summary>
     public List<QuestionResponseDto> QuestionResponses { get; set; } = new();
-}
-
-/// <summary>
-/// Data transfer object for a question response.
-/// </summary>
-public class QuestionResponseDto
-{
-    /// <summary>Gets or sets the question response ID.</summary>
-    public Guid Id { get; set; }
-    
-    /// <summary>Gets or sets the question ID.</summary>
-    public Guid QuestionId { get; set; }
-    
-    /// <summary>Gets or sets the question text.</summary>
-    public string QuestionText { get; set; } = string.Empty;
-    
-    /// <summary>Gets or sets the response value.</summary>
-    public string? ResponseValue { get; set; }
-    
-    /// <summary>Gets or sets the selected option texts.</summary>
-    public List<string> SelectedOptions { get; set; } = new();
 }

@@ -81,7 +81,7 @@ The API can be deployed independently from the Blazor Server application, enabli
 - Reuse across multiple clients
 
 ### Why User Context Abstraction?
-`ISimpleUserContext` and `IUserContext` abstract user information retrieval, allowing different implementations for:
+`IUserContext` and `IUserContext` abstract user information retrieval, allowing different implementations for:
 - Blazor Server (cookie authentication)
 - Web API (JWT bearer tokens)
 - Testing (mock implementations)

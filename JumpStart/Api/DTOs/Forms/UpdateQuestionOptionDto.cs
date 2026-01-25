@@ -20,6 +20,22 @@ namespace JumpStart.Api.DTOs.Forms;
 /// <summary>
 /// Data transfer object for updating an existing question option.
 /// </summary>
+/// <remarks>
+/// Use <c>Id</c> = null for new options, or set to the existing option's ID to update. <c>OptionValue</c> can be used for internal logic or integration with external systems.
+/// See also: <see cref="JumpStart.Api.DTOs.Forms.UpdateQuestionDto"/>
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Updating a question option
+/// var updateOption = new JumpStart.Api.DTOs.Forms.UpdateQuestionOptionDto
+/// {
+///     Id = Guid.NewGuid(),
+///     OptionText = "Very Satisfied",
+///     OptionValue = "5",
+///     DisplayOrder = 1
+/// };
+/// </code>
+/// </example>
 public class UpdateQuestionOptionDto
 {
     /// <summary>Gets or sets the option ID. Null for new options.</summary>

@@ -21,6 +21,33 @@ namespace JumpStart.Api.DTOs.Forms;
 /// <summary>
 /// Data transfer object for submitting a form response.
 /// </summary>
+/// <remarks>
+/// See also: <see cref="JumpStart.Api.DTOs.Forms.CreateQuestionResponseDto"/>
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Submitting a form response with two question responses
+/// var response = new JumpStart.Api.DTOs.Forms.CreateFormResponseDto
+/// {
+///     FormId = Guid.Parse("00000000-0000-0000-0000-000000000100"),
+///     RespondentUserId = null, // anonymous
+///     IsComplete = true,
+///     QuestionResponses = new List&lt;JumpStart.Api.DTOs.Forms.CreateQuestionResponseDto&gt;
+///     {
+///         new JumpStart.Api.DTOs.Forms.CreateQuestionResponseDto
+///         {
+///             QuestionId = Guid.Parse("00000000-0000-0000-0000-000000000201"),
+///             SelectedOptionIds = new List&lt;Guid&gt; { Guid.Parse("00000000-0000-0000-0000-000000000301") }
+///         },
+///         new JumpStart.Api.DTOs.Forms.CreateQuestionResponseDto
+///         {
+///             QuestionId = Guid.Parse("00000000-0000-0000-0000-000000000202"),
+///             ResponseValue = "Great service!"
+///         }
+///     }
+/// };
+/// </code>
+/// </example>
 public class CreateFormResponseDto
 {
     /// <summary>Gets or sets the form ID being responded to.</summary>
@@ -36,20 +63,4 @@ public class CreateFormResponseDto
     /// <summary>Gets or sets the question responses.</summary>
     [Required]
     public List<CreateQuestionResponseDto> QuestionResponses { get; set; } = new();
-}
-
-/// <summary>
-/// Data transfer object for a single question response.
-/// </summary>
-public class CreateQuestionResponseDto
-{
-    /// <summary>Gets or sets the question ID.</summary>
-    [Required]
-    public Guid QuestionId { get; set; }
-    
-    /// <summary>Gets or sets the text response value.</summary>
-    public string? ResponseValue { get; set; }
-    
-    /// <summary>Gets or sets the selected option IDs (for choice questions).</summary>
-    public List<Guid> SelectedOptionIds { get; set; } = new();
 }

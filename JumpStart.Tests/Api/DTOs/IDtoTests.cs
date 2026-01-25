@@ -16,7 +16,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using JumpStart.Api.DTOs;
-using JumpStart.Api.DTOs.Advanced;
 using Xunit;
 
 namespace JumpStart.Tests.Api.DTOs;
@@ -48,7 +47,7 @@ public class IDtoTests
     /// <summary>
     /// Test DTO implementing IDto through EntityDto.
     /// </summary>
-    public class EntityTestDto : EntityDto<int>
+    public class EntityTestDto : EntityDto
     {
         public string Description { get; set; } = string.Empty;
     }
@@ -238,7 +237,7 @@ public class IDtoTests
     public void EntityDto_InheritsFrom_IDto()
     {
         // Arrange
-        var entityDtoType = typeof(EntityDto<int>);
+        var entityDtoType = typeof(EntityDto);
 
         // Act
         var inheritsFromIDto = typeof(IDto).IsAssignableFrom(entityDtoType);
@@ -266,7 +265,7 @@ public class IDtoTests
     public void EntityDto_Instance_IsAlsoIDto()
     {
         // Arrange
-        var entityDto = new EntityTestDto { Id = 1, Description = "Test" };
+        var entityDto = new EntityTestDto { Id = Guid.NewGuid(), Description = "Test" };
 
         // Act
         var isDto = entityDto is IDto;
@@ -298,7 +297,7 @@ public class IDtoTests
         // Arrange
         var directDto = new DirectTestDto { Name = "Direct" };
         var createDto = new CreateTestDto { Title = "Create" };
-        var entityDto = new EntityTestDto { Id = 1, Description = "Entity" };
+        var entityDto = new EntityTestDto { Id = Guid.NewGuid(), Description = "Entity" };
 
         // Act
         var result1 = ProcessDto(directDto);
@@ -329,7 +328,7 @@ public class IDtoTests
         {
             new DirectTestDto { Name = "Test1" },
             new CreateTestDto { Title = "Test2" },
-            new EntityTestDto { Id = 1, Description = "Test3" }
+            new EntityTestDto { Id = Guid.NewGuid(), Description = "Test3" }
         };
 
         // Act

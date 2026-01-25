@@ -22,7 +22,7 @@ namespace JumpStart.Data;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This interface provides a standardized way to add naming capabilities to entities. It establishes
+/// This interface provides a standardized way to add naming capabilities to entities. It establishes 
 /// a contract that entities must have a Name property, which serves as a human-readable identifier
 /// distinguishing the entity from system-generated identifiers like Id.
 /// </para>
@@ -37,18 +37,16 @@ namespace JumpStart.Data;
 /// </para>
 /// <para>
 /// <strong>Common Implementations:</strong>
-/// Rather than implementing this interface directly, consider using these base classes:
-/// - <see cref="JumpStart.Data.SimpleNamedEntity"/> - Basic named entity with Guid identifier
-/// - <see cref="JumpStart.Data.Advanced.NamedEntity{T}"/> - Named entity with custom key type
-/// - <see cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/> - Named entity with full audit tracking
-/// - <see cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/> - Named entity with custom key type and audit
+/// Rather than implementing this interface directly, use one of these base classes:
+/// - <see cref="JumpStart.Data.NamedEntity"/> - Named entity with Guid key
+/// - <see cref="Auditing.AuditableNamedEntity"/> - Named entity with audit tracking
 /// </para>
 /// <para>
 /// <strong>Validation Considerations:</strong>
 /// While this interface includes data annotation attributes for documentation purposes, validation
-/// should be enforced in concrete implementations. Add [Required] and [StringLength] attributes
-/// to the Name property in concrete classes to ensure proper validation by frameworks like
-/// ASP.NET Core MVC, Entity Framework Core, and validation libraries.
+/// should be enforced in concrete implementations. Add [Required] and [StringLength] attributes to 
+/// the Name property in concrete classes to ensure proper validation by frameworks like ASP.NET 
+/// Core, Blazor, Entity Framework Core, and validation libraries.
 /// </para>
 /// <para>
 /// <strong>Best Practices:</strong>
@@ -69,170 +67,18 @@ namespace JumpStart.Data;
 /// </remarks>
 /// <example>
 /// <code>
-/// // Example 1: Simple entity implementing INamed
-/// public class Category : IEntity&lt;int&gt;, INamed
+/// // Example: Simple entity implementing INamed
+/// public class Category : JumpStart.Data.Entity, JumpStart.Data.INamed
 /// {
-///     public int Id { get; set; }
-///     
-///     [Required]
-///     [StringLength(200, MinimumLength = 1)]
+///     [System.ComponentModel.DataAnnotations.Required]
+///     [System.ComponentModel.DataAnnotations.StringLength(200, MinimumLength = 1)]
 ///     public string Name { get; set; } = string.Empty;
-///     
 ///     public string? Description { get; set; }
-/// }
-/// 
-/// // Example 2: Using base class (recommended)
-/// public class Department : SimpleNamedEntity
-/// {
-///     [StringLength(500)]
-///     public string? Description { get; set; }
-///     
-///     public string? Location { get; set; }
-///     public int EmployeeCount { get; set; }
-/// }
-/// 
-/// // Example 3: Generic service working with any named entity
-/// public class NamedEntityService
-/// {
-///     public List&lt;string&gt; GetAllNames&lt;TEntity&gt;(IEnumerable&lt;TEntity&gt; entities)
-///         where TEntity : INamed
-///     {
-///         return entities.Select(e => e.Name).OrderBy(n => n).ToList();
-///     }
-///     
-///     public TEntity? FindByName&lt;TEntity&gt;(
-///         IEnumerable&lt;TEntity&gt; entities,
-///         string name,
-///         StringComparison comparison = StringComparison.OrdinalIgnoreCase)
-///         where TEntity : INamed
-///     {
-///         return entities.FirstOrDefault(e => e.Name.Equals(name, comparison));
-///     }
-///     
-///     public Dictionary&lt;string, TEntity&gt; ToDictionary&lt;TEntity&gt;(IEnumerable&lt;TEntity&gt; entities)
-///         where TEntity : INamed
-///     {
-///         return entities.ToDictionary(e => e.Name);
-///     }
-/// }
-/// 
-/// // Example 4: Repository methods for named entities
-/// public class NamedEntityRepository&lt;TEntity&gt;
-///     where TEntity : class, ISimpleEntity, INamed
-/// {
-///     private readonly DbContext _context;
-///     
-///     public async Task&lt;TEntity?&gt; GetByNameAsync(string name)
-///     {
-///         return await _context.Set&lt;TEntity&gt;()
-///             .FirstOrDefaultAsync(e => e.Name == name);
-///     }
-///     
-///     public async Task&lt;List&lt;TEntity&gt;&gt; SearchByNameAsync(string searchTerm)
-///     {
-///         return await _context.Set&lt;TEntity&gt;()
-///             .Where(e => e.Name.Contains(searchTerm))
-///             .OrderBy(e => e.Name)
-///             .ToListAsync();
-///     }
-///     
-///     public async Task&lt;bool&gt; NameExistsAsync(string name, Guid? excludeId = null)
-///     {
-///         var query = _context.Set&lt;TEntity&gt;().Where(e => e.Name == name);
-///         
-///         if (excludeId.HasValue)
-///         {
-///             query = query.Where(e => e.Id != excludeId.Value);
-///         }
-///         
-///         return await query.AnyAsync();
-///     }
-/// }
-/// 
-/// // Example 5: Dropdown/Select list generation
-/// public class SelectListService
-/// {
-///     public List&lt;SelectListItem&gt; CreateSelectList&lt;TEntity&gt;(
-///         IEnumerable&lt;TEntity&gt; entities,
-///         Func&lt;TEntity, string&gt; valueSelector)
-///         where TEntity : INamed
-///     {
-///         return entities
-///             .OrderBy(e => e.Name)
-///             .Select(e => new SelectListItem
-///             {
-///                 Value = valueSelector(e),
-///                 Text = e.Name
-///             })
-///             .ToList();
-///     }
-/// }
-/// 
-/// // Example 6: Polymorphic collection usage
-/// public class EntityDisplayService
-/// {
-///     public void DisplayEntities(IEnumerable&lt;INamed&gt; entities)
-///     {
-///         foreach (var entity in entities.OrderBy(e => e.Name))
-///         {
-///             Console.WriteLine($"- {entity.Name}");
-///         }
-///     }
-///     
-///     public List&lt;INamed&gt; FilterByNamePattern(
-///         IEnumerable&lt;INamed&gt; entities,
-///         string pattern)
-///     {
-///         var regex = new Regex(pattern, RegexOptions.IgnoreCase);
-///         return entities.Where(e => regex.IsMatch(e.Name)).ToList();
-///     }
-/// }
-/// 
-/// // Example 7: EF Core configuration
-/// public class ApplicationDbContext : DbContext
-/// {
-///     protected override void OnModelCreating(ModelBuilder modelBuilder)
-///     {
-///         // Generic configuration for all INamed entities
-///         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-///         {
-///             if (typeof(INamed).IsAssignableFrom(entityType.ClrType))
-///             {
-///                 // Require Name property
-///                 modelBuilder.Entity(entityType.ClrType)
-///                     .Property(nameof(INamed.Name))
-///                     .IsRequired()
-///                     .HasMaxLength(255);
-///                 
-///                 // Add index for search performance
-///                 modelBuilder.Entity(entityType.ClrType)
-///                     .HasIndex(nameof(INamed.Name));
-///                 
-///                 // Optional: Case-insensitive collation (SQL Server example)
-///                 modelBuilder.Entity(entityType.ClrType)
-///                     .Property(nameof(INamed.Name))
-///                     .UseCollation("SQL_Latin1_General_CP1_CI_AS");
-///             }
-///         }
-///     }
-/// }
-/// 
-/// // Example 8: Validation in concrete class
-/// public class ProductType : SimpleNamedEntity
-/// {
-///     [Required(ErrorMessage = "Product type name is required")]
-///     [StringLength(200, MinimumLength = 2, 
-///         ErrorMessage = "Name must be between 2 and 200 characters")]
-///     [RegularExpression(@"^[a-zA-Z0-9\s\-]+$", 
-///         ErrorMessage = "Name can only contain letters, numbers, spaces, and hyphens")]
-///     public override string Name { get; set; } = string.Empty;
 /// }
 /// </code>
 /// </example>
-/// <seealso cref="JumpStart.Data.SimpleNamedEntity"/>
-/// <seealso cref="JumpStart.Data.Advanced.NamedEntity{T}"/>
-/// <seealso cref="JumpStart.Data.Auditing.SimpleAuditableNamedEntity"/>
-/// <seealso cref="JumpStart.Data.Advanced.Auditing.AuditableNamedEntity{T}"/>
+/// <seealso cref="JumpStart.Data.NamedEntity"/>
+/// <seealso cref="Auditing.AuditableNamedEntity"/>
 public interface INamed
 {
     /// <summary>

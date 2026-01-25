@@ -8,7 +8,7 @@ namespace JumpStart.DemoApp.Mapping;
 /// AutoMapper profile for Product entity mappings.
 /// Inherits base configuration from SimpleEntityMappingProfile.
 /// </summary>
-public class ProductMappingProfile : SimpleEntityMappingProfile<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductMappingProfile : EntityMappingProfile<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     public ProductMappingProfile()
     {

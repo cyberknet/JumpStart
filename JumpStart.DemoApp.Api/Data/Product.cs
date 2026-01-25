@@ -10,7 +10,7 @@ namespace JumpStart.DemoApp.Data;
 /// Uses JumpStart's Simple (Guid-based) auditable entity with automatic tracking.
 /// </summary>
 [Index(nameof(SKU), IsUnique = true)]
-public class Product : SimpleAuditableNamedEntity
+public class Product : AuditableNamedEntity
 {
     /// <summary>
     /// Gets or sets the product description.

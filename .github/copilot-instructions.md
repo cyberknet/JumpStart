@@ -19,6 +19,9 @@ You may not generate code that deviates from the instructions below under any ci
 * Use params collections for flexible method signatures.
 * Always use Nullable Reference Types (NRT). Use ? for optional data and ensure appropriate null-checks or defaults are provided to avoid NullReferenceException.
 
+# Style: MANDATORY
+* Never use emojis in code or comments.
+
 # Architecture : MANDATORY
 * DRY (Don't Repeat Yourself) - Never duplicate code. Instead of creating a copy of code, refactored it a shared method or class.
 * SOLID:
@@ -69,13 +72,14 @@ You may not generate code that deviates from the instructions below under any ci
 * Write clear, concise comments for complex logic.
 * Ensure all public members have XML documentation including code samples sufficient to generate documentation websites using tools like DocFX or Sandcastle.
 * Use fully qualified names when referencing other classes in XML comments to ensure proper linking in generated documentation.
+* In XML documentation code examples, always escape < and > as &lt; and &gt; respectively.
 
 # License Requirements: MANDATORY
 * Ensure that all code contributions comply with the project's licensing terms and conditions.
 * When incorporating third-party libraries or code snippets, verify that their licenses are compatible with the project's license.
 * Document any third-party code usage and its associated license in the project's documentation.
 * Avoid using code or libraries with restrictive licenses that may impose limitations on the project's distribution or usage.
-* Each code file must have a copyright statement on the very first line in the format of:
+* Each code file (*.cs, *.razor) must have a copyright statement on the very first line in the format of:
   ```
   // Copyright ©(year) (Author)
   ```

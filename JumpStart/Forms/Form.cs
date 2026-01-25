@@ -61,7 +61,7 @@ namespace JumpStart.Forms;
 /// });
 /// </code>
 /// </example>
-public class Form : SimpleAuditableNamedEntity
+public class Form : AuditableNamedEntity
 {
     /// <summary>
     /// Gets or sets the description of the form.

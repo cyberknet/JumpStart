@@ -25,20 +25,20 @@ namespace JumpStart.Api.Clients.Forms;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This client provides a strongly-typed interface for calling Forms API endpoints
-/// from Blazor Server or other client applications. It uses Refit to generate
-/// HTTP client implementations automatically.
+/// Provides a strongly-typed interface for calling Forms API endpoints from Blazor or other .NET 10 client applications. Uses Refit to generate HTTP client implementations automatically.
 /// </para>
 /// <para>
 /// <strong>Usage Scenarios:</strong>
-/// - Blazor Server apps calling a separate Forms API
-/// - Microservices architecture where Forms is a separate service
-/// - Client applications consuming Forms functionality remotely
+/// <list type="bullet">
+/// <item>Blazor Server or WebAssembly apps calling a Forms API</item>
+/// <item>Microservices where Forms is a separate service</item>
+/// <item>Client applications consuming Forms functionality remotely</item>
+/// </list>
 /// </para>
 /// <para>
 /// <strong>Registration:</strong>
 /// Enable via JumpStart options:
-/// <code>
+/// <code language="csharp">
 /// builder.Services.AddJumpStart(options =>
 /// {
 ///     options.ApiBaseUrl = "https://localhost:7030";
@@ -48,9 +48,9 @@ namespace JumpStart.Api.Clients.Forms;
 /// </para>
 /// </remarks>
 /// <example>
-/// <code>
+/// <code language="csharp">
 /// // Inject and use in a Blazor component or service
-/// @inject IFormsApiClient FormsClient
+/// @inject JumpStart.Api.Clients.Forms.IFormsApiClient FormsClient
 /// 
 /// private async Task LoadFormsAsync()
 /// {
@@ -62,7 +62,7 @@ namespace JumpStart.Api.Clients.Forms;
 /// }
 /// 
 /// // Create a new form
-/// var newForm = new CreateFormDto
+/// var newForm = new JumpStart.Api.DTOs.Forms.CreateFormDto
 /// {
 ///     Name = "Customer Feedback",
 ///     Description = "Please rate our service",
@@ -120,77 +120,77 @@ public interface IFormsApiClient
     [Delete("/api/forms/{id}")]
     Task DeleteFormAsync(Guid id);
 
-        /// <summary>
-        /// Gets statistics for a specific form.
-        /// </summary>
-        /// <param name="id">The unique identifier of the form.</param>
-        /// <returns>Statistics including total responses and completion rate.</returns>
-        [Get("/api/forms/{id}/statistics")]
-        Task<FormStatisticsDto> GetFormStatisticsAsync(Guid id);
+    /// <summary>
+    /// Gets statistics for a specific form.
+    /// </summary>
+    /// <param name="id">The unique identifier of the form.</param>
+    /// <returns>Statistics including total responses and completion rate.</returns>
+    [Get("/api/forms/{id}/statistics")]
+    Task<FormStatisticsDto> GetFormStatisticsAsync(Guid id);
 
-            /// <summary>
-            /// Gets all available question types.
-            /// </summary>
-            /// <returns>A list of all question types ordered by display order.</returns>
-            [Get("/api/forms/question-types")]
-            Task<IEnumerable<QuestionTypeDto>> GetQuestionTypesAsync();
+    /// <summary>
+    /// Gets all available question types.
+    /// </summary>
+    /// <returns>A list of all question types ordered by display order.</returns>
+    [Get("/api/forms/question-types")]
+    Task<IEnumerable<QuestionTypeDto>> GetQuestionTypesAsync();
 
-            /// <summary>
-            /// Gets a specific question type by ID.
-            /// </summary>
-            /// <param name="id">The unique identifier of the question type.</param>
-            /// <returns>The question type details.</returns>
-            [Get("/api/forms/question-types/{id}")]
-            Task<QuestionTypeDto> GetQuestionTypeByIdAsync(Guid id);
+    /// <summary>
+    /// Gets a specific question type by ID.
+    /// </summary>
+    /// <param name="id">The unique identifier of the question type.</param>
+    /// <returns>The question type details.</returns>
+    [Get("/api/forms/question-types/{id}")]
+    Task<QuestionTypeDto> GetQuestionTypeByIdAsync(Guid id);
 
-            /// <summary>
-            /// Creates a new question type.
-            /// </summary>
-            /// <param name="createDto">The question type creation data.</param>
-            /// <returns>The created question type with its assigned ID.</returns>
-            [Post("/api/forms/question-types")]
-            Task<QuestionTypeDto> CreateQuestionTypeAsync([Body] CreateQuestionTypeDto createDto);
+    /// <summary>
+    /// Creates a new question type.
+    /// </summary>
+    /// <param name="createDto">The question type creation data.</param>
+    /// <returns>The created question type with its assigned ID.</returns>
+    [Post("/api/forms/question-types")]
+    Task<QuestionTypeDto> CreateQuestionTypeAsync([Body] CreateQuestionTypeDto createDto);
 
-            /// <summary>
-            /// Updates an existing question type.
-            /// </summary>
-            /// <param name="id">The unique identifier of the question type to update.</param>
-            /// <param name="updateDto">The updated question type data.</param>
-            /// <returns>A task representing the asynchronous operation.</returns>
-            [Put("/api/forms/question-types/{id}")]
-            Task UpdateQuestionTypeAsync(Guid id, [Body] UpdateQuestionTypeDto updateDto);
+    /// <summary>
+    /// Updates an existing question type.
+    /// </summary>
+    /// <param name="id">The unique identifier of the question type to update.</param>
+    /// <param name="updateDto">The updated question type data.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    [Put("/api/forms/question-types/{id}")]
+    Task UpdateQuestionTypeAsync(Guid id, [Body] UpdateQuestionTypeDto updateDto);
 
-            /// <summary>
-            /// Deletes a question type.
-            /// </summary>
-            /// <param name="id">The unique identifier of the question type to delete.</param>
-            /// <returns>A task representing the asynchronous operation.</returns>
-            [Delete("/api/forms/question-types/{id}")]
-            Task DeleteQuestionTypeAsync(Guid id);
+    /// <summary>
+    /// Deletes a question type.
+    /// </summary>
+    /// <param name="id">The unique identifier of the question type to delete.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    [Delete("/api/forms/question-types/{id}")]
+    Task DeleteQuestionTypeAsync(Guid id);
 
-            /// <summary>
-            /// Submits a response to a form.
-            /// </summary>
-            /// <param name="formId">The unique identifier of the form.</param>
-            /// <param name="createDto">The form response data.</param>
-            /// <returns>The saved response with assigned ID.</returns>
-            [Post("/api/forms/{formId}/responses")]
-            Task<FormResponseDto> SubmitFormResponseAsync(Guid formId, [Body] CreateFormResponseDto createDto);
+    /// <summary>
+    /// Submits a response to a form.
+    /// </summary>
+    /// <param name="formId">The unique identifier of the form.</param>
+    /// <param name="createDto">The form response data.</param>
+    /// <returns>The saved response with assigned ID.</returns>
+    [Post("/api/forms/{formId}/responses")]
+    Task<FormResponseDto> SubmitFormResponseAsync(Guid formId, [Body] CreateFormResponseDto createDto);
 
-                /// <summary>
-                /// Gets a specific form response by ID.
-                /// </summary>
-                /// <param name="formId">The unique identifier of the form.</param>
-                /// <param name="responseId">The unique identifier of the response.</param>
-                /// <returns>The form response with all question responses.</returns>
-                [Get("/api/forms/{formId}/responses/{responseId}")]
-                Task<FormResponseDto> GetFormResponseByIdAsync(Guid formId, Guid responseId);
+    /// <summary>
+    /// Gets a specific form response by ID.
+    /// </summary>
+    /// <param name="formId">The unique identifier of the form.</param>
+    /// <param name="responseId">The unique identifier of the response.</param>
+    /// <returns>The form response with all question responses.</returns>
+    [Get("/api/forms/{formId}/responses/{responseId}")]
+    Task<FormResponseDto> GetFormResponseByIdAsync(Guid formId, Guid responseId);
 
-                /// <summary>
-                /// Deletes all responses for a specific form.
-                /// </summary>
-                /// <param name="formId">The unique identifier of the form.</param>
-                /// <returns>The number of responses deleted.</returns>
-                [Delete("/api/forms/{formId}/responses")]
-                Task<int> DeleteAllFormResponsesAsync(Guid formId);
-            }
+    /// <summary>
+    /// Deletes all responses for a specific form.
+    /// </summary>
+    /// <param name="formId">The unique identifier of the form.</param>
+    /// <returns>The number of responses deleted.</returns>
+    [Delete("/api/forms/{formId}/responses")]
+    Task<int> DeleteAllFormResponsesAsync(Guid formId);
+}

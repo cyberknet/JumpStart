@@ -80,7 +80,7 @@ namespace JumpStart.Forms;
 /// </code>
 /// </example>
 [Index(nameof(QuestionResponseId), nameof(QuestionOptionId), IsUnique = true)]
-public class QuestionResponseOption : SimpleEntity
+public class QuestionResponseOption : Entity
 {
     /// <summary>
     /// Gets or sets the ID of the question response.
@@ -107,6 +107,7 @@ public class QuestionResponseOption : SimpleEntity
     /// The <see cref="QuestionResponse"/> this selection belongs to.
     /// </value>
     [ForeignKey(nameof(QuestionResponseId))]
+    [DeleteBehavior(DeleteBehavior.Restrict)]
     public QuestionResponse QuestionResponse { get; set; } = null!;
     
     /// <summary>
@@ -116,5 +117,6 @@ public class QuestionResponseOption : SimpleEntity
     /// The <see cref="QuestionOption"/> that was selected.
     /// </value>
     [ForeignKey(nameof(QuestionOptionId))]
+    [DeleteBehavior(DeleteBehavior.Restrict)]
     public QuestionOption QuestionOption { get; set; } = null!;
 }

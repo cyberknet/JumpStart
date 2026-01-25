@@ -19,6 +19,23 @@ namespace JumpStart.Api.DTOs.Forms;
 /// <summary>
 /// Data transfer object for form statistics.
 /// </summary>
+/// <remarks>
+/// Returned from the statistics endpoint for a form. <c>CompletionRate</c> is calculated as <c>CompleteResponses / TotalResponses * 100</c> (0-100).
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Creating a form statistics DTO
+/// var stats = new JumpStart.Api.DTOs.Forms.FormStatisticsDto
+/// {
+///     FormId = Guid.NewGuid(),
+///     FormName = "Customer Feedback",
+///     TotalResponses = 100,
+///     CompleteResponses = 80,
+///     IncompleteResponses = 20,
+///     CompletionRate = 80.0
+/// };
+/// </code>
+/// </example>
 public class FormStatisticsDto
 {
     /// <summary>Gets or sets the form ID.</summary>

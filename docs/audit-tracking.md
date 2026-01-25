@@ -39,14 +39,14 @@ Change your entity to inherit from an auditable base class:
 
 ```csharp
 // Before: No audit tracking
-public class Product : SimpleEntity
+public class Product : Entity
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
 }
 
 // After: Automatic audit tracking
-public class Product : SimpleAuditableEntity
+public class Product : AuditableEntity
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -58,7 +58,7 @@ public class Product : SimpleAuditableEntity
 Create a user context to tell JumpStart who the current user is:
 
 ```csharp
-public class BlazorUserContext : ISimpleUserContext
+public class BlazorUserContext : IUserContext
 {
     private readonly AuthenticationStateProvider _authenticationStateProvider;
 
@@ -88,7 +88,7 @@ Register your user context and repositories:
 
 ```csharp
 // Register user context
-builder.Services.AddScoped<ISimpleUserContext, BlazorUserContext>();
+builder.Services.AddScoped<IUserContext, BlazorUserContext>();
 
 // Register repository (it will use the user context)
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -122,14 +122,12 @@ await repository.AddAsync(product);
 
 ## Auditable Entity Types
 
-### Simple Entities (Guid-based)
-
-#### SimpleAuditableEntity
+### AuditableEntity
 
 Basic audit tracking with Guid user IDs:
 
 ```csharp
-public class Product : SimpleAuditableEntity
+public class Product : AuditableEntity
 {
     public string Name { get; set; } = string.Empty;
 }
@@ -141,48 +139,18 @@ public class Product : SimpleAuditableEntity
 - `Guid? ModifiedById` - Who last modified (null if never modified)
 - `DateTime? ModifiedOn` - When last modified (null if never modified)
 
-#### SimpleAuditableNamedEntity
+### AuditableNamedEntity
 
 Auditing + named entity:
 
 ```csharp
-public class Category : SimpleAuditableNamedEntity
+public class Category : AuditableNamedEntity
 {
     public string Description { get; set; } = string.Empty;
 }
 ```
 
-**Includes:** Everything from `SimpleAuditableEntity` plus `Name` property.
-
-### Advanced Entities (Custom Key Types)
-
-#### AuditableEntity<TKey, TUserKey>
-
-Strongly-typed keys:
-
-```csharp
-// int entity key, int user key
-public class Order : AuditableEntity<int, int>
-{
-    public decimal Total { get; set; }
-}
-
-// long entity key, Guid user key
-public class Transaction : AuditableEntity<long, Guid>
-{
-    public decimal Amount { get; set; }
-}
-```
-
-**Audit Fields:**
-- `TUserKey CreatedById`
-- `DateTime CreatedOn`
-- `TUserKey? ModifiedById`
-- `DateTime? ModifiedOn`
-
-#### AuditableNamedEntity<TKey, TUserKey>
-
-Named + auditable with custom keys.
+**Includes:** Everything from `AuditableEntity` plus `Name` property.
 
 ## How It Works
 
@@ -221,7 +189,7 @@ await repository.UpdateAsync(product);
 ### Blazor Server (Cookie Auth)
 
 ```csharp
-public class BlazorUserContext : ISimpleUserContext
+public class BlazorUserContext : IUserContext
 {
     private readonly AuthenticationStateProvider _authenticationStateProvider;
 
@@ -247,13 +215,13 @@ public class BlazorUserContext : ISimpleUserContext
 
 **Registration:**
 ```csharp
-builder.Services.AddScoped<ISimpleUserContext, BlazorUserContext>();
+builder.Services.AddScoped<IUserContext, BlazorUserContext>();
 ```
 
 ### Web API (JWT Bearer)
 
 ```csharp
-public class ApiUserContext : ISimpleUserContext
+public class ApiUserContext : IUserContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -282,7 +250,7 @@ public class ApiUserContext : ISimpleUserContext
 **Registration:**
 ```csharp
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ISimpleUserContext, ApiUserContext>();
+builder.Services.AddScoped<IUserContext, ApiUserContext>();
 ```
 
 ### Background Jobs (System User)
@@ -290,7 +258,7 @@ builder.Services.AddScoped<ISimpleUserContext, ApiUserContext>();
 For background jobs where there's no authenticated user:
 
 ```csharp
-public class SystemUserContext : ISimpleUserContext
+public class SystemUserContext : IUserContext
 {
     private readonly Guid _systemUserId;
 
@@ -322,7 +290,7 @@ public class SystemUserContext : ISimpleUserContext
 For unit tests:
 
 ```csharp
-public class MockUserContext : ISimpleUserContext
+public class MockUserContext : IUserContext
 {
     private readonly Guid? _userId;
 
@@ -357,7 +325,7 @@ For entities that should be marked as deleted instead of physically removed:
 ### Create Soft-Deletable Entity
 
 ```csharp
-public class Product : SimpleAuditableEntity, ISimpleDeletable
+public class Product : AuditableEntity, ISimpleDeletable
 {
     public string Name { get; set; } = string.Empty;
     
@@ -382,13 +350,13 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 ### Implement Soft Delete in Repository
 
 ```csharp
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
-    private readonly ISimpleUserContext? _userContext;
+    private readonly IUserContext? _userContext;
 
     public ProductRepository(
         DbContext context,
-        ISimpleUserContext? userContext)
+        IUserContext? userContext)
         : base(context, userContext)
     {
         _userContext = userContext;
@@ -447,7 +415,7 @@ public async Task<IList<Product>> GetDeletedProductsAsync()
 Include audit info in DTOs:
 
 ```csharp
-public class ProductDto : SimpleAuditableEntityDto
+public class ProductDto : AuditableEntityDto
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -465,7 +433,7 @@ public class ProductDto : SimpleAuditableEntityDto
 Join with user table for display names:
 
 ```csharp
-public class ProductWithUserDto : SimpleAuditableEntityDto
+public class ProductWithUserDto : AuditableEntityDto
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -501,7 +469,7 @@ public async Task<ProductWithUserDto?> GetProductWithUserInfoAsync(Guid id)
 Add custom audit fields by extending base classes:
 
 ```csharp
-public class AuditableProductEntity : SimpleAuditableEntity
+public class AuditableProductEntity : AuditableEntity
 {
     // Custom audit fields
     public string? ChangeReason { get; set; }
@@ -555,7 +523,7 @@ public override async Task<Product> UpdateAsync(Product entity)
 **Solutions:**
 1. Verify user context is registered:
    ```csharp
-   builder.Services.AddScoped<ISimpleUserContext, BlazorUserContext>();
+   builder.Services.AddScoped<IUserContext, BlazorUserContext>();
    ```
 
 2. Check user context returns valid ID:

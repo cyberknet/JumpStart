@@ -36,10 +36,10 @@ namespace JumpStart.Api.DTOs;
 /// <strong>DTO Hierarchy:</strong>
 /// All JumpStart DTOs implement this interface either directly or through derived interfaces:
 /// - <see cref="JumpStart.Api.DTOs.ICreateDto"/> - For create (POST) operations (no Id, no audit fields)
-/// - <see cref="JumpStart.Api.DTOs.IUpdateDto{TKey}"/> - For update (PUT) operations (includes Id)
-/// - <see cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/> - For read operations (includes Id)
+/// - <see cref="JumpStart.Api.DTOs.IUpdateDto"/> - For update (PUT) operations (includes Id)
+/// - <see cref="JumpStart.Api.DTOs.Advanced.EntityDto"/> - For read operations (includes Id)
 /// - <see cref="JumpStart.Api.DTOs.SimpleEntityDto"/> - For read operations with Guid identifiers
-/// - <see cref="JumpStart.Api.DTOs.Advanced.AuditableEntityDto{TKey}"/> - For entities with audit tracking
+/// - <see cref="JumpStart.Api.DTOs.Advanced.AuditableEntityDto"/> - For entities with audit tracking
 /// </para>
 /// <para>
 /// <strong>Design Pattern:</strong>
@@ -105,9 +105,8 @@ namespace JumpStart.Api.DTOs;
 /// </code>
 /// </example>
 /// <seealso cref="JumpStart.Api.DTOs.ICreateDto"/>
-/// <seealso cref="JumpStart.Api.DTOs.IUpdateDto{TKey}"/>
-/// <seealso cref="JumpStart.Api.DTOs.Advanced.EntityDto{TKey}"/>
-/// <seealso cref="JumpStart.Api.DTOs.SimpleEntityDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.IUpdateDto"/>
+/// <seealso cref="JumpStart.Api.DTOs.EntityDto"/>
 public interface IDto
 {
 }

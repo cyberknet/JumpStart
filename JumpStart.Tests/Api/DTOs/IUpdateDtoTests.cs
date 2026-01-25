@@ -21,7 +21,7 @@ using Xunit;
 namespace JumpStart.Tests.Api.DTOs;
 
 /// <summary>
-/// Unit tests for the <see cref="IUpdateDto{TKey}"/> interface.
+/// Unit tests for the <see cref="IUpdateDto"/> interface.
 /// Tests interface implementation, Id property, type constraints, and proper usage for update operations.
 /// </summary>
 public class IUpdateDtoTests
@@ -31,39 +31,21 @@ public class IUpdateDtoTests
     /// <summary>
     /// Simple update DTO with int key.
     /// </summary>
-    public class UpdateTestProductDto : IUpdateDto<int>
+    public class UpdateTestProductDto : IUpdateDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public decimal Price { get; set; }
     }
 
-    /// <summary>
-    /// Update DTO with long key.
-    /// </summary>
-    public class UpdateTestOrderDto : IUpdateDto<long>
-    {
-        public long Id { get; set; }
-        public DateTime OrderDate { get; set; }
-        public decimal TotalAmount { get; set; }
-    }
-
-    /// <summary>
-    /// Update DTO with Guid key.
-    /// </summary>
-    public class UpdateTestCustomerDto : IUpdateDto<Guid>
-    {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-    }
+    
 
     /// <summary>
     /// Nested update DTO for testing composition.
     /// </summary>
-    public class UpdateTestOrderItemDto : IUpdateDto<int>
+    public class UpdateTestOrderItemDto : IUpdateDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public int ProductId { get; set; }
         public int Quantity { get; set; }
     }
@@ -71,9 +53,9 @@ public class IUpdateDtoTests
     /// <summary>
     /// Update DTO with nested items.
     /// </summary>
-    public class UpdateTestComplexDto : IUpdateDto<int>
+    public class UpdateTestComplexDto : IUpdateDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public List<UpdateTestOrderItemDto> Items { get; set; } = new();
     }
 
@@ -85,7 +67,7 @@ public class IUpdateDtoTests
     public void IUpdateDto_InheritsFrom_IDto()
     {
         // Arrange
-        var interfaceType = typeof(IUpdateDto<int>);
+        var interfaceType = typeof(IUpdateDto);
 
         // Act
         var inheritsFromIDto = typeof(IDto).IsAssignableFrom(interfaceType);
@@ -98,7 +80,7 @@ public class IUpdateDtoTests
     public void IUpdateDto_IsInterface()
     {
         // Arrange
-        var interfaceType = typeof(IUpdateDto<>);
+        var interfaceType = typeof(IUpdateDto);
 
         // Act
         var isInterface = interfaceType.IsInterface;
@@ -111,7 +93,7 @@ public class IUpdateDtoTests
     public void IUpdateDto_IsInCorrectNamespace()
     {
         // Arrange
-        var interfaceType = typeof(IUpdateDto<>);
+        var interfaceType = typeof(IUpdateDto);
 
         // Act
         var namespaceName = interfaceType.Namespace;
@@ -122,110 +104,27 @@ public class IUpdateDtoTests
 
     #endregion
 
-    #region Generic Type Parameter Tests
-
-    [Fact]
-    public void IUpdateDto_HasOneGenericParameter()
-    {
-        // Arrange
-        var interfaceType = typeof(IUpdateDto<>);
-
-        // Act
-        var genericParameters = interfaceType.GetGenericArguments();
-
-        // Assert
-        Assert.Single(genericParameters);
-        Assert.Equal("TKey", genericParameters[0].Name);
-    }
-
-    [Fact]
-    public void IUpdateDto_GenericParameter_HasStructConstraint()
-    {
-        // Arrange
-        var interfaceType = typeof(IUpdateDto<>);
-        var genericParameter = interfaceType.GetGenericArguments()[0];
-
-        // Act
-        var hasValueTypeConstraint = (genericParameter.GenericParameterAttributes & System.Reflection.GenericParameterAttributes.NotNullableValueTypeConstraint) != 0;
-
-        // Assert
-        Assert.True(hasValueTypeConstraint, "TKey should have struct constraint");
-    }
-
-    [Fact]
-    public void IUpdateDto_WorksWithIntKey()
-    {
-        // Arrange & Act
-        var dto = new UpdateTestProductDto
-        {
-            Id = 123,
-            Name = "Test Product",
-            Price = 99.99m
-        };
-
-        // Assert
-        Assert.Equal(123, dto.Id);
-        Assert.IsType<int>(dto.Id);
-    }
-
-    [Fact]
-    public void IUpdateDto_WorksWithLongKey()
-    {
-        // Arrange & Act
-        var dto = new UpdateTestOrderDto
-        {
-            Id = 9876543210L,
-            OrderDate = DateTime.UtcNow,
-            TotalAmount = 499.99m
-        };
-
-        // Assert
-        Assert.Equal(9876543210L, dto.Id);
-        Assert.IsType<long>(dto.Id);
-    }
-
-    [Fact]
-    public void IUpdateDto_WorksWithGuidKey()
-    {
-        // Arrange
-        var guid = Guid.NewGuid();
-
-        // Act
-        var dto = new UpdateTestCustomerDto
-        {
-            Id = guid,
-            Name = "Test Customer",
-            Email = "test@example.com"
-        };
-
-        // Assert
-        Assert.Equal(guid, dto.Id);
-        Assert.IsType<Guid>(dto.Id);
-    }
-
-    #endregion
-
     #region Id Property Tests
 
     [Fact]
     public void IUpdateDto_HasIdProperty()
     {
         // Arrange
-        var interfaceType = typeof(IUpdateDto<int>);
+        var interfaceType = typeof(IUpdateDto);
 
         // Act
         var idProperty = interfaceType.GetProperty("Id");
 
         // Assert
         Assert.NotNull(idProperty);
-        Assert.Equal(typeof(int), idProperty!.PropertyType);
+        Assert.Equal(typeof(Guid), idProperty!.PropertyType);
     }
 
     [Fact]
     public void IUpdateDto_IdProperty_IsReadWrite()
     {
         // Arrange
-        var interfaceType = typeof(IUpdateDto<int>);
+        var interfaceType = typeof(IUpdateDto);
         var idProperty = interfaceType.GetProperty("Id");
 
         // Act
@@ -243,30 +142,25 @@ public class IUpdateDtoTests
         // Arrange
         var dto = new UpdateTestProductDto();
 
+        Guid guid = Guid.NewGuid();
         // Act
-        dto.Id = 42;
+        dto.Id = guid;
         var retrievedId = dto.Id;
 
         // Assert
-        Assert.Equal(42, retrievedId);
+        Assert.Equal(guid, retrievedId);
     }
 
     [Fact]
     public void UpdateDto_IdType_MatchesGenericParameter()
     {
         // Arrange
-        var intDto = new UpdateTestProductDto();
-        var longDto = new UpdateTestOrderDto();
-        var guidDto = new UpdateTestCustomerDto();
+        var guidDto = new UpdateTestProductDto();
 
         // Act
-        intDto.Id = 1;
-        longDto.Id = 2L;
         guidDto.Id = Guid.NewGuid();
 
         // Assert
-        Assert.IsType<int>(intDto.Id);
-        Assert.IsType<long>(longDto.Id);
         Assert.IsType<Guid>(guidDto.Id);
     }
 
@@ -280,13 +174,14 @@ public class IUpdateDtoTests
         // Arrange
         var dto = new UpdateTestProductDto();
 
+        Guid guid = Guid.NewGuid();
         // Act
-        dto.Id = 100;
+        dto.Id = guid;
         dto.Name = "Updated Product";
         dto.Price = 149.99m;
 
         // Assert
-        Assert.Equal(100, dto.Id);
+        Assert.Equal(guid, dto.Id);
         Assert.Equal("Updated Product", dto.Name);
         Assert.Equal(149.99m, dto.Price);
     }
@@ -294,8 +189,9 @@ public class IUpdateDtoTests
     [Fact]
     public void UpdateDto_CanBeAssignedTo_IDto()
     {
+        Guid guid = Guid.NewGuid();
         // Arrange
-        var updateDto = new UpdateTestProductDto { Id = 1, Name = "Product", Price = 50.00m };
+        var updateDto = new UpdateTestProductDto { Id = guid, Name = "Product", Price = 50.00m };
 
         // Act
         IDto dto = updateDto;
@@ -303,21 +199,22 @@ public class IUpdateDtoTests
         // Assert
         Assert.NotNull(dto);
         Assert.IsAssignableFrom<IDto>(updateDto);
-        Assert.IsAssignableFrom<IUpdateDto<int>>(updateDto);
+        Assert.IsAssignableFrom<IUpdateDto>(updateDto);
     }
 
     [Fact]
     public void UpdateDto_CanBeAssignedTo_IUpdateDto()
     {
+        Guid guid = Guid.NewGuid();
         // Arrange
-        var dto = new UpdateTestProductDto { Id = 1, Name = "Product", Price = 50.00m };
+        var dto = new UpdateTestProductDto { Id = guid, Name = "Product", Price = 50.00m };
 
         // Act
-        IUpdateDto<int> updateDto = dto;
+        IUpdateDto updateDto = dto;
 
         // Assert
         Assert.NotNull(updateDto);
-        Assert.Equal(1, updateDto.Id);
+        Assert.Equal(guid, updateDto.Id);
     }
 
     #endregion
@@ -327,34 +224,38 @@ public class IUpdateDtoTests
     [Fact]
     public void UpdateDto_CanContain_NestedUpdateDtos()
     {
+        Guid guid = Guid.NewGuid();
+        Guid guid2 = Guid.NewGuid();
+        Guid guid3 = Guid.NewGuid();
         // Arrange
         var dto = new UpdateTestComplexDto
         {
-            Id = 1,
+            Id = guid,
             Items = new List<UpdateTestOrderItemDto>
             {
-                new UpdateTestOrderItemDto { Id = 10, ProductId = 1, Quantity = 2 },
-                new UpdateTestOrderItemDto { Id = 20, ProductId = 2, Quantity = 1 }
+                new UpdateTestOrderItemDto { Id = guid2, ProductId = 1, Quantity = 2 },
+                new UpdateTestOrderItemDto { Id = guid3, ProductId = 2, Quantity = 1 }
             }
         };
 
         // Act
-        var itemsAreUpdateDtos = dto.Items.All(item => item is IUpdateDto<int>);
+        var itemsAreUpdateDtos = dto.Items.All(item => item is IUpdateDto);
 
         // Assert
         Assert.True(itemsAreUpdateDtos);
         Assert.Equal(2, dto.Items.Count);
-        Assert.All(dto.Items, item => Assert.NotEqual(0, item.Id));
+        Assert.All(dto.Items, item => Assert.NotEqual(Guid.Empty, item.Id));
     }
 
     [Fact]
     public void NestedUpdateDto_IsAlso_IUpdateDto()
     {
+        Guid guid = Guid.NewGuid();
         // Arrange
-        var nestedDto = new UpdateTestOrderItemDto { Id = 5, ProductId = 1, Quantity = 10 };
+        var nestedDto = new UpdateTestOrderItemDto { Id = guid, ProductId = 1, Quantity = 10 };
 
         // Act
-        var isUpdateDto = nestedDto is IUpdateDto<int>;
+        var isUpdateDto = nestedDto is IUpdateDto;
         var isDto = nestedDto is IDto;
 
         // Assert
@@ -369,11 +270,12 @@ public class IUpdateDtoTests
     [Fact]
     public void IUpdateDto_CanBeIdentified_AtRuntime()
     {
+        Guid guid = Guid.NewGuid();
         // Arrange
-        object obj = new UpdateTestProductDto { Id = 1, Name = "Test", Price = 10.00m };
+        object obj = new UpdateTestProductDto { Id = guid, Name = "Test", Price = 10.00m };
 
         // Act
-        var isUpdateDto = obj is IUpdateDto<int>;
+        var isUpdateDto = obj is IUpdateDto;
 
         // Assert
         Assert.True(isUpdateDto);
@@ -383,10 +285,12 @@ public class IUpdateDtoTests
     public void IUpdateDto_CanBeUsedIn_Collections()
     {
         // Arrange
-        var updateDtos = new List<IUpdateDto<int>>
+        Guid guid = Guid.NewGuid();
+        Guid guid2 = Guid.NewGuid();
+        var updateDtos = new List<IUpdateDto>
         {
-            new UpdateTestProductDto { Id = 1, Name = "Product1", Price = 10.00m },
-            new UpdateTestOrderItemDto { Id = 2, ProductId = 1, Quantity = 5 }
+            new UpdateTestProductDto { Id = guid, Name = "Product1", Price = 10.00m },
+            new UpdateTestOrderItemDto { Id = guid2, ProductId = 1, Quantity = 5 }
         };
 
         // Act
@@ -394,25 +298,26 @@ public class IUpdateDtoTests
 
         // Assert
         Assert.Equal(2, count);
-        Assert.All(updateDtos, dto => Assert.IsAssignableFrom<IUpdateDto<int>>(dto));
-        Assert.All(updateDtos, dto => Assert.NotEqual(0, dto.Id));
+        Assert.All(updateDtos, dto => Assert.IsAssignableFrom<IUpdateDto>(dto));
+        Assert.All(updateDtos, dto => Assert.NotEqual(Guid.Empty, dto.Id));
     }
 
     [Fact]
     public void IUpdateDto_CanBeFiltered_FromMixedDtos()
     {
         // Arrange
+        Guid guid = Guid.NewGuid();
         var dtos = new List<IDto>
         {
-            new UpdateTestProductDto { Id = 1, Name = "Product", Price = 10.00m }
+            new UpdateTestProductDto { Id = guid, Name = "Product", Price = 10.00m }
         };
 
         // Act
-        var updateDtos = dtos.OfType<IUpdateDto<int>>().ToList();
+        var updateDtos = dtos.OfType<IUpdateDto>().ToList();
 
         // Assert
         Assert.Single(updateDtos);
-        Assert.All(updateDtos, dto => Assert.IsAssignableFrom<IUpdateDto<int>>(dto));
+        Assert.All(updateDtos, dto => Assert.IsAssignableFrom<IUpdateDto>(dto));
     }
 
     #endregion
@@ -469,48 +374,21 @@ public class IUpdateDtoTests
     #endregion
 
     #region Generic Constraint Tests
-
-    [Fact]
-    public void IUpdateDto_CanBeUsed_AsGenericConstraint()
-    {
-        // Arrange
-        var dto = new UpdateTestProductDto { Id = 1, Name = "Test", Price = 10.00m };
-
-        // Act
-        var result = ProcessUpdateDto(dto);
-
-        // Assert
-        Assert.Equal(1, result);
-    }
-
     [Fact]
     public void GenericMethod_CanAccess_IdProperty()
     {
         // Arrange
-        var intDto = new UpdateTestProductDto { Id = 42, Name = "Test", Price = 10.00m };
-        var guidDto = new UpdateTestCustomerDto { Id = Guid.NewGuid(), Name = "Test", Email = "test@test.com" };
+        var guidDto = new UpdateTestProductDto { Id = Guid.NewGuid(), Name = "Test", Price = 10.00m };
 
         // Act
-        var intId = GetIdInt(intDto);
         var guidId = GetIdGuid(guidDto);
 
         // Assert
-        Assert.Equal(42, intId);
         Assert.NotEqual(Guid.Empty, guidId);
     }
 
     // Helper methods demonstrating generic usage
-    private int ProcessUpdateDto<T>(T dto) where T : IUpdateDto<int>
-    {
-        return dto.Id;
-    }
-
-    private int GetIdInt<TDto>(TDto dto) where TDto : IUpdateDto<int>
-    {
-        return dto.Id;
-    }
-
-    private Guid GetIdGuid<TDto>(TDto dto) where TDto : IUpdateDto<Guid>
+    private Guid GetIdGuid<TDto>(TDto dto) where TDto : IUpdateDto
     {
         return dto.Id;
     }
@@ -523,15 +401,16 @@ public class IUpdateDtoTests
     public void UpdateDto_CanRepresent_ModifiedEntityData()
     {
         // Arrange & Act - Simulating data from client for entity update
+        Guid guid = Guid.NewGuid();
         var dto = new UpdateTestProductDto
         {
-            Id = 123, // Required to identify which entity to update
+            Id = guid, // Required to identify which entity to update
             Name = "Updated Product Name",
             Price = 79.99m
         };
 
         // Assert
-        Assert.Equal(123, dto.Id);
+        Assert.Equal(guid, dto.Id);
         Assert.Equal("Updated Product Name", dto.Name);
         Assert.Equal(79.99m, dto.Price);
     }
@@ -540,15 +419,16 @@ public class IUpdateDtoTests
     public void UpdateDto_SupportsObjectInitializer()
     {
         // Arrange & Act
+        Guid guid = Guid.NewGuid();
         var dto = new UpdateTestProductDto
         {
-            Id = 999,
+            Id = guid,
             Name = "Initialized",
             Price = 100.00m
         };
 
         // Assert
-        Assert.Equal(999, dto.Id);
+        Assert.Equal(guid, dto.Id);
         Assert.Equal("Initialized", dto.Name);
         Assert.Equal(100.00m, dto.Price);
     }
@@ -557,10 +437,11 @@ public class IUpdateDtoTests
     public void UpdateDto_IdMismatch_CanBeValidated()
     {
         // Arrange
-        var urlId = 1;
+        Guid guid = Guid.NewGuid();
+        var urlId = Guid.NewGuid();
         var dto = new UpdateTestProductDto
         {
-            Id = 2, // Different from URL
+            Id = guid, // Different from URL
             Name = "Product",
             Price = 50.00m
         };
@@ -576,10 +457,11 @@ public class IUpdateDtoTests
     public void UpdateDto_IdMatch_CanBeValidated()
     {
         // Arrange
-        var urlId = 123;
+        Guid guid = Guid.NewGuid();
+        var urlId = guid;
         var dto = new UpdateTestProductDto
         {
-            Id = 123, // Matches URL
+            Id = guid, // Matches URL
             Name = "Product",
             Price = 50.00m
         };
@@ -599,7 +481,7 @@ public class IUpdateDtoTests
     public void IUpdateDto_DiffersFrom_ICreateDto()
     {
         // Arrange
-        var updateDtoType = typeof(IUpdateDto<int>);
+        var updateDtoType = typeof(IUpdateDto);
         var createDtoType = typeof(ICreateDto);
 
         // Act
@@ -615,17 +497,17 @@ public class IUpdateDtoTests
     public void UpdateDto_RequiresId_CreateDtoDoesNot()
     {
         // Arrange - This test demonstrates the key difference
-
+        Guid guid = Guid.NewGuid();
         // Update DTO requires Id
         var updateDto = new UpdateTestProductDto
         {
-            Id = 1, // Required
+            Id = guid, // Required
             Name = "Product",
             Price = 10.00m
         };
 
         // Assert
-        Assert.NotEqual(0, updateDto.Id);
+        Assert.NotEqual(Guid.Empty, updateDto.Id);
     }
 
     #endregion

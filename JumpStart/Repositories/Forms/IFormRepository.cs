@@ -63,7 +63,7 @@ namespace JumpStart.Repositories.Forms;
 /// }
 /// </code>
 /// </example>
-public interface IFormRepository : ISimpleRepository<Form>
+public interface IFormRepository : IRepository<Form>
 {
     /// <summary>
     /// Retrieves all active forms.
@@ -86,7 +86,7 @@ public interface IFormRepository : ISimpleRepository<Form>
     /// </code>
     /// </example>
     Task<IList<Form>> GetActiveFormsAsync();
-    
+
     /// <summary>
     /// Retrieves a form with all related questions and their options.
     /// </summary>
@@ -124,7 +124,7 @@ public interface IFormRepository : ISimpleRepository<Form>
     /// </code>
     /// </example>
     Task<Form?> GetFormWithQuestionsAsync(Guid formId);
-    
+
     /// <summary>
     /// Gets the total count of responses submitted for a specific form.
     /// </summary>
@@ -144,7 +144,7 @@ public interface IFormRepository : ISimpleRepository<Form>
     /// </code>
     /// </example>
     Task<int> GetFormResponseCountAsync(Guid formId);
-    
+
     /// <summary>
     /// Gets the count of complete responses submitted for a specific form.
     /// </summary>
@@ -165,125 +165,125 @@ public interface IFormRepository : ISimpleRepository<Form>
     /// var completionRate = (double)completeCount / totalCount * 100;
     /// Console.WriteLine($"Completion rate: {completionRate:F1}%");
     /// </code>
-        /// </example>
-        Task<int> GetCompleteResponseCountAsync(Guid formId);
+    /// </example>
+    Task<int> GetCompleteResponseCountAsync(Guid formId);
 
-        /// <summary>
-        /// Gets a question type by its code.
-        /// </summary>
-        /// <param name="code">The question type code (e.g., "ShortText", "MultipleChoice").</param>
-        /// <returns>
-        /// The <see cref="QuestionType"/> with the specified code, or null if not found.
-        /// </returns>
-        /// <remarks>
-        /// Use this to resolve question type codes from DTOs to entity IDs when creating/updating questions.
-        /// </remarks>
-        Task<QuestionType?> GetQuestionTypeByCodeAsync(string code);
+    /// <summary>
+    /// Gets a question type by its code.
+    /// </summary>
+    /// <param name="code">The question type code (e.g., "ShortText", "MultipleChoice").</param>
+    /// <returns>
+    /// The <see cref="QuestionType"/> with the specified code, or null if not found.
+    /// </returns>
+    /// <remarks>
+    /// Use this to resolve question type codes from DTOs to entity IDs when creating/updating questions.
+    /// </remarks>
+    Task<QuestionType?> GetQuestionTypeByCodeAsync(string code);
 
-            /// <summary>
-            /// Gets all available question types.
-            /// </summary>
-            /// <returns>
-            /// A list of all <see cref="QuestionType"/> entities, ordered by DisplayOrder.
-            /// </returns>
-            /// <remarks>
-            /// Use this to populate question type dropdowns in form builders.
-            /// </remarks>
-            Task<IList<QuestionType>> GetAllQuestionTypesAsync();
+    /// <summary>
+    /// Gets all available question types.
+    /// </summary>
+    /// <returns>
+    /// A list of all <see cref="QuestionType"/> entities, ordered by DisplayOrder.
+    /// </returns>
+    /// <remarks>
+    /// Use this to populate question type dropdowns in form builders.
+    /// </remarks>
+    Task<IList<QuestionType>> GetAllQuestionTypesAsync();
 
-            /// <summary>
-            /// Gets a question type by its ID.
-            /// </summary>
-            /// <param name="id">The unique identifier of the question type.</param>
-            /// <returns>
-            /// The <see cref="QuestionType"/> with the specified ID, or null if not found.
-            /// </returns>
-            Task<QuestionType?> GetQuestionTypeByIdAsync(Guid id);
+    /// <summary>
+    /// Gets a question type by its ID.
+    /// </summary>
+    /// <param name="id">The unique identifier of the question type.</param>
+    /// <returns>
+    /// The <see cref="QuestionType"/> with the specified ID, or null if not found.
+    /// </returns>
+    Task<QuestionType?> GetQuestionTypeByIdAsync(Guid id);
 
-            /// <summary>
-            /// Creates a new question type.
-            /// </summary>
-            /// <param name="questionType">The question type to create.</param>
-            /// <returns>
-            /// A task that represents the asynchronous operation.
-            /// The task result contains the created <see cref="QuestionType"/> with assigned ID.
-            /// </returns>
-            Task<QuestionType> CreateQuestionTypeAsync(QuestionType questionType);
+    /// <summary>
+    /// Creates a new question type.
+    /// </summary>
+    /// <param name="questionType">The question type to create.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// The task result contains the created <see cref="QuestionType"/> with assigned ID.
+    /// </returns>
+    Task<QuestionType> CreateQuestionTypeAsync(QuestionType questionType);
 
-            /// <summary>
-            /// Updates an existing question type.
-            /// </summary>
-            /// <param name="questionType">The question type to update.</param>
-            /// <returns>A task that represents the asynchronous operation.</returns>
-            Task UpdateQuestionTypeAsync(QuestionType questionType);
+    /// <summary>
+    /// Updates an existing question type.
+    /// </summary>
+    /// <param name="questionType">The question type to update.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    Task UpdateQuestionTypeAsync(QuestionType questionType);
 
-            /// <summary>
-            /// Deletes a question type.
-            /// </summary>
-            /// <param name="id">The unique identifier of the question type to delete.</param>
-            /// <returns>A task that represents the asynchronous operation.</returns>
-            /// <remarks>
-            /// This will fail if there are questions referencing this question type.
-            /// </remarks>
-            Task DeleteQuestionTypeAsync(Guid id);
+    /// <summary>
+    /// Deletes a question type.
+    /// </summary>
+    /// <param name="id">The unique identifier of the question type to delete.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <remarks>
+    /// This will fail if there are questions referencing this question type.
+    /// </remarks>
+    Task DeleteQuestionTypeAsync(Guid id);
 
-            /// <summary>
-            /// Saves a form response with all question responses.
-            /// </summary>
-            /// <param name="formResponse">The form response to save.</param>
-            /// <returns>
-            /// A task that represents the asynchronous operation.
-            /// The task result contains the saved <see cref="FormResponse"/> with assigned IDs.
-            /// </returns>
-            /// <remarks>
-            /// This method saves the FormResponse and all associated QuestionResponses and
-            /// QuestionResponseOptions in a single transaction. All entities will have their
-            /// audit fields (CreatedOn, CreatedById) populated automatically.
-            /// </remarks>
-            Task<FormResponse> SaveFormResponseAsync(FormResponse formResponse);
+    /// <summary>
+    /// Saves a form response with all question responses.
+    /// </summary>
+    /// <param name="formResponse">The form response to save.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// The task result contains the saved <see cref="FormResponse"/> with assigned IDs.
+    /// </returns>
+    /// <remarks>
+    /// This method saves the FormResponse and all associated QuestionResponses and
+    /// QuestionResponseOptions in a single transaction. All entities will have their
+    /// audit fields (CreatedOn, CreatedById) populated automatically.
+    /// </remarks>
+    Task<FormResponse> SaveFormResponseAsync(FormResponse formResponse);
 
-                /// <summary>
-                /// Gets a form response by ID with all question responses.
-                /// </summary>
-                /// <param name="responseId">The unique identifier of the response.</param>
-                /// <returns>
-                /// A task that represents the asynchronous operation.
-                /// The task result contains the response with all question responses and selected options loaded,
-                /// or null if not found.
-                /// </returns>
-                Task<FormResponse?> GetFormResponseAsync(Guid responseId);
+    /// <summary>
+    /// Gets a form response by ID with all question responses.
+    /// </summary>
+    /// <param name="responseId">The unique identifier of the response.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// The task result contains the response with all question responses and selected options loaded,
+    /// or null if not found.
+    /// </returns>
+    Task<FormResponse?> GetFormResponseAsync(Guid responseId);
 
-                /// <summary>
-                /// Deletes all responses for a specific form.
-                /// </summary>
-                /// <param name="formId">The unique identifier of the form.</param>
-                /// <returns>
-                /// A task that represents the asynchronous operation.
-                /// The task result contains the number of responses deleted.
-                /// </returns>
-                /// <remarks>
-                /// This performs a hard delete, permanently removing all responses for the form.
-                /// Use with caution - this operation cannot be undone.
-                /// </remarks>
-                Task<int> DeleteAllFormResponsesAsync(Guid formId);
-                
-                /// <summary>
-                /// Updates a form including its questions and options.
-                /// </summary>
-                /// <param name="formId">The ID of the form to update.</param>
-                /// <param name="updateDto">The update data.</param>
-                /// <returns>A task representing the operation.</returns>
-                Task UpdateFormWithQuestionsAsync(Guid formId, UpdateFormDto updateDto);
-                
-                /// <summary>
-                /// Saves all pending changes to the database.
-                /// </summary>
-                /// <returns>
-                /// A task that represents the asynchronous operation.
-                /// </returns>
-                /// <remarks>
-                /// Use this method when you've modified tracked entities and need to persist changes
-                /// without calling UpdateAsync (which assumes entities are detached).
-                /// </remarks>
-                Task SaveChangesAsync();
-            }
+    /// <summary>
+    /// Deletes all responses for a specific form.
+    /// </summary>
+    /// <param name="formId">The unique identifier of the form.</param>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// The task result contains the number of responses deleted.
+    /// </returns>
+    /// <remarks>
+    /// This performs a hard delete, permanently removing all responses for the form.
+    /// Use with caution - this operation cannot be undone.
+    /// </remarks>
+    Task<int> DeleteAllFormResponsesAsync(Guid formId);
+
+    /// <summary>
+    /// Updates a form including its questions and options.
+    /// </summary>
+    /// <param name="formId">The ID of the form to update.</param>
+    /// <param name="updateDto">The update data.</param>
+    /// <returns>A task representing the operation.</returns>
+    Task UpdateFormWithQuestionsAsync(Guid formId, UpdateFormDto updateDto);
+
+    /// <summary>
+    /// Saves all pending changes to the database.
+    /// </summary>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// </returns>
+    /// <remarks>
+    /// Use this method when you've modified tracked entities and need to persist changes
+    /// without calling UpdateAsync (which assumes entities are detached).
+    /// </remarks>
+    Task SaveChangesAsync();
+}

@@ -28,13 +28,13 @@ namespace JumpStart.DemoApp.Api.Controllers;
 [Authorize] // Requires JWT authentication
 public class ExampleController : ControllerBase
 {
-    private readonly ISimpleUserContext _userContext;
+    private readonly IUserContext _userContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ExampleController"/> class.
     /// </summary>
     /// <param name="userContext">The user context for retrieving the current user's ID.</param>
-    public ExampleController(ISimpleUserContext userContext)
+    public ExampleController(IUserContext userContext)
     {
         _userContext = userContext;
     }

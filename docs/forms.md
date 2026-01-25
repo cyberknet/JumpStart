@@ -129,6 +129,41 @@ Navigate to `/forms` in your Blazor app to create and manage forms.
 - User must select exactly one option
 - Use cases: Country, state, category selection
 
+
+#### Ranking
+- Drag-and-drop or ordered selection of options
+- Requires at least two options
+- User must rank all options or a subset (configurable)
+- Use cases: Prioritizing features, ranking preferences, ordering items
+
+**Example Configuration (API):**
+```csharp
+new CreateQuestionDto
+{
+    QuestionText = "Rank your top 3 favorite fruits",
+    QuestionTypeId = rankingTypeId, // Guid of "Ranking" type
+    IsRequired = true,
+    MinimumValue = "3", // Minimum number of items to rank
+    MaximumValue = "5", // Maximum number of items to rank (optional)
+    DisplayOrder = 3,
+    Options = new[]
+    {
+        new CreateQuestionOptionDto { OptionText = "Apple" },
+        new CreateQuestionOptionDto { OptionText = "Banana" },
+        new CreateQuestionOptionDto { OptionText = "Cherry" },
+        new CreateQuestionOptionDto { OptionText = "Date" },
+        new CreateQuestionOptionDto { OptionText = "Elderberry" }
+    }
+}
+```
+
+**Example (UI):**
+1. Add a question and select "Ranking" as the type
+2. Enter the question text (e.g., "Rank your top 3 favorite fruits")
+3. Add options to be ranked
+4. Set minimum/maximum number of items to rank
+5. Save and preview the drag-and-drop ranking UI
+
 ## Validation
 
 ### Question Validation
@@ -153,16 +188,17 @@ bool isInvalid = QuestionValidator.ValidateResponseValue(question, "10"); // fal
 
 ### Min/Max Validation by Type
 
-| Question Type | MinimumValue | MaximumValue | Validation Logic |
-|--------------|--------------|--------------|------------------|
-| **Number** | "18" | "120" | Parsed as decimal, numeric comparison |
-| **ShortText** | "8" | "50" | Character count |
-| **LongText** | "100" | "5000" | Character count |
-| **Date** | "1900-01-01" | "2100-12-31" | ISO date, date comparison |
-| **Boolean** | N/A | N/A | No constraints |
-| **SingleChoice** | N/A | N/A | At least one option selected |
-| **MultipleChoice** | N/A | N/A | At least one option selected (if required) |
-| **Dropdown** | N/A | N/A | One option selected |
+| Question Type      | MinimumValue | MaximumValue | Validation Logic                           |
+|--------------------|--------------|--------------|--------------------------------------------|
+| **Number**         | "18"         | "120"        | Parsed as decimal, numeric comparison      |
+| **ShortText**      | "8"          | "50"         | Character count                            |
+| **LongText**       | "100"        | "5000"       | Character count                            |
+| **Date**           | "1900-01-01" | "2100-12-31" | ISO date, date comparison                  |
+| **Boolean**        | N/A          | N/A          | No constraints                             |
+| **SingleChoice**   | N/A          | N/A          | At least one option selected               |
+| **MultipleChoice** | N/A          | N/A          | At least one option selected (if required) |
+| **Dropdown**       | N/A          | N/A          | One option selected                        |
+| **Ranking**        | N/A          | N/A          | No constraints                             |
 
 ### UI Helpers
 
@@ -282,16 +318,17 @@ Console.WriteLine($"Completion Rate: {stats.CompletionRate}%");
 
 Fixed reference data seeded via migrations:
 
-| Id | Code | Name | HasOptions | AllowsMultipleValues | InputType |
-|----|------|------|------------|---------------------|-----------|
-| 1000...001 | ShortText | Short Text | false | false | text |
-| 1000...002 | LongText | Long Text | false | false | textarea |
-| 1000...003 | Number | Number | false | false | number |
-| 1000...004 | Date | Date | false | false | date |
-| 1000...005 | Boolean | Yes/No | false | false | boolean |
-| 1000...006 | SingleChoice | Single Choice | true | false | radio |
-| 1000...007 | MultipleChoice | Multiple Choice | true | true | checkbox |
-| 1000...008 | Dropdown | Dropdown | true | false | select |
+| Id         | Code           | Name            | HasOptions | AllowsMultipleValues | InputType |
+|------------|----------------|-----------------|------------|----------------------|-----------|
+| 1000...001 | ShortText      | Short Text      | false      | false                | text      |
+| 1000...002 | LongText       | Long Text       | false      | false                | textarea  |
+| 1000...003 | Number         | Number          | false      | false                | number    |
+| 1000...004 | Date           | Date            | false      | false                | date      |
+| 1000...005 | Boolean        | Yes/No          | false      | false                | boolean   |
+| 1000...006 | SingleChoice   | Single Choice   | true       | false                | radio     |
+| 1000...007 | MultipleChoice | Multiple Choice | true       | true                 | checkbox  |
+| 1000...008 | Dropdown       | Dropdown        | true       | false                | select    |
+| 1000...009 | Ranking        | Ranking         | true       | true                 | ranking   |
 
 ### Entity Relationships
 

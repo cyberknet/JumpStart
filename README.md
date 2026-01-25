@@ -28,7 +28,7 @@ dotnet add package JumpStart
 ### Your First Entity
 
 ```csharp
-public class Product : SimpleAuditableEntity
+public class Product : AuditableEntity
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -61,11 +61,11 @@ This ensures framework data (like QuestionTypes for Forms) is automatically seed
 ### Your First Repository
 
 ```csharp
-public interface IProductRepository : ISimpleRepository<Product, Guid> { }
+public interface IProductRepository : IRepository<Product, Guid> { }
 
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
-    public ProductRepository(DbContext context, ISimpleUserContext? userContext)
+    public ProductRepository(DbContext context, IUserContext? userContext)
         : base(context, userContext) { }
 }
 ```
@@ -75,11 +75,11 @@ public class ProductRepository : SimpleRepository<Product>, IProductRepository
 ```csharp
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : SimpleApiControllerBase<
+public class ProductsController : ApiControllerBase<
     Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
 {
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product, Guid> repository,
         IMapper mapper)
         : base(repository, mapper) { }
 }
@@ -123,7 +123,7 @@ Choose between **Simple** (Guid-based) or **Advanced** (custom key types) entiti
 
 ```csharp
 // Simple - Quick and easy with Guids
-public class Category : SimpleAuditableEntity
+public class Category : AuditableEntity
 {
     public string Name { get; set; } = string.Empty;
 }
@@ -300,22 +300,22 @@ JumpStart is licensed under the **GNU General Public License v3.0**. See [LICENS
 
 ```csharp
 // 1. Define entity
-public class Product : SimpleAuditableEntity
+public class Product : AuditableEntity
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
 }
 
 // 2. Create repository
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
-    public ProductRepository(DbContext context, ISimpleUserContext userContext)
+    public ProductRepository(DbContext context, IUserContext userContext)
         : base(context, userContext) { }
 }
 
 // 3. Register services
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
-builder.Services.AddScoped<ISimpleUserContext, BlazorUserContext>();
+builder.Services.AddScoped<IUserContext, BlazorUserContext>();
 
 // 4. Use in your code
 public class ProductService
@@ -335,7 +335,7 @@ public class ProductService
 
 ```csharp
 // 1. Define DTOs
-public class ProductDto : SimpleEntityDto
+public class ProductDto : EntityDto
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -353,11 +353,11 @@ public class CreateProductDto : ICreateDto
 // 2. Create controller
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : SimpleApiControllerBase<
+public class ProductsController : ApiControllerBase<
     Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
 {
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product, Guid> repository,
         IMapper mapper)
         : base(repository, mapper) { }
 

@@ -1,16 +1,15 @@
 using JumpStart.Data;
-using JumpStart.Data.Advanced;
 using Microsoft.AspNetCore.Identity;
 
 namespace JumpStart.DemoApp.Data;
 
 /// <summary>
 /// Application user entity with Guid identifier.
-/// Implements both Identity and JumpStart IUser interfaces.
+/// Implements both Identity and JumpStart ISimpleUser interfaces.
 /// </summary>
-public class ApplicationUser : IdentityUser<Guid>, IUser<Guid>
+public class ApplicationUser : IdentityUser<Guid>, IUser
 {
-    // IUser.Id is satisfied by IdentityUser<Guid>.Id
+    // ISimpleUser.Id is satisfied by IdentityUser<Guid>.Id
     
     /// <summary>
     /// Gets or sets the user's full name.

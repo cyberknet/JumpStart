@@ -71,8 +71,9 @@ public static partial class JumpStartServiceCollectionExtensions
     /// <example>
     /// <code>
     /// // Minimal setup - SQL Server
-    /// services.AddJumpStartWithDbContext&lt;AppDbContext&gt;(
-    ///     options => options.UseSqlServer(connectionString));
+    /// services.AddJumpStartWithDbContext&lt;MyApp.Data.AppDbContext&gt;(
+    ///     services,
+    ///     options =&gt; options.UseSqlServer(connectionString));
     /// 
     /// // With user context for audit tracking
     /// services.AddJumpStartWithDbContext&lt;AppDbContext&gt;(

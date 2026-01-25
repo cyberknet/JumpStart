@@ -95,7 +95,7 @@ builder.Services.AddCors(options =>
 });
 
 // ============================================
-// 7. HTTP CONTEXT ACCESSOR (for ISimpleUserContext)
+// 7. HTTP CONTEXT ACCESSOR (for IUserContext)
 // ============================================
 builder.Services.AddHttpContextAccessor();
 

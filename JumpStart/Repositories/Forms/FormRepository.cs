@@ -17,7 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using JumpStart.Api.DTOs.Forms;
-using JumpStart.Data.Advanced.Auditing;
+using JumpStart.Data.Auditing;
 using JumpStart.Forms;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,7 +33,7 @@ namespace JumpStart.Repositories.Forms;
 /// </para>
 /// <para>
 /// All methods use async/await for optimal performance and follow JumpStart's
-/// repository patterns including audit tracking through <see cref="ISimpleUserContext"/>.
+/// repository patterns including audit tracking through <see cref="IUserContext"/>.
 /// </para>
 /// </remarks>
 /// <example>
@@ -63,8 +63,8 @@ namespace JumpStart.Repositories.Forms;
 /// }
 /// </code>
 /// </example>
-public class FormRepository(DbContext context, ISimpleUserContext? userContext) 
-    : SimpleRepository<Form>(context, userContext), IFormRepository
+public class FormRepository(DbContext context, IUserContext? userContext)
+    : Repository<Form>(context, userContext), IFormRepository
 {
     /// <summary>
     /// Retrieves all active forms.
@@ -85,7 +85,7 @@ public class FormRepository(DbContext context, ISimpleUserContext? userContext)
             .OrderBy(f => f.Name)
             .ToListAsync();
     }
-    
+
     /// <summary>
     /// Retrieves a form with all related questions and their options.
     /// </summary>
@@ -119,7 +119,7 @@ public class FormRepository(DbContext context, ISimpleUserContext? userContext)
             .Where(f => f.DeletedOn == null)
             .FirstOrDefaultAsync(f => f.Id == formId);
     }
-    
+
     /// <summary>
     /// Gets the total count of responses submitted for a specific form.
     /// </summary>
@@ -138,7 +138,7 @@ public class FormRepository(DbContext context, ISimpleUserContext? userContext)
             .Where(fr => fr.FormId == formId && fr.DeletedOn == null)
             .CountAsync();
     }
-    
+
     /// <summary>
     /// Gets the count of complete responses submitted for a specific form.
     /// </summary>
@@ -149,297 +149,297 @@ public class FormRepository(DbContext context, ISimpleUserContext? userContext)
     /// (where <see cref="FormResponse.IsComplete"/> is true).
     /// </returns>
     /// <remarks>
-        /// Only counts responses marked as complete. Useful for calculating
-        /// form completion rates and analyzing successful submissions.
-        /// </remarks>
-        public async Task<int> GetCompleteResponseCountAsync(Guid formId)
+    /// Only counts responses marked as complete. Useful for calculating
+    /// form completion rates and analyzing successful submissions.
+    /// </remarks>
+    public async Task<int> GetCompleteResponseCountAsync(Guid formId)
+    {
+        return await _context.Set<FormResponse>()
+            .Where(fr => fr.FormId == formId && fr.IsComplete && fr.DeletedOn == null)
+            .CountAsync();
+    }
+
+    /// <summary>
+    /// Gets a question type by its code.
+    /// </summary>
+    public async Task<QuestionType?> GetQuestionTypeByCodeAsync(string code)
+    {
+        return await _context.Set<QuestionType>()
+            .FirstOrDefaultAsync(qt => qt.Code == code);
+    }
+
+    /// <summary>
+    /// Gets all available question types, ordered by display order.
+    /// </summary>
+    public async Task<IList<QuestionType>> GetAllQuestionTypesAsync()
+    {
+        return await _context.Set<QuestionType>()
+            .OrderBy(qt => qt.DisplayOrder)
+            .ToListAsync();
+    }
+
+    /// <summary>
+    /// Gets a question type by its ID.
+    /// </summary>
+    public async Task<QuestionType?> GetQuestionTypeByIdAsync(Guid id)
+    {
+        return await _context.Set<QuestionType>()
+            .FirstOrDefaultAsync(qt => qt.Id == id);
+    }
+
+    /// <summary>
+    /// Creates a new question type.
+    /// </summary>
+    public async Task<QuestionType> CreateQuestionTypeAsync(QuestionType questionType)
+    {
+        await _context.Set<QuestionType>().AddAsync(questionType);
+        await _context.SaveChangesAsync();
+        return questionType;
+    }
+
+    /// <summary>
+    /// Updates an existing question type.
+    /// </summary>
+    public async Task UpdateQuestionTypeAsync(QuestionType questionType)
+    {
+        _context.Set<QuestionType>().Update(questionType);
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Deletes a question type.
+    /// </summary>
+    public async Task DeleteQuestionTypeAsync(Guid id)
+    {
+        var questionType = await GetQuestionTypeByIdAsync(id);
+        if (questionType != null)
         {
-            return await _context.Set<FormResponse>()
-                .Where(fr => fr.FormId == formId && fr.IsComplete && fr.DeletedOn == null)
-                .CountAsync();
+            _context.Set<QuestionType>().Remove(questionType);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    /// <summary>
+    /// Saves a form response with all question responses and selected options.
+    /// </summary>
+    public async Task<FormResponse> SaveFormResponseAsync(FormResponse formResponse)
+    {
+        // Add the form response (cascade will handle question responses)
+        await _context.Set<FormResponse>().AddAsync(formResponse);
+        await _context.SaveChangesAsync();
+
+        return formResponse;
+    }
+
+    /// <summary>
+    /// Gets a form response by ID with all related data loaded.
+    /// </summary>
+    public async Task<FormResponse?> GetFormResponseAsync(Guid responseId)
+    {
+        return await _context.Set<FormResponse>()
+            .Include(fr => fr.Form)
+            .Include(fr => fr.Answers)
+                .ThenInclude(qr => qr.Question)
+            .Include(fr => fr.Answers)
+                .ThenInclude(qr => qr.SelectedOptions)
+                    .ThenInclude(so => so.QuestionOption)
+            .FirstOrDefaultAsync(fr => fr.Id == responseId);
+    }
+
+    /// <summary>
+    /// Deletes all responses for a specific form (hard delete).
+    /// </summary>
+    public async Task<int> DeleteAllFormResponsesAsync(Guid formId)
+    {
+        var responses = await _context.Set<FormResponse>()
+            .Where(fr => fr.FormId == formId)
+            .ToListAsync();
+
+        var count = responses.Count;
+
+        if (count > 0)
+        {
+            _context.Set<FormResponse>().RemoveRange(responses);
+            await _context.SaveChangesAsync();
         }
 
-        /// <summary>
-        /// Gets a question type by its code.
-        /// </summary>
-        public async Task<QuestionType?> GetQuestionTypeByCodeAsync(string code)
+        return count;
+    }
+
+    /// <summary>
+    /// Updates a form including its questions and options.
+    /// </summary>
+    public async Task UpdateFormWithQuestionsAsync(Guid formId, UpdateFormDto updateDto)
+    {
+        var existingForm = await GetFormWithQuestionsAsync(formId);
+        if (existingForm == null)
         {
-            return await _context.Set<QuestionType>()
-                .FirstOrDefaultAsync(qt => qt.Code == code);
+            throw new InvalidOperationException($"Form {formId} not found");
         }
 
-            /// <summary>
-            /// Gets all available question types, ordered by display order.
-            /// </summary>
-            public async Task<IList<QuestionType>> GetAllQuestionTypesAsync()
-            {
-                return await _context.Set<QuestionType>()
-                    .OrderBy(qt => qt.DisplayOrder)
-                    .ToListAsync();
-            }
+        // Update form properties
+        existingForm.Name = updateDto.Name;
+        existingForm.Description = updateDto.Description;
+        existingForm.IsActive = updateDto.IsActive;
+        existingForm.AllowMultipleResponses = updateDto.AllowMultipleResponses;
+        existingForm.AllowAnonymous = updateDto.AllowAnonymous;
 
-            /// <summary>
-            /// Gets a question type by its ID.
-            /// </summary>
-            public async Task<QuestionType?> GetQuestionTypeByIdAsync(Guid id)
+        // Update modification audit fields
+        if (existingForm is IModifiable modifiableForm)
+        {
+            modifiableForm.ModifiedOn = DateTimeOffset.UtcNow;
+            if (_userContext != null)
             {
-                return await _context.Set<QuestionType>()
-                    .FirstOrDefaultAsync(qt => qt.Id == id);
-            }
-
-            /// <summary>
-            /// Creates a new question type.
-            /// </summary>
-            public async Task<QuestionType> CreateQuestionTypeAsync(QuestionType questionType)
-            {
-                await _context.Set<QuestionType>().AddAsync(questionType);
-                await _context.SaveChangesAsync();
-                return questionType;
-            }
-
-            /// <summary>
-            /// Updates an existing question type.
-            /// </summary>
-            public async Task UpdateQuestionTypeAsync(QuestionType questionType)
-            {
-                _context.Set<QuestionType>().Update(questionType);
-                await _context.SaveChangesAsync();
-            }
-
-            /// <summary>
-            /// Deletes a question type.
-            /// </summary>
-            public async Task DeleteQuestionTypeAsync(Guid id)
-            {
-                var questionType = await GetQuestionTypeByIdAsync(id);
-                if (questionType != null)
+                var userId = await _userContext.GetCurrentUserIdAsync();
+                if (userId.HasValue)
                 {
-                    _context.Set<QuestionType>().Remove(questionType);
-                    await _context.SaveChangesAsync();
+                    modifiableForm.ModifiedById = userId.Value;
                 }
             }
+        }
 
-            /// <summary>
-            /// Saves a form response with all question responses and selected options.
-            /// </summary>
-            public async Task<FormResponse> SaveFormResponseAsync(FormResponse formResponse)
+        // Synchronize questions
+        await SynchronizeQuestionsAsync(existingForm, updateDto.Questions);
+
+        // Save all changes
+        await _context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Synchronizes the questions collection for a form during update.
+    /// </summary>
+    private async Task SynchronizeQuestionsAsync(Form form, List<UpdateQuestionDto> questionDtos)
+    {
+        var existingQuestions = form.Questions.ToList();
+        var incomingQuestionIds = questionDtos.Where(q => q.Id.HasValue).Select(q => q.Id.Value).ToHashSet();
+
+        // Remove questions that are no longer in the update
+        var questionsToRemove = existingQuestions.Where(q => !incomingQuestionIds.Contains(q.Id)).ToList();
+        foreach (var question in questionsToRemove)
+        {
+            form.Questions.Remove(question);
+        }
+
+        // Add or update questions
+        foreach (var questionDto in questionDtos)
+        {
+            if (questionDto.Id.HasValue)
             {
-                // Add the form response (cascade will handle question responses)
-                await _context.Set<FormResponse>().AddAsync(formResponse);
-                await _context.SaveChangesAsync();
+                // Update existing question
+                var existingQuestion = existingQuestions.FirstOrDefault(q => q.Id == questionDto.Id.Value);
+                if (existingQuestion != null)
+                {
+                    existingQuestion.QuestionText = questionDto.QuestionText;
+                    existingQuestion.HelpText = questionDto.HelpText;
+                    existingQuestion.QuestionTypeId = questionDto.QuestionTypeId;
+                    existingQuestion.IsRequired = questionDto.IsRequired;
+                    existingQuestion.MinimumValue = questionDto.MinimumValue;
+                    existingQuestion.MaximumValue = questionDto.MaximumValue;
+                    existingQuestion.DisplayOrder = questionDto.DisplayOrder;
 
-                return formResponse;
-            }
-
-                    /// <summary>
-                    /// Gets a form response by ID with all related data loaded.
-                    /// </summary>
-                    public async Task<FormResponse?> GetFormResponseAsync(Guid responseId)
-                    {
-                        return await _context.Set<FormResponse>()
-                            .Include(fr => fr.Form)
-                            .Include(fr => fr.Answers)
-                                .ThenInclude(qr => qr.Question)
-                            .Include(fr => fr.Answers)
-                                .ThenInclude(qr => qr.SelectedOptions)
-                                    .ThenInclude(so => so.QuestionOption)
-                            .FirstOrDefaultAsync(fr => fr.Id == responseId);
-                    }
-
-                    /// <summary>
-                    /// Deletes all responses for a specific form (hard delete).
-                    /// </summary>
-                    public async Task<int> DeleteAllFormResponsesAsync(Guid formId)
-                    {
-                        var responses = await _context.Set<FormResponse>()
-                            .Where(fr => fr.FormId == formId)
-                            .ToListAsync();
-
-                        var count = responses.Count;
-
-                        if (count > 0)
-                        {
-                            _context.Set<FormResponse>().RemoveRange(responses);
-                            await _context.SaveChangesAsync();
-                        }
-
-                        return count;
-                    }
-                    
-                    /// <summary>
-                    /// Updates a form including its questions and options.
-                    /// </summary>
-                    public async Task UpdateFormWithQuestionsAsync(Guid formId, UpdateFormDto updateDto)
-                    {
-                        var existingForm = await GetFormWithQuestionsAsync(formId);
-                        if (existingForm == null)
-                        {
-                            throw new InvalidOperationException($"Form {formId} not found");
-                        }
-                        
-                        // Update form properties
-                        existingForm.Name = updateDto.Name;
-                        existingForm.Description = updateDto.Description;
-                        existingForm.IsActive = updateDto.IsActive;
-                        existingForm.AllowMultipleResponses = updateDto.AllowMultipleResponses;
-                        existingForm.AllowAnonymous = updateDto.AllowAnonymous;
-                        
-                        // Update modification audit fields
-                        if (existingForm is IModifiable<Guid> modifiableForm)
-                        {
-                            modifiableForm.ModifiedOn = DateTimeOffset.UtcNow;
-                            if (_userContext != null)
-                            {
-                                var userId = await _userContext.GetCurrentUserIdAsync();
-                                if (userId.HasValue)
-                                {
-                                    modifiableForm.ModifiedById = userId.Value;
-                                }
-                            }
-                        }
-                        
-                        // Synchronize questions
-                        await SynchronizeQuestionsAsync(existingForm, updateDto.Questions);
-                        
-                        // Save all changes
-                        await _context.SaveChangesAsync();
-                    }
-                    
-                    /// <summary>
-                    /// Synchronizes the questions collection for a form during update.
-                    /// </summary>
-                    private async Task SynchronizeQuestionsAsync(Form form, List<UpdateQuestionDto> questionDtos)
-                    {
-                        var existingQuestions = form.Questions.ToList();
-                        var incomingQuestionIds = questionDtos.Where(q => q.Id.HasValue).Select(q => q.Id.Value).ToHashSet();
-                        
-                        // Remove questions that are no longer in the update
-                        var questionsToRemove = existingQuestions.Where(q => !incomingQuestionIds.Contains(q.Id)).ToList();
-                        foreach (var question in questionsToRemove)
-                        {
-                            form.Questions.Remove(question);
-                        }
-                        
-                        // Add or update questions
-                        foreach (var questionDto in questionDtos)
-                        {
-                            if (questionDto.Id.HasValue)
-                            {
-                                // Update existing question
-                                var existingQuestion = existingQuestions.FirstOrDefault(q => q.Id == questionDto.Id.Value);
-                                if (existingQuestion != null)
-                                {
-                                    existingQuestion.QuestionText = questionDto.QuestionText;
-                                    existingQuestion.HelpText = questionDto.HelpText;
-                                    existingQuestion.QuestionTypeId = questionDto.QuestionTypeId;
-                                    existingQuestion.IsRequired = questionDto.IsRequired;
-                                    existingQuestion.MinimumValue = questionDto.MinimumValue;
-                                    existingQuestion.MaximumValue = questionDto.MaximumValue;
-                                    existingQuestion.DisplayOrder = questionDto.DisplayOrder;
-                                    
-                                    // Synchronize options
-                                    SynchronizeOptionsAsync(existingQuestion, questionDto.Options);
-                                }
-                            }
-                            else
-                            {
-                                // Add new question - verify question type exists
-                                var questionTypeExists = await GetQuestionTypeByIdAsync(questionDto.QuestionTypeId);
-                                if (questionTypeExists == null)
-                                {
-                                    throw new InvalidOperationException($"Question type {questionDto.QuestionTypeId} not found");
-                                }
-                                
-                                var newQuestion = new Question
-                                {
-                                    Id = Guid.NewGuid(),
-                                    FormId = form.Id,
-                                    QuestionText = questionDto.QuestionText,
-                                    HelpText = questionDto.HelpText,
-                                    QuestionTypeId = questionDto.QuestionTypeId,
-                                    IsRequired = questionDto.IsRequired,
-                                    MinimumValue = questionDto.MinimumValue,
-                                    MaximumValue = questionDto.MaximumValue,
-                                    DisplayOrder = questionDto.DisplayOrder
-                                };
-                                
-                                // Add options for new question
-                                foreach (var optionDto in questionDto.Options)
-                                {
-                                    newQuestion.Options.Add(new QuestionOption
-                                    {
-                                        Id = Guid.NewGuid(),
-                                        QuestionId = newQuestion.Id,
-                                        OptionText = optionDto.OptionText,
-                                        OptionValue = optionDto.OptionValue,
-                                        DisplayOrder = optionDto.DisplayOrder
-                                    });
-                                }
-                                
-                                // Explicitly mark as Added to avoid confusion
-                                form.Questions.Add(newQuestion);
-                                _context.Entry(newQuestion).State = EntityState.Added;
-                                
-                                // Mark all options as Added too
-                                foreach (var option in newQuestion.Options)
-                                {
-                                    _context.Entry(option).State = EntityState.Added;
-                                }
-                            }
-                        }
-                    }
-                    
-                    /// <summary>
-                    /// Synchronizes the options collection for a question during update.
-                    /// </summary>
-                    private void SynchronizeOptionsAsync(Question question, List<UpdateQuestionOptionDto> optionDtos)
-                    {
-                        var existingOptions = question.Options.ToList();
-                        var incomingOptionIds = optionDtos.Where(o => o.Id.HasValue).Select(o => o.Id.Value).ToHashSet();
-                        
-                        // Remove options that are no longer in the update
-                        var optionsToRemove = existingOptions.Where(o => !incomingOptionIds.Contains(o.Id)).ToList();
-                        foreach (var option in optionsToRemove)
-                        {
-                            question.Options.Remove(option);
-                        }
-                        
-                        // Add or update options
-                        foreach (var optionDto in optionDtos)
-                        {
-                            if (optionDto.Id.HasValue)
-                            {
-                                // Update existing option
-                                var existingOption = existingOptions.FirstOrDefault(o => o.Id == optionDto.Id.Value);
-                                if (existingOption != null)
-                                {
-                                    existingOption.OptionText = optionDto.OptionText;
-                                    existingOption.OptionValue = optionDto.OptionValue;
-                                    existingOption.DisplayOrder = optionDto.DisplayOrder;
-                                }
-                            }
-                            else
-                            {
-                                // Add new option
-                                var newOption = new QuestionOption
-                                {
-                                    Id = Guid.NewGuid(),
-                                    QuestionId = question.Id,
-                                    OptionText = optionDto.OptionText,
-                                    OptionValue = optionDto.OptionValue,
-                                    DisplayOrder = optionDto.DisplayOrder
-                                };
-                                question.Options.Add(newOption);
-                                _context.Entry(newOption).State = EntityState.Added;
-                            }
-                        }
-                    }
-                    
-                    /// <summary>
-                    /// Saves all pending changes to the database.
-                    /// </summary>
-                    public async Task SaveChangesAsync()
-                    {
-                        await _context.SaveChangesAsync();
-                    }
+                    // Synchronize options
+                    SynchronizeOptionsAsync(existingQuestion, questionDto.Options);
                 }
+            }
+            else
+            {
+                // Add new question - verify question type exists
+                var questionTypeExists = await GetQuestionTypeByIdAsync(questionDto.QuestionTypeId);
+                if (questionTypeExists == null)
+                {
+                    throw new InvalidOperationException($"Question type {questionDto.QuestionTypeId} not found");
+                }
+
+                var newQuestion = new Question
+                {
+                    Id = Guid.NewGuid(),
+                    FormId = form.Id,
+                    QuestionText = questionDto.QuestionText,
+                    HelpText = questionDto.HelpText,
+                    QuestionTypeId = questionDto.QuestionTypeId,
+                    IsRequired = questionDto.IsRequired,
+                    MinimumValue = questionDto.MinimumValue,
+                    MaximumValue = questionDto.MaximumValue,
+                    DisplayOrder = questionDto.DisplayOrder
+                };
+
+                // Add options for new question
+                foreach (var optionDto in questionDto.Options)
+                {
+                    newQuestion.Options.Add(new QuestionOption
+                    {
+                        Id = Guid.NewGuid(),
+                        QuestionId = newQuestion.Id,
+                        OptionText = optionDto.OptionText,
+                        OptionValue = optionDto.OptionValue,
+                        DisplayOrder = optionDto.DisplayOrder
+                    });
+                }
+
+                // Explicitly mark as Added to avoid confusion
+                form.Questions.Add(newQuestion);
+                _context.Entry(newQuestion).State = EntityState.Added;
+
+                // Mark all options as Added too
+                foreach (var option in newQuestion.Options)
+                {
+                    _context.Entry(option).State = EntityState.Added;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Synchronizes the options collection for a question during update.
+    /// </summary>
+    private void SynchronizeOptionsAsync(Question question, List<UpdateQuestionOptionDto> optionDtos)
+    {
+        var existingOptions = question.Options.ToList();
+        var incomingOptionIds = optionDtos.Where(o => o.Id.HasValue).Select(o => o.Id.Value).ToHashSet();
+
+        // Remove options that are no longer in the update
+        var optionsToRemove = existingOptions.Where(o => !incomingOptionIds.Contains(o.Id)).ToList();
+        foreach (var option in optionsToRemove)
+        {
+            question.Options.Remove(option);
+        }
+
+        // Add or update options
+        foreach (var optionDto in optionDtos)
+        {
+            if (optionDto.Id.HasValue)
+            {
+                // Update existing option
+                var existingOption = existingOptions.FirstOrDefault(o => o.Id == optionDto.Id.Value);
+                if (existingOption != null)
+                {
+                    existingOption.OptionText = optionDto.OptionText;
+                    existingOption.OptionValue = optionDto.OptionValue;
+                    existingOption.DisplayOrder = optionDto.DisplayOrder;
+                }
+            }
+            else
+            {
+                // Add new option
+                var newOption = new QuestionOption
+                {
+                    Id = Guid.NewGuid(),
+                    QuestionId = question.Id,
+                    OptionText = optionDto.OptionText,
+                    OptionValue = optionDto.OptionValue,
+                    DisplayOrder = optionDto.DisplayOrder
+                };
+                question.Options.Add(newOption);
+                _context.Entry(newOption).State = EntityState.Added;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Saves all pending changes to the database.
+    /// </summary>
+    public async Task SaveChangesAsync()
+    {
+        await _context.SaveChangesAsync();
+    }
+}

@@ -18,6 +18,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using JumpStart.Data;
 using JumpStart.Data.Auditing;
+using Microsoft.EntityFrameworkCore;
 
 namespace JumpStart.Forms;
 
@@ -58,7 +59,7 @@ namespace JumpStart.Forms;
 /// }
 /// </code>
 /// </example>
-public class QuestionOption : SimpleAuditableEntity
+public class QuestionOption : AuditableEntity
 {
     /// <summary>
     /// Gets or sets the ID of the question this option belongs to.
@@ -126,6 +127,7 @@ public class QuestionOption : SimpleAuditableEntity
     /// The <see cref="Question"/> this option belongs to.
     /// </value>
     [ForeignKey(nameof(QuestionId))]
+    [DeleteBehavior(DeleteBehavior.Cascade)]
     public Question Question { get; set; } = null!;
     
     /// <summary>

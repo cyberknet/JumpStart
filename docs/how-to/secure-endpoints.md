@@ -86,16 +86,16 @@ public class JwtSettings
 ```csharp
 [ApiController]
 [Route("api/[controller]")]
+
 [Authorize] // All endpoints require authentication
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product> repository,
         IMapper mapper)
         : base(repository, mapper)
     {
     }
-    
     // GET /api/products - Requires authentication
     // POST /api/products - Requires authentication
     // PUT /api/products/{id} - Requires authentication
@@ -109,7 +109,7 @@ public class ProductsController : SimpleApiControllerBase<Product, ProductDto, C
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     [AllowAnonymous] // Anyone can view products
     [HttpGet]
@@ -177,7 +177,8 @@ public class JwtTokenService
 ```csharp
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     [AllowAnonymous]
     [HttpGet]
@@ -242,7 +243,8 @@ builder.Services.AddAuthorization(options =>
 ```csharp
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     [AllowAnonymous]
     [HttpGet]
@@ -325,12 +327,13 @@ Authorize based on the resource being accessed:
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     private readonly IAuthorizationService _authorizationService;
 
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product> repository,
         IMapper mapper,
         IAuthorizationService authorizationService)
         : base(repository, mapper)
@@ -473,7 +476,7 @@ public class ApiKeyAttribute : Attribute, IAuthorizationFilter
 [ApiController]
 [Route("api/[controller]")]
 [ApiKey] // Require API key for all endpoints
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     // ...
 }

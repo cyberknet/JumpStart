@@ -7,7 +7,7 @@ namespace JumpStart.DemoApp.Services;
 /// <summary>
 /// Provides the current user's Guid identifier for JumpStart audit tracking in Blazor applications.
 /// </summary>
-public class BlazorUserContext : ISimpleUserContext
+public class BlazorUserContext : IUserContext
 {
     private readonly AuthenticationStateProvider _authStateProvider;
 

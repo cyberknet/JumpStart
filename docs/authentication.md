@@ -134,10 +134,10 @@ In the API project, use the `[Authorize]` attribute:
 [ApiController]
 [Route("api/[controller]")]
 [Authorize] // Requires valid JWT token
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product> repository,
         IMapper mapper)
         : base(repository, mapper)
     {
@@ -152,9 +152,9 @@ The `ApiUserContext` provides access to the authenticated user:
 ```csharp
 public class CustomController : ControllerBase
 {
-    private readonly ISimpleUserContext _userContext;
+    private readonly IUserContext _userContext;
     
-    public CustomController(ISimpleUserContext userContext)
+    public CustomController(IUserContext userContext)
     {
         _userContext = userContext;
     }
@@ -213,7 +213,7 @@ builder.Services.AddCors(options =>
 
 // User Context
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ISimpleUserContext, ApiUserContext>();
+builder.Services.AddScoped<IUserContext, ApiUserContext>();
 ```
 
 ### JumpStart.DemoApp (Program.cs)

@@ -7,9 +7,9 @@ namespace JumpStart.DemoApp.Api.Repositories;
 
 /// <summary>
 /// Repository interface for Product entities.
-/// Extends ISimpleRepository with custom product-specific queries.
+/// Extends IRepository with custom product-specific queries.
 /// </summary>
-public interface IProductRepository : ISimpleRepository<Product>
+public interface IProductRepository : IRepository<Product>
 {
     Task<IEnumerable<Product>> GetProductsByPriceRangeAsync(decimal minPrice, decimal maxPrice);
     Task<IEnumerable<Product>> GetLowStockProductsAsync(int threshold);

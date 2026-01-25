@@ -108,7 +108,7 @@ dotnet ef database update
 **Diagnosis:**
 ```csharp
 // Check if user context is registered
-var userContext = serviceProvider.GetService<ISimpleUserContext>();
+var userContext = serviceProvider.GetService<IUserContext>();
 if (userContext == null)
 {
     Console.WriteLine("User context not registered!");
@@ -123,7 +123,7 @@ Console.WriteLine($"Current User ID: {userId ?? Guid.Empty}");
 
 1. **Register user context:**
 ```csharp
-builder.Services.AddScoped<ISimpleUserContext, BlazorUserContext>();
+builder.Services.AddScoped<IUserContext, BlazorUserContext>();
 ```
 
 2. **Pass user context to repository:**
@@ -131,7 +131,7 @@ builder.Services.AddScoped<ISimpleUserContext, BlazorUserContext>();
 // Constructor should receive it
 public ProductRepository(
     DbContext context,
-    ISimpleUserContext? userContext) // Don't forget this!
+    IUserContext? userContext) // Don't forget this!
     : base(context, userContext)
 {
 }
@@ -139,7 +139,7 @@ public ProductRepository(
 
 3. **Ensure user is authenticated:**
 ```csharp
-public class BlazorUserContext : ISimpleUserContext
+public class BlazorUserContext : IUserContext
 {
     public async Task<Guid?> GetCurrentUserIdAsync()
     {

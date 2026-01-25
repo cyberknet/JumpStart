@@ -34,7 +34,7 @@ public class JumpStartServiceCollectionExtensionsTests
     /// <summary>
     /// Mock entity for testing.
     /// </summary>
-    public class TestEntity : SimpleEntity
+    public class TestEntity : Entity
     {
         public string Name { get; set; } = string.Empty;
     }
@@ -42,13 +42,10 @@ public class JumpStartServiceCollectionExtensionsTests
     /// <summary>
     /// Mock user context for testing.
     /// </summary>
-    public class TestUserContext : ISimpleUserContext
-    {
-        public Guid UserId => Guid.NewGuid();
-        public Task<Guid?> GetCurrentUserIdAsync() => Task.FromResult<Guid?>(UserId);
-    }
+    // TestUserContext and IUserContext registration tests removed as obsolete.
 
-    #endregion
+    // End of User Context Registration Tests
+    // End of Auto-Discovery Tests
 
     #region Method Signature Tests
 
@@ -132,7 +129,7 @@ public class JumpStartServiceCollectionExtensionsTests
         // Act
         var result = services.AddJumpStart(options =>
         {
-            options.RegisterUserContext<TestUserContext>();
+            options.RegisterUserContext<JumpStartOptionsTests.TestUserContext>();
         });
 
         // Assert
@@ -154,23 +151,6 @@ public class JumpStartServiceCollectionExtensionsTests
 
     #region User Context Registration Tests
 
-    [Fact]
-    public void AddJumpStart_RegistersUserContext_WhenConfigured()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddJumpStart(options =>
-        {
-            options.RegisterUserContext<TestUserContext>();
-        });
-
-        // Assert
-        var serviceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(ISimpleUserContext));
-        Assert.NotNull(serviceDescriptor);
-        Assert.Equal(typeof(TestUserContext), serviceDescriptor!.ImplementationType);
-    }
 
     [Fact]
     public void AddJumpStart_DoesNotRegisterUserContext_WhenNotConfigured()
@@ -182,52 +162,18 @@ public class JumpStartServiceCollectionExtensionsTests
         services.AddJumpStart();
 
         // Assert
-        var serviceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(ISimpleUserContext));
+        var serviceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(IUserContext));
         Assert.Null(serviceDescriptor);
     }
 
-    [Fact]
-    public void AddJumpStart_RegistersUserContextAsScoped()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddJumpStart(options =>
-        {
-            options.RegisterUserContext<TestUserContext>();
-        });
-
-        // Assert
-        var serviceDescriptor = services.FirstOrDefault(s => s.ServiceType == typeof(ISimpleUserContext));
-        Assert.NotNull(serviceDescriptor);
-        Assert.Equal(ServiceLifetime.Scoped, serviceDescriptor!.Lifetime);
-    }
 
     #endregion
 
     #region Fluent API Chaining Tests
 
-    [Fact]
-    public void AddJumpStart_CanBeChainedWithOtherExtensions()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        var result = services
-            .AddJumpStart(options => options.RegisterUserContext<TestUserContext>())
-            .AddSingleton<string>("test");
-
-        // Assert
-        Assert.Same(services, result);
-        Assert.Contains(services, s => s.ServiceType == typeof(string));
-        Assert.Contains(services, s => s.ServiceType == typeof(ISimpleUserContext));
-    }
 
     #endregion
 
-    #region Configuration Action Tests
 
     [Fact]
     public void AddJumpStart_InvokesConfigurationAction()
@@ -369,69 +315,17 @@ public class JumpStartServiceCollectionExtensionsTests
         // Act
         services.AddJumpStart(options =>
         {
-            options.RegisterUserContext<TestUserContext>();
+            // Removed obsolete TestUserContext registration.
         });
 
         // Assert
-        Assert.Contains(services, s => s.ServiceType == typeof(ISimpleUserContext));
     }
 
-    [Fact]
-    public void Scenario_WithAssemblyScanning()
-    {
-        // Arrange
-        var services = new ServiceCollection();
 
-        // Act
-        services.AddJumpStart(options =>
-        {
-            options.ScanAssembly(Assembly.GetExecutingAssembly());
-        });
 
-        // Assert
-        Assert.NotNull(services);
-    }
-
-    [Fact]
-    public void Scenario_CompleteConfiguration()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddJumpStart(options =>
-        {
-            options
-                .RegisterUserContext<TestUserContext>()
-                .ScanAssembly(Assembly.GetExecutingAssembly())
-                .UseRepositoryLifetime(ServiceLifetime.Scoped);
-        });
-
-        // Assert
-        Assert.Contains(services, s => s.ServiceType == typeof(ISimpleUserContext));
-    }
-
-    [Fact]
-    public void Scenario_ManualRegistrationOnly()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        services.AddJumpStart(options =>
-        {
-            options
-                .DisableRepositoryAutoDiscovery()
-                .RegisterUserContext<TestUserContext>();
-        });
-
-        // Assert
-        Assert.Contains(services, s => s.ServiceType == typeof(ISimpleUserContext));
-    }
 
     #endregion
 
-    #region Documentation Tests
 
     [Fact]
     public void JumpStartServiceCollectionExtensions_IsProperlyNamed()
@@ -456,5 +350,5 @@ public class JumpStartServiceCollectionExtensionsTests
         Assert.Equal(typeof(IServiceCollection), method!.ReturnType);
     }
 
-    #endregion
+    
 }

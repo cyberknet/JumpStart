@@ -59,7 +59,7 @@ namespace MyProductCatalog.Data;
 /// <summary>
 /// Represents a product in the catalog.
 /// </summary>
-public class Product : SimpleEntity
+public class Product : Entity
 {
     /// <summary>
     /// Gets or sets the product name.
@@ -84,8 +84,8 @@ public class Product : SimpleEntity
 ```
 
 **What You Get:**
-- `SimpleEntity` provides an `Id` property (Guid) automatically
-- Inheriting from `SimpleAuditableEntity` would add audit tracking (CreatedBy, CreatedOn, etc.)
+- `Entity` provides an `Id` property (Guid) automatically
+- Inheriting from `AuditableEntity` would add audit tracking (CreatedBy, CreatedOn, etc.)
 
 ### Step 3: Create a DbContext
 
@@ -145,12 +145,12 @@ namespace MyProductCatalog.Repositories;
 /// <summary>
 /// Repository for Product entities.
 /// </summary>
-public interface IProductRepository : ISimpleRepository<Product, Guid>
+public interface IProductRepository : IRepository<Product>
 {
     // Add custom methods here if needed
 }
 
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
     public ProductRepository(ApplicationDbContext context)
         : base(context, null) // null for no user context (no audit tracking)
@@ -323,7 +323,7 @@ Congratulations! You've created your first JumpStart application. Here's what to
 Change your entity to inherit from `SimpleAuditableEntity` to automatically track who created and modified records:
 
 ```csharp
-public class Product : SimpleAuditableEntity
+public class Product : AuditableEntity
 {
     // ... properties
 }
@@ -337,10 +337,10 @@ Add API controllers to expose your data as RESTful endpoints:
 ```csharp
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     public ProductsController(
-        ISimpleRepository<Product, Guid> repository,
+        IRepository<Product> repository,
         IMapper mapper)
         : base(repository, mapper)
     {
@@ -368,7 +368,7 @@ See [How-To: Pagination](how-to/pagination.md) for details.
 Extend repositories with custom queries:
 
 ```csharp
-public interface IProductRepository : ISimpleRepository<Product, Guid>
+public interface IProductRepository : IRepository<Product>
 {
     Task<IList<Product>> GetLowStockProductsAsync(int threshold);
 }

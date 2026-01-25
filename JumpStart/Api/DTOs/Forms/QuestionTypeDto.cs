@@ -19,6 +19,26 @@ namespace JumpStart.Api.DTOs.Forms;
 /// <summary>
 /// Data transfer object for question type information.
 /// </summary>
+/// <remarks>
+/// Used to describe how questions are rendered and validated. <c>ApplicationData</c> can contain Blazor-specific metadata (e.g., RazorComponentName, IconClass) as JSON.
+/// </remarks>
+/// <example>
+/// <code>
+/// // Example: Creating a question type DTO
+/// var type = new JumpStart.Api.DTOs.Forms.QuestionTypeDto
+/// {
+///     Id = Guid.NewGuid(),
+///     Code = "ShortText",
+///     Name = "Short Text",
+///     Description = "Single-line text input",
+///     HasOptions = false,
+///     AllowsMultipleValues = false,
+///     InputType = "text",
+///     DisplayOrder = 1,
+///     ApplicationData = "{\"RazorComponentName\":\"ShortTextInput\"}"
+/// };
+/// </code>
+/// </example>
 public class QuestionTypeDto
 {
     /// <summary>Gets or sets the question type ID.</summary>

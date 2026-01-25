@@ -34,7 +34,7 @@ public class JumpStartOptionsTests
     /// <summary>
     /// Mock user context for testing type constraints.
     /// </summary>
-    public class TestUserContext : ISimpleUserContext
+    public class TestUserContext : IUserContext
     {
         public Guid UserId => Guid.NewGuid();
 
@@ -260,7 +260,7 @@ public class JumpStartOptionsTests
     #region Generic Constraint Tests
 
     [Fact]
-    public void RegisterUserContext_RequiresISimpleUserContextConstraint()
+    public void RegisterUserContext_RequiresIUserContextConstraint()
     {
         // Arrange
         var optionsType = typeof(JumpStartOptions);
@@ -271,7 +271,7 @@ public class JumpStartOptionsTests
         var constraints = genericParameter.GetGenericParameterConstraints();
 
         // Assert
-        Assert.Contains(constraints, c => c == typeof(ISimpleUserContext));
+        Assert.Contains(constraints, c => c == typeof(IUserContext));
         Assert.True((genericParameter.GenericParameterAttributes & GenericParameterAttributes.ReferenceTypeConstraint) != 0);
     }
 

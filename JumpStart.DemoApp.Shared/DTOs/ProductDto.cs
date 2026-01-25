@@ -6,7 +6,7 @@ namespace JumpStart.DemoApp.Shared.DTOs;
 /// DTO for reading Product data.
 /// Includes all product information including audit fields.
 /// </summary>
-public class ProductDto : JumpStart.Api.DTOs.SimpleAuditableEntityDto
+public class ProductDto : JumpStart.Api.DTOs.AuditableEntityDto
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -33,7 +33,7 @@ public class CreateProductDto : JumpStart.Api.DTOs.ICreateDto
 /// DTO for updating an existing Product.
 /// Includes Id and user-modifiable fields, but no audit fields.
 /// </summary>
-public class UpdateProductDto : JumpStart.Api.DTOs.IUpdateDto<Guid>
+public class UpdateProductDto : JumpStart.Api.DTOs.IUpdateDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;

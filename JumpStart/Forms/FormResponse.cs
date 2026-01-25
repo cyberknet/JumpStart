@@ -68,7 +68,7 @@ namespace JumpStart.Forms;
 /// });
 /// </code>
 /// </example>
-public class FormResponse : SimpleAuditableEntity
+public class FormResponse : AuditableEntity
 {
     /// <summary>
     /// Gets or sets the ID of the form being responded to.

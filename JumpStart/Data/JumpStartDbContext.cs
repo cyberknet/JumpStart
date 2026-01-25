@@ -49,36 +49,33 @@ namespace JumpStart.Data;
 /// </remarks>
 /// <example>
 /// <code>
-/// // ✅ CORRECT - Inherit from JumpStartDbContext
-/// public class ApplicationDbContext : JumpStartDbContext
+/// // Inherit from JumpStartDbContext
+/// public class ApplicationDbContext : JumpStart.Data.JumpStartDbContext
 /// {
-///     public ApplicationDbContext(DbContextOptions&lt;ApplicationDbContext&gt; options)
+///     public ApplicationDbContext(Microsoft.EntityFrameworkCore.DbContextOptions&lt;ApplicationDbContext&gt; options)
 ///         : base(options)
 ///     {
 ///     }
-///     
 ///     // Your DbSets
-///     public DbSet&lt;Product&gt; Products { get; set; }
-///     
-///     protected override void OnModelCreating(ModelBuilder modelBuilder)
+///     public Microsoft.EntityFrameworkCore.DbSet&lt;Product&gt; Products { get; set; } = null!;
+///     protected override void OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)
 ///     {
-///         // ⚠️ IMPORTANT: Call base first to apply framework configurations
+///         // IMPORTANT: Call base first to apply framework configurations
 ///         base.OnModelCreating(modelBuilder);
-///         
 ///         // Your entity configurations
 ///         modelBuilder.Entity&lt;Product&gt;()
 ///             .HasKey(p => p.Id);
 ///     }
 /// }
-/// 
-/// // ❌ WRONG - Don't inherit directly from DbContext
-/// public class ApplicationDbContext : DbContext  // This will cause runtime error!
+///
+/// // DO NOT inherit directly from DbContext
+/// public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext  // This will cause a runtime error!
 /// {
 ///     // ...
 /// }
 /// </code>
 /// </example>
-public abstract class JumpStartDbContext : DbContext
+public abstract partial class JumpStartDbContext : DbContext
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="JumpStartDbContext"/> class.
@@ -143,49 +140,14 @@ public abstract class JumpStartDbContext : DbContext
     /// The set of selected options for choice-based question responses.
     /// </value>
     public DbSet<QuestionResponseOption> QuestionResponseOptions { get; set; } = null!;
-    
+
     /// <summary>
-    /// Configures the model using the Fluent API.
-    /// Applies framework entity configurations and seeds framework-required data.
+    /// Gets or sets the Tenants DbSet.
     /// </summary>
-    /// <param name="modelBuilder">The builder used to construct the model for this context.</param>
-    /// <remarks>
-    /// <para>
-    /// <strong>⚠️ IMPORTANT:</strong> When overriding this method in your derived context,
-    /// you MUST call <c>base.OnModelCreating(modelBuilder)</c> first to ensure framework
-    /// configurations are applied.
-    /// </para>
-    /// <para>
-    /// This method:
-    /// </para>
-    /// <list type="bullet">
-    /// <item>Applies entity configurations from the JumpStart assembly</item>
-    /// <item>Seeds framework-required reference data (QuestionTypes, etc.)</item>
-    /// <item>Configures relationships and constraints</item>
-    /// </list>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// protected override void OnModelCreating(ModelBuilder modelBuilder)
-    /// {
-    ///     // ⚠️ Call base first - this applies framework configurations
-    ///     base.OnModelCreating(modelBuilder);
-    ///     
-    ///     // Now add your application-specific configurations
-    ///     modelBuilder.Entity&lt;Product&gt;()
-    ///         .HasKey(p => p.Id);
-    ///         
-    ///     modelBuilder.Entity&lt;Category&gt;()
-    ///         .HasMany(c => c.Products)
-    ///         .WithOne(p => p.Category);
-    /// }
-    /// </code>
-    /// </example>
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-        
-        // Apply all IEntityTypeConfiguration implementations from JumpStart assembly
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(JumpStartDbContext).Assembly);
-    }
+    public DbSet<Tenant> Tenants { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the UserTenants DbSet.
+    /// </summary>
+    public DbSet<UserTenant> UserTenants { get; set; } = null!;
 }

@@ -27,7 +27,7 @@ namespace JumpStart.Api.DTOs.Forms;
 /// </remarks>
 /// <example>
 /// <code>
-/// var updateDto = new UpdateQuestionTypeDto
+/// var updateDto = new JumpStart.Api.DTOs.Forms.UpdateQuestionTypeDto
 /// {
 ///     Name = "Updated Name",
 ///     Description = "Updated description",

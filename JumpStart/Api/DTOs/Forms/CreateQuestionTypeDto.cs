@@ -31,7 +31,7 @@ namespace JumpStart.Api.DTOs.Forms;
 /// </remarks>
 /// <example>
 /// <code>
-/// var createDto = new CreateQuestionTypeDto
+/// var createDto = new JumpStart.Api.DTOs.Forms.CreateQuestionTypeDto
 /// {
 ///     Code = "Email",
 ///     Name = "Email Address",

@@ -9,13 +9,13 @@ namespace JumpStart.DemoApp.Controllers;
 
 /// <summary>
 /// API controller for managing products using DTOs.
-/// Inherits all CRUD operations from SimpleApiControllerBase.
+/// Inherits all CRUD operations from ApiControllerBase.
 /// Uses AutoMapper for entity-DTO conversions.
 /// </summary>
 [Route("api/[controller]")]
 [ApiController]
 public class ProductsController 
-    : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
+    : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     public ProductsController(IProductRepository repository, IMapper mapper) 
         : base(repository, mapper)

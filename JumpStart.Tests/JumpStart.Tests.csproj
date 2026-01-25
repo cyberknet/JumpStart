@@ -32,4 +32,9 @@
       <Using Include="Xunit" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Api\Mapping\Advanced\" />
+      <Folder Include="Data\Auditing\" />
+    </ItemGroup>
+
   </Project>

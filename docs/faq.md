@@ -14,7 +14,7 @@ JumpStart currently targets **.NET 10**. It uses the latest C# language features
 
 ### Is JumpStart open source?
 
-Yes! JumpStart is open source and licensed under the **GNU General Public License v3.0**. See [LICENSE](../LICENSE.txt) for details.
+Yes! JumpStart is open source and licensed under the **GNU General Public License v3.0 (or later at your option)**. See [LICENSE](../LICENSE.txt) for details.
 
 ### Can I use JumpStart in commercial projects?
 
@@ -30,37 +30,24 @@ dotnet add package JumpStart
 
 See the [Getting Started Guide](getting-started.md) for a complete tutorial.
 
-### Do I need to use both Simple and Advanced entities?
-
-No! Choose one approach based on your needs:
-
-- **Simple Entities** - Use Guid for IDs, quick and easy
-- **Advanced Entities** - Custom key types, maximum flexibility
-
-Most applications can use Simple entities exclusively.
-
-### Can I mix Simple and Advanced entities in the same project?
-
-Yes, but it's not recommended. Stick with one approach for consistency unless you have a specific need.
-
 ## Entities and Repositories
 
-### When should I use SimpleEntity vs SimpleAuditableEntity?
+### When should I use Entity vs AuditableEntity?
 
-Use `SimpleAuditableEntity` when you need to track:
+Use `AuditableEntity` when you need to track:
 - Who created the record
 - When it was created
 - Who last modified it
 - When it was last modified
 
-Use `SimpleEntity` for simple lookup tables or when audit tracking isn't needed.
+Use `Entity` for simple lookup tables or when audit tracking isn't needed.
 
 ### How do I add custom properties to entities?
 
 Just add them like any C# class:
 
 ```csharp
-public class Product : SimpleAuditableEntity
+public class Product : AuditableEntity
 {
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
@@ -79,7 +66,7 @@ No! Use the base repository directly if you don't need custom methods:
 
 ```csharp
 // No custom repository needed
-builder.Services.AddScoped<ISimpleRepository<Category, Guid>, SimpleRepository<Category>>();
+builder.Services.AddScoped<IRepository<Category>, Repository<Category>>();
 ```
 
 Create custom repositories only when you need specialized query methods.
@@ -106,7 +93,7 @@ public class OrderService
 ### Why are my audit fields null?
 
 Common causes:
-1. **User Context not registered** - Make sure you register your ISimpleUserContext implementation
+1. **User Context not registered** - Make sure you register your IUserContext implementation
 2. **User not authenticated** - The user context returns null for unauthenticated users
 3. **Not using repository** - Direct DbContext operations bypass audit tracking
 
@@ -115,7 +102,7 @@ Common causes:
 Yes! Create your own base class:
 
 ```csharp
-public abstract class CustomAuditableEntity : SimpleEntity, ISimpleAuditable
+public abstract class CustomAuditableEntity : Entity, IAuditable
 {
     public Guid CreatedById { get; set; }
     public DateTime CreatedOn { get; set; }
@@ -134,7 +121,7 @@ public abstract class CustomAuditableEntity : SimpleEntity, ISimpleAuditable
 Yes! Create a SystemUserContext that returns a configured system user ID:
 
 ```csharp
-public class SystemUserContext : ISimpleUserContext
+public class SystemUserContext : IUserContext
 {
     private readonly Guid _systemUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
@@ -183,7 +170,7 @@ public class UpdateProductDto : IUpdateDto
 Just add new methods:
 
 ```csharp
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
 {
     [HttpGet("low-stock")]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetLowStock(
@@ -319,7 +306,7 @@ public async Task GetByIdAsync_ReturnsProduct()
 Create a mock implementation:
 
 ```csharp
-public class MockUserContext : ISimpleUserContext
+public class MockUserContext : IUserContext
 {
     private readonly Guid? _userId;
 

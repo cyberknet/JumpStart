@@ -16,15 +16,11 @@ namespace JumpStart.Api.DTOs;
 
 /// <summary>
 /// Marker interface for DTOs used in update (PUT/PATCH) operations.
-/// Update DTOs must include an Id to identify the entity being updated,
-/// but should not include audit fields as these are system-managed.
+/// Update DTOs must include an Id to identify the entity being updated, but should not include audit fields as these are system-managed.
 /// </summary>
-/// <typeparam name="TKey">The type of the entity identifier. Must be a value type (struct) such as int, long, or Guid.</typeparam>
 /// <remarks>
 /// <para>
-/// This interface extends <see cref="JumpStart.Api.DTOs.IDto"/> to identify DTOs specifically designed for
-/// entity update operations. Unlike <see cref="JumpStart.Api.DTOs.ICreateDto"/>, update DTOs must include
-/// the Id property to identify which entity to update.
+/// This interface extends <see cref="JumpStart.Api.DTOs.IDto"/> to identify DTOs specifically designed for entity update operations. Unlike <see cref="JumpStart.Api.DTOs.ICreateDto"/>, update DTOs must include the Id property to identify which entity to update.
 /// </para>
 /// <para>
 /// <strong>Fields to INCLUDE in Update DTOs:</strong>
@@ -50,102 +46,32 @@ namespace JumpStart.Api.DTOs;
 /// - Both exclude audit fields (CreatedOn, ModifiedOn, etc.)
 /// - Both include business properties that clients can provide
 /// </para>
-/// <para>
-/// The generic TKey parameter allows flexibility in identifier types (int, long, Guid, etc.)
-/// and ensures type safety when matching update DTOs with their corresponding entities.
-/// </para>
 /// </remarks>
 /// <example>
 /// <code>
-/// // Example 1: Simple update DTO for a Product
-/// public class UpdateProductDto : IUpdateDto&lt;int&gt;
+/// // Example: Simple update DTO for a form
+/// public class UpdateFormDto : JumpStart.Api.DTOs.IUpdateDto
 /// {
-///     public int Id { get; set; } // Required by IUpdateDto
-///     
-///     [Required]
-///     [StringLength(200)]
+///     [System.ComponentModel.DataAnnotations.Required]
+///     public System.Guid Id { get; set; }
+///     [System.ComponentModel.DataAnnotations.Required]
+///     [System.ComponentModel.DataAnnotations.StringLength(200)]
 ///     public string Name { get; set; } = string.Empty;
-///     
-///     [Required]
-///     [Range(0.01, double.MaxValue)]
-///     public decimal Price { get; set; }
-///     
-///     [StringLength(1000)]
+///     [System.ComponentModel.DataAnnotations.StringLength(1000)]
 ///     public string? Description { get; set; }
-///     
-///     public int CategoryId { get; set; }
-/// }
-/// 
-/// // Example 2: Update DTO with Guid identifier
-/// public class UpdateCustomerDto : IUpdateDto&lt;Guid&gt;
-/// {
-///     public Guid Id { get; set; } // Required by IUpdateDto
-///     
-///     [Required]
-///     [StringLength(100)]
-///     public string Name { get; set; } = string.Empty;
-///     
-///     [EmailAddress]
-///     public string Email { get; set; } = string.Empty;
-///     
-///     public bool IsActive { get; set; }
-/// }
-/// 
-/// // Example 3: Update DTO with nested objects
-/// public class UpdateOrderDto : IUpdateDto&lt;long&gt;
-/// {
-///     public long Id { get; set; } // Required by IUpdateDto
-///     
-///     public DateTime OrderDate { get; set; }
-///     
-///     public List&lt;UpdateOrderItemDto&gt; Items { get; set; } = new();
-///     
-///     public string? Notes { get; set; }
-/// }
-/// 
-/// public class UpdateOrderItemDto : IUpdateDto&lt;long&gt;
-/// {
-///     public long Id { get; set; }
-///     public int ProductId { get; set; }
-///     
-///     [Range(1, int.MaxValue)]
-///     public int Quantity { get; set; }
-/// }
-/// 
-/// // Example 4: Usage in API controller
-/// [HttpPut("{id}")]
-/// public async Task&lt;ActionResult&lt;ProductDto&gt;&gt; Update(int id, [FromBody] UpdateProductDto updateDto)
-/// {
-///     // Verify URL id matches DTO id
-///     if (id != updateDto.Id)
-///         return BadRequest("ID mismatch");
-///     
-///     // Retrieve existing entity
-///     var entity = await _repository.GetByIdAsync(id);
-///     if (entity == null)
-///         return NotFound();
-///     
-///     // Map update DTO to entity (preserving audit fields)
-///     _mapper.Map(updateDto, entity);
-///     
-///     // Repository updates ModifiedOn and ModifiedById automatically
-///     var updated = await _repository.UpdateAsync(entity);
-///     var dto = _mapper.Map&lt;ProductDto&gt;(updated);
-///     
-///     return Ok(dto);
 /// }
 /// </code>
 /// </example>
 /// <seealso cref="JumpStart.Api.DTOs.IDto"/>
 /// <seealso cref="JumpStart.Api.DTOs.ICreateDto"/>
-public interface IUpdateDto<TKey> : IDto where TKey : struct
+public interface IUpdateDto : IDto
 {
     /// <summary>
     /// Gets or sets the unique identifier of the entity being updated.
     /// This property is required to identify which entity to modify.
     /// </summary>
     /// <value>
-    /// A value of type <typeparamref name="TKey"/> that uniquely identifies the entity to update.
+    /// A value of type <typeref name="Guid"/> that uniquely identifies the entity to update.
     /// This must match an existing entity's Id in the data store.
     /// </value>
     /// <remarks>
@@ -164,5 +90,5 @@ public interface IUpdateDto<TKey> : IDto where TKey : struct
     /// - Consider using Id in optimistic concurrency checks
     /// </para>
     /// </remarks>
-    TKey Id { get; set; }
+    Guid Id { get; set; }
 }

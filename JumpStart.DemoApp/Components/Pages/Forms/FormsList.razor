@@ -1,6 +1,6 @@
 @page "/forms"
-@using JumpStart.Api.DTOs.Forms
-@using JumpStart.Api.Clients.Forms
+@using JumpStart.Forms.DTOs
+@using JumpStart.Forms.Clients
 @using JumpStart.DemoApp.Components.Shared
 @inject IFormsApiClient FormsClient
 @inject NavigationManager Navigation
@@ -250,8 +250,8 @@ else if (forms != null)
         successMessage = null;
         try
         {
-            var result = await FormsClient.GetAllFormsAsync();
-            forms = result.ToList();
+            var result = await FormsClient.GetAllAsync();
+            forms = result.Items.ToList();
 
             // Load statistics for all forms
             formStats.Clear();
@@ -267,6 +267,10 @@ else if (forms != null)
                     // Ignore stats loading errors for individual forms
                 }
             }
+        }
+        catch(Refit.ApiException apiex)
+        {
+            string requestUrl = apiex.RequestMessage.RequestUri?.ToString() ?? string.Empty;
         }
         catch (Exception ex)
         {

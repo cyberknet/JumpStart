@@ -12,11 +12,12 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
-using System;
 using AutoMapper;
-using JumpStart.Api.DTOs.Forms;
-using JumpStart.Api.Mapping;
 using JumpStart.Forms;
+using JumpStart.Forms.DTOs;
+using JumpStart.Forms.Mapping;
+using Microsoft.Extensions.Logging;
+using System;
 using Xunit;
 
 namespace JumpStart.Tests.Api.Mapping;
@@ -30,7 +31,16 @@ public class FormsProfileQuestionTypeTests
 
     public FormsProfileQuestionTypeTests()
     {
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<FormsProfile>());
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
+        var config = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile<FormProfile>();
+            cfg.AddProfile<FormResponseProfile>();
+            cfg.AddProfile<QuestionOptionProfile>();
+            cfg.AddProfile<QuestionProfile>();
+            cfg.AddProfile<QuestionResponseProfile>();
+            cfg.AddProfile<QuestionTypeProfile>();
+        }, loggerFactory);
         _mapper = config.CreateMapper();
     }
 
@@ -40,7 +50,16 @@ public class FormsProfileQuestionTypeTests
     public void FormsProfile_ConfigurationIsValid()
     {
         // Act & Assert
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<FormsProfile>());
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
+        var config = new MapperConfiguration(cfg =>
+        {
+            cfg.AddProfile<FormProfile>();
+            cfg.AddProfile<FormResponseProfile>();
+            cfg.AddProfile<QuestionOptionProfile>();
+            cfg.AddProfile<QuestionProfile>();
+            cfg.AddProfile<QuestionResponseProfile>();
+            cfg.AddProfile<QuestionTypeProfile>();
+        }, loggerFactory);
         config.AssertConfigurationIsValid();
     }
 

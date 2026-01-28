@@ -313,9 +313,14 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
     /// can be retrieved by ID. Use GetAllAsync if you need soft delete filtering.
     /// </para>
     /// </remarks>
-    public virtual async Task<TEntity?> GetByIdAsync(Guid id)
+    public virtual async Task<TEntity?> GetByIdAsync(Guid id, Func<IQueryable<TEntity>, IQueryable<TEntity>>? includes)
     {
-        return await _dbSet.FindAsync(id);
+        IQueryable<TEntity> query = _dbSet.Where( record => record.Id == id);
+        
+        if (includes != null)
+            query = includes(query);
+
+        return await query.FirstOrDefaultAsync();
     }
 
     /// <inheritdoc />

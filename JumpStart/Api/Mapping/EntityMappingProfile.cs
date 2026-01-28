@@ -102,6 +102,9 @@ public abstract class EntityMappingProfile<TEntity, TDto, TCreateDto, TUpdateDto
     where TCreateDto : ICreateDto
     where TUpdateDto : IUpdateDto
 {
+    private IMappingExpression<TEntity, TDto> _entityMap;
+    private IMappingExpression<TCreateDto, TEntity> _createMap;
+    private IMappingExpression<TUpdateDto, TEntity> _updateMap;
     /// <summary>
     /// Initializes a new instance of the <see cref="EntityMappingProfile{TEntity, TDto, TCreateDto, TUpdateDto}"/> class.
     /// Configures standard CRUD mappings and automatically handles audit field exclusions.
@@ -121,37 +124,36 @@ public abstract class EntityMappingProfile<TEntity, TDto, TCreateDto, TUpdateDto
     protected EntityMappingProfile()
     {
         // Entity to DTO (for reads)
-        CreateMap<TEntity, TDto>();
+        _entityMap = CreateMap<TEntity, TDto>();
 
         // CreateDto to Entity (for creates)
-        CreateMap<TCreateDto, TEntity>()
+        _createMap = CreateMap<TCreateDto, TEntity>()
             .ForMember(dest => dest.Id, opt => opt.Ignore()); // Id is generated
 
         // UpdateDto to Entity (for updates)
-        CreateMap<TUpdateDto, TEntity>()
+        _updateMap = CreateMap<TUpdateDto, TEntity>()
             .ForMember(dest => dest.Id, opt => opt.Ignore()); // Id shouldn't change
 
-        // If entity is auditable, ignore audit fields in updates
+        // If entity is auditable
         if (typeof(IAuditable).IsAssignableFrom(typeof(TEntity)))
         {
-            CreateMap<TCreateDto, TEntity>()
-                .ForMember("CreatedById", opt => opt.Ignore())
-                .ForMember("CreatedOn", opt => opt.Ignore())
-                .ForMember("ModifiedById", opt => opt.Ignore())
-                .ForMember("ModifiedOn", opt => opt.Ignore())
-                .ForMember("DeletedById", opt => opt.Ignore())
-                .ForMember("DeletedOn", opt => opt.Ignore());
-
-            CreateMap<TUpdateDto, TEntity>()
-                .ForMember("CreatedById", opt => opt.Ignore())
-                .ForMember("CreatedOn", opt => opt.Ignore())
-                .ForMember("ModifiedById", opt => opt.Ignore())
-                .ForMember("ModifiedOn", opt => opt.Ignore())
-                .ForMember("DeletedById", opt => opt.Ignore())
-                .ForMember("DeletedOn", opt => opt.Ignore());
+            // Ignore audit fields in create and update mappings (the client should never provide those mappings
+            ApplyAuditExclusions(_createMap);
+            ApplyAuditExclusions(_updateMap);
         }
 
-        ConfigureAdditionalMappings();
+        ConfigureAdditionalMappings(_entityMap, _createMap, _updateMap);
+    }
+
+    // Inside your base class
+    private void ApplyAuditExclusions<TSource>(IMappingExpression<TSource, TEntity> map)
+    {
+        // Use an array and a foreach to keep the base constructor readable
+        string[] auditProps = ["CreatedById", "CreatedOn", "ModifiedById", "ModifiedOn", "DeletedById", "DeletedOn"];
+        foreach (var prop in auditProps)
+        {
+            map.ForMember(prop, opt => opt.Ignore());
+        }
     }
 
     /// <summary>
@@ -190,8 +192,10 @@ public abstract class EntityMappingProfile<TEntity, TDto, TCreateDto, TUpdateDto
     /// }
     /// </code>
     /// </example>
-    protected virtual void ConfigureAdditionalMappings()
-    {
+    protected virtual void ConfigureAdditionalMappings(IMappingExpression<TEntity, TDto> entityMap,
+                                                        IMappingExpression<TCreateDto, TEntity> createMap,
+                                                        IMappingExpression< TUpdateDto, TEntity > updateMap)
+    { 
         // Override in derived classes for custom mappings
     }
 }

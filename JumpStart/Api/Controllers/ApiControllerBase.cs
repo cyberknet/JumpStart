@@ -147,9 +147,10 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(object), 200)]
     [ProducesResponseType(404)]
+    [EntityAuthorize(action: "Get")]
     public virtual async Task<ActionResult<TDto>> GetById(Guid id)
     {
-        var entity = await Repository.GetByIdAsync(id);
+        var entity = await Repository.GetByIdAsync(id, GetIncludesForGetById());
 
         if (entity == null)
             return NotFound();
@@ -202,6 +203,7 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<object>), 200)]
     [ProducesResponseType(400)]
+    [EntityAuthorize(action: "List")]
     public virtual async Task<ActionResult<PagedResult<TDto>>> GetAll(
         [FromQuery] int? pageNumber = null,
         [FromQuery] int? pageSize = null,
@@ -222,9 +224,9 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
             {
                 // Validate that the property exists using reflection (case-insensitive)
                 var propertyInfo = typeof(TEntity).GetProperty(
-                    sortBy, 
-                    System.Reflection.BindingFlags.Public | 
-                    System.Reflection.BindingFlags.Instance | 
+                    sortBy,
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Instance |
                     System.Reflection.BindingFlags.IgnoreCase);
 
                 if (propertyInfo == null)
@@ -303,12 +305,18 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     [HttpPost]
     [ProducesResponseType(typeof(object), 201)]
     [ProducesResponseType(400)]
+    [EntityAuthorize(action: "Create")]
     public virtual async Task<ActionResult<TDto>> Create([FromBody] TCreateDto createDto)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
         var entity = Mapper.Map<TEntity>(createDto);
+
+        var (isValid, errorResult) = OnBeforeCreate(entity);
+        if (!isValid)
+            return BadRequest(errorResult);
+
         var created = await Repository.AddAsync(entity);
         var dto = Mapper.Map<TDto>(created);
 
@@ -361,6 +369,7 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     [ProducesResponseType(typeof(object), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
+    [EntityAuthorize(action: "Update")]
     public virtual async Task<ActionResult<TDto>> Update(Guid id, [FromBody] TUpdateDto updateDto)
     {
         if (!ModelState.IsValid)
@@ -369,7 +378,12 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
         if (!id.Equals(updateDto.Id))
             return BadRequest("ID mismatch");
 
-        var entity = await Repository.GetByIdAsync(id);
+        var entity = await Repository.GetByIdAsync(id, GetIncludesForGetById());
+
+        var (isValid, errorResult) = OnBeforeUpdate(entity!);
+        if (!isValid)
+            return BadRequest(errorResult);
+
         if (entity == null)
             return NotFound();
 
@@ -382,38 +396,50 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
         return Ok(dto);
     }
 
-        /// <summary>
-        /// Deletes an entity by its identifier.
-        /// </summary>
-        /// <param name="id">The unique identifier of the entity to delete.</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> with 204 No Content if successful,
-        /// or 404 Not Found if the entity doesn't exist.
-        /// </returns>
-        /// <response code="204">The entity was successfully deleted. No content is returned.</response>
-        /// <response code="404">If the entity with the specified ID is not found or was already deleted.</response>
-        /// <remarks>
-        /// <para>
-        /// This endpoint deletes an entity from the database. If the entity implements
-        /// <see cref="Data.Auditing.IDeletable"/>, a soft delete is performed
-        /// (setting DeletedOn and DeletedById), otherwise a hard delete removes the entity permanently.
-        /// </para>
-        /// <para>
-        /// The 204 No Content response follows REST conventions for successful DELETE operations,
-        /// indicating the resource no longer exists but not returning any content.
-        /// </para>
-        /// </remarks>
-        /// <example>
-        /// <code>
-        /// // Request: DELETE /api/products/123
-        /// // Response: 204 No Content
-        /// // (empty body)
-        /// </code>
-        /// </example>
-        [HttpDelete("{id}")]
-        [ProducesResponseType(204)]
-        [ProducesResponseType(404)]
-        public virtual async Task<IActionResult> Delete(Guid id)
+    /// <summary>
+    /// Deletes an entity by its identifier.
+    /// </summary>
+    /// <param name="id">The unique identifier of the entity to delete.</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> with 204 No Content if successful,
+    /// or 404 Not Found if the entity doesn't exist.
+    /// </returns>
+    /// <response code="204">The entity was successfully deleted. No content is returned.</response>
+    /// <response code="404">If the entity with the specified ID is not found or was already deleted.</response>
+    /// <remarks>
+    /// <para>
+    /// This endpoint deletes an entity from the database. If the entity implements
+    /// <see cref="Data.Auditing.IDeletable"/>, a soft delete is performed
+    /// (setting DeletedOn and DeletedById), otherwise a hard delete removes the entity permanently.
+    /// </para>
+    /// <para>
+    /// The 204 No Content response follows REST conventions for successful DELETE operations,
+    /// indicating the resource no longer exists but not returning any content.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Request: DELETE /api/products/123
+    /// // Response: 204 No Content
+    /// // (empty body)
+    /// </code>
+    /// </example>
+    [HttpDelete("{id}")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    [EntityAuthorize(action: "Delete")]
+    public virtual async Task<IActionResult> Delete(Guid id)
+    {
+        var entity = await Repository.GetByIdAsync(id, null);
+        if (entity == null)
+            return NotFound();
+
+        var result = OnBeforeDelete(entity);
+        if (!result.isValid)
+        { 
+            return BadRequest(result.errorResult);
+        }
+        else
         {
             var success = await Repository.DeleteAsync(id);
 
@@ -423,3 +449,15 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
             return NoContent();
         }
     }
+
+    #region Includables
+    #endregion
+
+    #region Overridable Functions
+    protected virtual Func<IQueryable<TEntity>, IQueryable<TEntity>>? GetIncludesForGetById() => null;
+    protected virtual (bool isValid, object? errorResult) OnBeforeCreate(TEntity entity) => (true, null);
+    protected virtual (bool isValid, object? errorResult) OnBeforeUpdate(TEntity entity) => (true, null);
+    protected virtual (bool isValid, object? errorResult) OnBeforeDelete(TEntity entity) => (true, null);
+    #endregion
+
+}

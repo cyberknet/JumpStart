@@ -164,6 +164,7 @@ public interface IRepository<TEntity> where TEntity : class, IEntity
     /// Retrieves a single entity by its unique identifier.
     /// </summary>
     /// <param name="id">The unique identifier of the entity to retrieve.</param>
+    /// <param name="includes">A function that takes an IQueryable and returns an IQueryable with includes added</param>
     /// <returns>
     /// A task that represents the asynchronous operation. The task result contains the entity if found; 
     /// otherwise, <c>null</c>.
@@ -195,7 +196,7 @@ public interface IRepository<TEntity> where TEntity : class, IEntity
     /// }
     /// </code>
     /// </example>
-    Task<TEntity?> GetByIdAsync(Guid id);
+    Task<TEntity?> GetByIdAsync(Guid id, Func<IQueryable<TEntity>, IQueryable<TEntity>>? includes);
 
     /// <summary>
     /// Retrieves all entities from the repository.

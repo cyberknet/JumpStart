@@ -14,7 +14,7 @@ namespace JumpStart.DemoApp.Clients;
 /// <example>
 /// <code>
 /// // Register in Program.cs
-/// builder.Services.AddSimpleApiClient&lt;IProductApiClient&gt;("https://api.example.com/api/products");
+/// builder.Services.AddApiClient&lt;IProductApiClient&gt;("https://api.example.com/api/products");
 /// 
 /// // Inject and use
 /// @inject IProductApiClient ProductClient

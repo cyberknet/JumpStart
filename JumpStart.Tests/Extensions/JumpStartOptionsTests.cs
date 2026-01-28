@@ -60,11 +60,11 @@ public class JumpStartOptionsTests
     }
 
     [Fact]
-    public void RepositoryAssemblies_HasPublicGetter()
+    public void Assemblies_HasPublicGetter()
     {
         // Arrange
         var optionsType = typeof(JumpStartOptions);
-        var property = optionsType.GetProperty(nameof(JumpStartOptions.RepositoryAssemblies));
+        var property = optionsType.GetProperty(nameof(JumpStartOptions.Assemblies));
 
         // Act & Assert
         Assert.NotNull(property);
@@ -324,7 +324,7 @@ public class JumpStartOptionsTests
 
         // Act & Assert
         Assert.NotNull(optionsType.GetProperty(nameof(JumpStartOptions.AutoDiscoverRepositories)));
-        Assert.NotNull(optionsType.GetProperty(nameof(JumpStartOptions.RepositoryAssemblies)));
+        Assert.NotNull(optionsType.GetProperty(nameof(JumpStartOptions.Assemblies)));
         Assert.NotNull(optionsType.GetProperty(nameof(JumpStartOptions.RepositoryLifetime)));
     }
 

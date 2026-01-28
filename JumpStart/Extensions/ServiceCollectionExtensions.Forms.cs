@@ -15,10 +15,10 @@
 using System;
 using System.Linq;
 using JumpStart;
-using JumpStart.Api.Clients.Forms;
-using JumpStart.Api.Controllers.Forms;
 using JumpStart.Forms;
-using JumpStart.Repositories.Forms;
+using JumpStart.Forms.Clients;
+using JumpStart.Forms.Controllers;
+using JumpStart.Forms.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Refit;
@@ -67,20 +67,22 @@ public static partial class JumpStartServiceCollectionExtensions
                 .AddApplicationPart(typeof(FormsController).Assembly);
         }
 
-        // Register Forms API client if requested (for Blazor/client projects)
-        if (options.RegisterFormsApiClient)
-        {
-            // Validate that ApiBaseUrl is configured
-            if (string.IsNullOrWhiteSpace(options.ApiBaseUrl))
-            {
-                throw new InvalidOperationException(
-                    "ApiBaseUrl must be configured when RegisterFormsApiClient is enabled. " +
-                    "Set options.ApiBaseUrl in your AddJumpStart configuration.");
-            }
+        // Api Client registration is handled separately, and is not needed here.
 
-            // Register Refit client for Forms API
-            services.AddRefitClient<IFormsApiClient>()
-                .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.ApiBaseUrl));
-        }
+        //// Register Forms API client if requested (for Blazor/client projects)
+        //if (options.RegisterFormsApiClient)
+        //{
+        //    // Validate that ApiBaseUrl is configured
+        //    if (string.IsNullOrWhiteSpace(options.ApiBaseUrl))
+        //    {
+        //        throw new InvalidOperationException(
+        //            "ApiBaseUrl must be configured when RegisterFormsApiClient is enabled. " +
+        //            "Set options.ApiBaseUrl in your AddJumpStart configuration.");
+        //    }
+
+        //    // Register Refit client for Forms API
+        //    services.AddRefitClient<IFormsApiClient>()
+        //        .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.ApiBaseUrl));
+        //}
     }
 }

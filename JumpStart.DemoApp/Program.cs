@@ -12,6 +12,7 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
+using AutoMapper;
 using JumpStart.Api.Clients;
 using JumpStart.DemoApp.Clients;
 using JumpStart.DemoApp.Components;
@@ -90,7 +91,7 @@ builder.Services.AddJumpStart(options =>
 });
 
 //// Register API clients with JWT authentication handler
-builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
+builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 
 var app = builder.Build();

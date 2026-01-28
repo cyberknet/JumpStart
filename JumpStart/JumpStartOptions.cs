@@ -166,7 +166,7 @@ public class JumpStartOptions
     /// <para>
     /// <strong>Important:</strong>
     /// This property is only used when API client auto-discovery is enabled. If you manually register
-    /// API clients using <c>AddSimpleApiClient</c> or <c>AddRefitClient</c>, this property is ignored
+    /// API clients using <c>AddApiClient</c> or <c>AddRefitClient</c>, this property is ignored
     /// for those clients.
     /// </para>
     /// <para>
@@ -204,7 +204,7 @@ public class JumpStartOptions
     ///     options.AutoDiscoverApiClients = false;
     ///     // ApiBaseUrl not needed when manually registering
     /// });
-    /// services.AddSimpleApiClient&lt;IProductApiClient&gt;("https://api.example.com/api/products");
+    /// services.AddApiClient&lt;IProductApiClient&gt;("https://api.example.com/api/products");
     /// </code>
     /// </example>
     public string ApiBaseUrl { get; set; } = string.Empty;
@@ -256,7 +256,7 @@ public class JumpStartOptions
     /// Scanning large assemblies can impact startup time. Only add assemblies that contain repositories or API clients.
     /// </para>
     /// </remarks>
-    public List<Assembly> RepositoryAssemblies { get; } = new();
+    public List<Assembly> Assemblies { get; } = new();
 
     /// <summary>
     /// Gets or sets the service lifetime for automatically registered repositories.
@@ -395,9 +395,9 @@ public class JumpStartOptions
     /// </example>
     public JumpStartOptions ScanAssembly(Assembly assembly)
     {
-        if (!RepositoryAssemblies.Contains(assembly))
+        if (!Assemblies.Contains(assembly))
         {
-            RepositoryAssemblies.Add(assembly);
+            Assemblies.Add(assembly);
         }
         return this;
     }

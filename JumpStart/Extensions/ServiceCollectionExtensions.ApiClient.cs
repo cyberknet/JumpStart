@@ -12,10 +12,14 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
-using System;
 using JumpStart;
 using JumpStart.Api.Clients;
+using JumpStart.Api.Controllers;
+using JumpStart.Api.DTOs;
+using Microsoft.AspNetCore.Mvc;
 using Refit;
+using System;
+using System.Reflection;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -32,12 +36,60 @@ public static partial class JumpStartServiceCollectionExtensions
     /// <param name="options">The JumpStart options containing assembly list and lifetime settings.</param>
     private static void RegisterApiClients(IServiceCollection services, JumpStartOptions options)
     {
-        RegisterServicesByInterface(
-            services,
-            options,
-            IsApiClientInterface,
-            IsCustomApiClientInterface,
-            options.ApiClientLifetime);
+        var assemblies = options.Assemblies.Any()
+            ? options.Assemblies.ToArray()
+            : new[] { Assembly.GetCallingAssembly() };
+
+        var apiClientInterfaces = assemblies
+            .SelectMany(a => a.GetTypes())
+            .Where(t => t.IsInterface && IsCustomApiClientInterface(t))
+            .ToList();
+
+        foreach (var apiClientInterface in apiClientInterfaces)
+        {
+            var apiClientForAttr = apiClientInterface.GetCustomAttributes(false)
+                .FirstOrDefault(a => a.GetType().IsGenericType && a.GetType().GetGenericTypeDefinition() == typeof(ApiClientForAttribute<,,,,,>));
+
+            if (apiClientForAttr == null)
+            {
+                throw new InvalidOperationException(
+                    $"API client interface '{apiClientInterface.FullName}' must be decorated with [ApiClientFor<YourController>]. " +
+                    "This is required for automatic route discovery and registration.");
+            }
+
+            var controllerType = apiClientForAttr.GetType().GetGenericArguments()[0];
+            var routeAttr = GetRouteAttribute<RouteAttribute>(controllerType);
+            if (routeAttr == null)
+            {
+                throw new InvalidOperationException(
+                    $"Controller '{controllerType.FullName}' must be decorated with [Route] for API client registration.");
+            }
+
+            var controllerName = controllerType.Name;
+            if (controllerName.EndsWith("Controller", StringComparison.OrdinalIgnoreCase))
+                controllerName = controllerName.Substring(0, controllerName.Length - "Controller".Length);
+
+            var controllerRoute = routeAttr.Template.Replace("[controller]", controllerName.ToLowerInvariant());
+            var baseUrl = options.ApiBaseUrl?.TrimEnd('/') ?? "";
+            var fullBaseAddress = baseUrl + "/" + controllerRoute.TrimStart('/');
+
+            services.AddRefitClient(apiClientInterface)
+                .ConfigureHttpClient(c => c.BaseAddress = new Uri(fullBaseAddress));
+        }
+    }
+
+    private static TAttribute? GetRouteAttribute<TAttribute>(Type type) where TAttribute : Attribute
+    {
+        var check = type;
+        TAttribute? attribute = null;
+        while (attribute == null && check != null)
+        {
+            attribute = check.GetCustomAttribute<TAttribute>(false);
+            if (attribute == null && check.BaseType != null)
+                check = check.BaseType;
+        }
+        
+        return attribute;
     }
 
     /// <summary>
@@ -95,7 +147,7 @@ public static partial class JumpStartServiceCollectionExtensions
     /// </para>
     /// <para>
     /// <strong>Authentication:</strong>
-    /// Chain with <c>.AddHttpMessageHandler&lt;T&gt;()</c> to add authentication handlers that
+    /// Chain with <c>.AddHttpMessageHandler&lt;TAttribute&gt;()</c> to add authentication handlers that
     /// inject JWT tokens or other credentials into requests.
     /// </para>
     /// </remarks>
@@ -103,16 +155,16 @@ public static partial class JumpStartServiceCollectionExtensions
     /// <code>
     /// // Example 1: Basic registration in Blazor Program.cs
     /// var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
-    /// builder.Services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
+    /// builder.Services.AddApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     $"{apiBaseUrl}/api/products");
     ///
     /// // Example 2: With JWT authentication handler
-    /// builder.Services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
+    /// builder.Services.AddApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     "https://api.example.com/api/products")
     ///     .AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
     ///
     /// // Example 3: With retry policy using Polly
-    /// builder.Services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
+    /// builder.Services.AddApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
     ///     "https://api.example.com/api/products")
     ///     .AddTransientHttpErrorPolicy(p =&gt; 
     ///         p.WaitAndRetryAsync(3, retryAttempt =&gt; 
@@ -123,14 +175,14 @@ public static partial class JumpStartServiceCollectionExtensions
     /// // var products = await ProductClient.GetAllAsync();
     /// </code>
     /// </example>
-    public static IHttpClientBuilder AddSimpleApiClient<TInterface>(
+    public static IHttpClientBuilder AddApiClient<TInterface>(
         this IServiceCollection services,
         string baseAddress)
         where TInterface : class
     {
         if (services == null)
             throw new ArgumentNullException(nameof(services));
-        
+
         if (string.IsNullOrWhiteSpace(baseAddress))
             throw new ArgumentNullException(nameof(baseAddress));
 
@@ -143,182 +195,182 @@ public static partial class JumpStartServiceCollectionExtensions
             .ConfigureHttpClient(c => c.BaseAddress = baseUri);
     }
 
-    /// <summary>
-    /// Registers a Refit-based API client with additional HTTP client configuration.
-    /// </summary>
-    /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>.
-    /// </typeparam>
-    /// <param name="services">The service collection to register the client in.</param>
-    /// <param name="baseAddress">The base address of the API endpoint.</param>
-    /// <param name="configureClient">
-    /// An optional action to configure the HttpClient with additional settings
-    /// such as default headers, timeout, max response buffer size, etc.
-    /// </param>
-    /// <returns>
-    /// An <see cref="IHttpClientBuilder"/> for further configuration.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="services"/> or <paramref name="baseAddress"/> is null.
-    /// </exception>
-    /// <remarks>
-    /// <para>
-    /// This overload allows configuring the HttpClient during registration,
-    /// which is useful for setting default headers, timeouts, or other client-level settings.
-    /// </para>
-    /// <para>
-    /// <strong>Common Configurations:</strong>
-    /// - Timeout: Set request timeout different from default (100 seconds)
-    /// - Default headers: Add API keys, version headers, user agent
-    /// - Max response buffer: Control memory usage for large responses
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// // Example 1: Configure timeout and headers
-    /// services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
-    ///     "https://api.example.com/api/products",
-    ///     client =&gt;
-    ///     {
-    ///         client.Timeout = TimeSpan.FromSeconds(30);
-    ///         client.DefaultRequestHeaders.Add("X-Api-Version", "2.0");
-    ///         client.DefaultRequestHeaders.Add("User-Agent", "JumpStart/1.0");
-    ///     });
-    ///
-    /// // Example 2: Add API key header
-    /// var apiKey = builder.Configuration["ApiKey"];
-    /// services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
-    ///     "https://api.example.com/api/products",
-    ///     client =&gt;
-    ///     {
-    ///         client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
-    ///     });
-    /// </code>
-    /// </example>
-    public static IHttpClientBuilder AddSimpleApiClient<TInterface>(
-        this IServiceCollection services,
-        string baseAddress,
-        Action<HttpClient>? configureClient)
-        where TInterface : class
-    {
-        if (services == null)
-            throw new ArgumentNullException(nameof(services));
-        
-        if (string.IsNullOrWhiteSpace(baseAddress))
-            throw new ArgumentNullException(nameof(baseAddress));
+    ///// <summary>
+    ///// Registers a Refit-based API client with additional HTTP client configuration.
+    ///// </summary>
+    ///// <typeparam name="TInterface">
+    ///// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>.
+    ///// </typeparam>
+    ///// <param name="services">The service collection to register the client in.</param>
+    ///// <param name="baseAddress">The base address of the API endpoint.</param>
+    ///// <param name="configureClient">
+    ///// An optional action to configure the HttpClient with additional settings
+    ///// such as default headers, timeout, max response buffer size, etc.
+    ///// </param>
+    ///// <returns>
+    ///// An <see cref="IHttpClientBuilder"/> for further configuration.
+    ///// </returns>
+    ///// <exception cref="ArgumentNullException">
+    ///// Thrown when <paramref name="services"/> or <paramref name="baseAddress"/> is null.
+    ///// </exception>
+    ///// <remarks>
+    ///// <para>
+    ///// This overload allows configuring the HttpClient during registration,
+    ///// which is useful for setting default headers, timeouts, or other client-level settings.
+    ///// </para>
+    ///// <para>
+    ///// <strong>Common Configurations:</strong>
+    ///// - Timeout: Set request timeout different from default (100 seconds)
+    ///// - Default headers: Add API keys, version headers, user agent
+    ///// - Max response buffer: Control memory usage for large responses
+    ///// </para>
+    ///// </remarks>
+    ///// <example>
+    ///// <code>
+    ///// // Example 1: Configure timeout and headers
+    ///// services.AddApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
+    /////     "https://api.example.com/api/products",
+    /////     client =&gt;
+    /////     {
+    /////         client.Timeout = TimeSpan.FromSeconds(30);
+    /////         client.DefaultRequestHeaders.Add("X-Api-Version", "2.0");
+    /////         client.DefaultRequestHeaders.Add("User-Agent", "JumpStart/1.0");
+    /////     });
+    /////
+    ///// // Example 2: Add API key header
+    ///// var apiKey = builder.Configuration["ApiKey"];
+    ///// services.AddApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
+    /////     "https://api.example.com/api/products",
+    /////     client =&gt;
+    /////     {
+    /////         client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+    /////     });
+    ///// </code>
+    ///// </example>
+    //public static IHttpClientBuilder AddApiClient<TInterface>(
+    //    this IServiceCollection services,
+    //    string baseAddress,
+    //    Action<HttpClient>? configureClient)
+    //    where TInterface : class
+    //{
+    //    if (services == null)
+    //        throw new ArgumentNullException(nameof(services));
 
-        if (!Uri.TryCreate(baseAddress, UriKind.Absolute, out var baseUri))
-            throw new ArgumentException($"Invalid base address: {baseAddress}", nameof(baseAddress));
+    //    if (string.IsNullOrWhiteSpace(baseAddress))
+    //        throw new ArgumentNullException(nameof(baseAddress));
 
-        return services.AddRefitClient<TInterface>()
-            .ConfigureHttpClient(c =>
-            {
-                c.BaseAddress = baseUri;
-                configureClient?.Invoke(c);
-            });
-    }
+    //    if (!Uri.TryCreate(baseAddress, UriKind.Absolute, out var baseUri))
+    //        throw new ArgumentException($"Invalid base address: {baseAddress}", nameof(baseAddress));
 
-    /// <summary>
-    /// Registers a Refit-based API client with full HTTP client builder configuration.
-    /// </summary>
-    /// <typeparam name="TInterface">
-    /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>.
-    /// </typeparam>
-    /// <param name="services">The service collection to register the client in.</param>
-    /// <param name="baseAddress">The base address of the API endpoint.</param>
-    /// <param name="configureBuilder">
-    /// An action to configure the IHttpClientBuilder for advanced scenarios
-    /// such as adding policies, handlers, or configuring named clients.
-    /// </param>
-    /// <returns>The configured <see cref="IHttpClientBuilder"/>.</returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="services"/>, <paramref name="baseAddress"/>, 
-    /// or <paramref name="configureBuilder"/> is null.
-    /// </exception>
-    /// <remarks>
-    /// <para>
-    /// This overload provides the most flexibility by exposing the IHttpClientBuilder
-    /// for comprehensive configuration including:
-    /// - Resilience patterns (retry, circuit breaker, timeout) via Polly
-    /// - Custom message handlers (authentication, logging, caching)
-    /// - Request/response pipeline customization
-    /// - Named client configuration
-    /// </para>
-    /// <para>
-    /// <strong>Resilience Patterns:</strong>
-    /// Use Polly policies to handle transient failures, implement circuit breakers,
-    /// and add timeouts for robust API communication.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// // Example 1: Complete resilience configuration
-    /// services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
-    ///     "https://api.example.com/api/products",
-    ///     builder =&gt;
-    ///     {
-    ///         // Retry policy with exponential backoff
-    ///         builder.AddTransientHttpErrorPolicy(p =&gt; 
-    ///             p.WaitAndRetryAsync(3, retryAttempt =&gt; 
-    ///                 TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
-    ///
-    ///         // Circuit breaker after 5 failures for 30 seconds
-    ///         builder.AddTransientHttpErrorPolicy(p =&gt;
-    ///             p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
-    ///
-    ///         // Timeout policy
-    ///         builder.AddPolicyHandler(Policy.TimeoutAsync&lt;System.Net.Http.HttpResponseMessage&gt;(
-    ///             TimeSpan.FromSeconds(10)));
-    ///     });
-    ///
-    /// // Example 2: Add multiple handlers
-    /// services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
-    ///     "https://api.example.com/api/products",
-    ///     builder =&gt;
-    ///     {
-    ///         builder.AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
-    ///         builder.AddHttpMessageHandler&lt;LoggingHandler&gt;();
-    ///         builder.AddHttpMessageHandler&lt;CachingHandler&gt;();
-    ///     });
-    ///
-    /// // Example 3: Real-world Blazor Server configuration
-    /// var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
-    /// builder.Services.AddSimpleApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
-    ///     $"{apiBaseUrl}/api/products",
-    ///     clientBuilder =&gt;
-    ///     {
-    ///         // Add JWT authentication
-    ///         clientBuilder.AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
-    ///
-    ///         // Add retry for transient failures
-    ///         clientBuilder.AddTransientHttpErrorPolicy(p =&gt; 
-    ///             p.WaitAndRetryAsync(2, _ =&gt; TimeSpan.FromSeconds(1)));
-    ///     });
-    /// </code>
-    /// </example>
-    public static IHttpClientBuilder AddSimpleApiClient<TInterface>(
-        this IServiceCollection services,
-        string baseAddress,
-        Action<IHttpClientBuilder> configureBuilder)
-        where TInterface : class
-    {
-        if (services == null)
-            throw new ArgumentNullException(nameof(services));
-        
-        if (string.IsNullOrWhiteSpace(baseAddress))
-            throw new ArgumentNullException(nameof(baseAddress));
-        
-        if (configureBuilder == null)
-            throw new ArgumentNullException(nameof(configureBuilder));
+    //    return services.AddRefitClient<TInterface>()
+    //        .ConfigureHttpClient(c =>
+    //        {
+    //            c.BaseAddress = baseUri;
+    //            configureClient?.Invoke(c);
+    //        });
+    //}
 
-        if (!Uri.TryCreate(baseAddress, UriKind.Absolute, out var baseUri))
-            throw new ArgumentException($"Invalid base address: {baseAddress}", nameof(baseAddress));
+    ///// <summary>
+    ///// Registers a Refit-based API client with full HTTP client builder configuration.
+    ///// </summary>
+    ///// <typeparam name="TInterface">
+    ///// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>.
+    ///// </typeparam>
+    ///// <param name="services">The service collection to register the client in.</param>
+    ///// <param name="baseAddress">The base address of the API endpoint.</param>
+    ///// <param name="configureBuilder">
+    ///// An action to configure the IHttpClientBuilder for advanced scenarios
+    ///// such as adding policies, handlers, or configuring named clients.
+    ///// </param>
+    ///// <returns>The configured <see cref="IHttpClientBuilder"/>.</returns>
+    ///// <exception cref="ArgumentNullException">
+    ///// Thrown when <paramref name="services"/>, <paramref name="baseAddress"/>, 
+    ///// or <paramref name="configureBuilder"/> is null.
+    ///// </exception>
+    ///// <remarks>
+    ///// <para>
+    ///// This overload provides the most flexibility by exposing the IHttpClientBuilder
+    ///// for comprehensive configuration including:
+    ///// - Resilience patterns (retry, circuit breaker, timeout) via Polly
+    ///// - Custom message handlers (authentication, logging, caching)
+    ///// - Request/response pipeline customization
+    ///// - Named client configuration
+    ///// </para>
+    ///// <para>
+    ///// <strong>Resilience Patterns:</strong>
+    ///// Use Polly policies to handle transient failures, implement circuit breakers,
+    ///// and add timeouts for robust API communication.
+    ///// </para>
+    ///// </remarks>
+    ///// <example>
+    ///// <code>
+    ///// // Example 1: Complete resilience configuration
+    ///// services.AddApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
+    /////     "https://api.example.com/api/products",
+    /////     builder =&gt;
+    /////     {
+    /////         // Retry policy with exponential backoff
+    /////         builder.AddTransientHttpErrorPolicy(p =&gt; 
+    /////             p.WaitAndRetryAsync(3, retryAttempt =&gt; 
+    /////                 TimeSpan.FromSeconds(Math.Pow(2, retryAttempt))));
+    /////
+    /////         // Circuit breaker after 5 failures for 30 seconds
+    /////         builder.AddTransientHttpErrorPolicy(p =&gt;
+    /////             p.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
+    /////
+    /////         // Timeout policy
+    /////         builder.AddPolicyHandler(Policy.TimeoutAsync&lt;System.Net.Http.HttpResponseMessage&gt;(
+    /////             TimeSpan.FromSeconds(10)));
+    /////     });
+    /////
+    ///// // Example 2: Add multiple handlers
+    ///// services.AddApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
+    /////     "https://api.example.com/api/products",
+    /////     builder =&gt;
+    /////     {
+    /////         builder.AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
+    /////         builder.AddHttpMessageHandler&lt;LoggingHandler&gt;();
+    /////         builder.AddHttpMessageHandler&lt;CachingHandler&gt;();
+    /////     });
+    /////
+    ///// // Example 3: Real-world Blazor Server configuration
+    ///// var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
+    ///// builder.Services.AddApiClient&lt;JumpStart.Api.Clients.IProductApiClient&gt;(
+    /////     $"{apiBaseUrl}/api/products",
+    /////     clientBuilder =&gt;
+    /////     {
+    /////         // Add JWT authentication
+    /////         clientBuilder.AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
+    /////
+    /////         // Add retry for transient failures
+    /////         clientBuilder.AddTransientHttpErrorPolicy(p =&gt; 
+    /////             p.WaitAndRetryAsync(2, _ =&gt; TimeSpan.FromSeconds(1)));
+    /////     });
+    ///// </code>
+    ///// </example>
+    //public static IHttpClientBuilder AddApiClient<TInterface>(
+    //    this IServiceCollection services,
+    //    string baseAddress,
+    //    Action<IHttpClientBuilder> configureBuilder)
+    //    where TInterface : class
+    //{
+    //    if (services == null)
+    //        throw new ArgumentNullException(nameof(services));
 
-        var builder = services.AddRefitClient<TInterface>()
-            .ConfigureHttpClient(c => c.BaseAddress = baseUri);
+    //    if (string.IsNullOrWhiteSpace(baseAddress))
+    //        throw new ArgumentNullException(nameof(baseAddress));
 
-        configureBuilder(builder);
+    //    if (configureBuilder == null)
+    //        throw new ArgumentNullException(nameof(configureBuilder));
 
-        return builder;
-    }
+    //    if (!Uri.TryCreate(baseAddress, UriKind.Absolute, out var baseUri))
+    //        throw new ArgumentException($"Invalid base address: {baseAddress}", nameof(baseAddress));
+
+    //    var builder = services.AddRefitClient<TInterface>()
+    //        .ConfigureHttpClient(c => c.BaseAddress = baseUri);
+
+    //    configureBuilder(builder);
+
+    //    return builder;
+    //}
 }

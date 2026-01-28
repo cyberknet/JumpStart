@@ -15,7 +15,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using JumpStart.Api.DTOs.Forms;
+using JumpStart.Forms.DTOs;
 using Xunit;
 
 namespace JumpStart.Tests.Api.DTOs.Forms;

@@ -16,11 +16,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
-using JumpStart.Api.Controllers.Forms;
-using JumpStart.Api.DTOs.Forms;
-using JumpStart.Api.Mapping;
+using JumpStart.Forms.DTOs;
 using JumpStart.Forms;
-using JumpStart.Repositories.Forms;
+using JumpStart.Forms.Controllers;
+using JumpStart.Forms.Mapping;
+using JumpStart.Forms.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -33,6 +33,7 @@ namespace JumpStart.Tests.Api.Controllers.Forms;
 /// </summary>
 public class FormsControllerQuestionTypeTests
 {
+    private readonly MapperConfiguration _config;
     private readonly Mock<IFormRepository> _mockRepository;
     private readonly IMapper _mapper;
     private readonly Mock<ILogger<FormsController>> _mockLogger;
@@ -41,8 +42,17 @@ public class FormsControllerQuestionTypeTests
     public FormsControllerQuestionTypeTests()
     {
         _mockRepository = new Mock<IFormRepository>();
-        
-        var config = new MapperConfiguration(cfg => cfg.AddProfile<FormsProfile>());
+
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddDebug().SetMinimumLevel(LogLevel.Debug));
+        var config = new MapperConfiguration(cfg => 
+        {
+            cfg.AddProfile<FormProfile>();
+            cfg.AddProfile<FormResponseProfile>();
+            cfg.AddProfile<QuestionOptionProfile>();
+            cfg.AddProfile<QuestionProfile>();
+            cfg.AddProfile<QuestionResponseProfile>();
+            cfg.AddProfile<QuestionTypeProfile>();
+        }, loggerFactory);
         _mapper = config.CreateMapper();
         
         _mockLogger = new Mock<ILogger<FormsController>>();
@@ -50,63 +60,7 @@ public class FormsControllerQuestionTypeTests
         _controller = new FormsController(_mockRepository.Object, _mapper, _mockLogger.Object);
     }
 
-    #region GetQuestionTypes Tests
-
-    [Fact]
-    public async Task GetQuestionTypes_ReturnsEmptyList_WhenNoQuestionTypes()
-    {
-        // Arrange
-        _mockRepository.Setup(r => r.GetAllQuestionTypesAsync())
-            .ReturnsAsync(new List<QuestionType>());
-
-        // Act
-        var result = await _controller.GetQuestionTypes();
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var questionTypes = Assert.IsAssignableFrom<IEnumerable<QuestionTypeDto>>(okResult.Value);
-        Assert.Empty(questionTypes);
-    }
-
-    [Fact]
-    public async Task GetQuestionTypes_ReturnsQuestionTypes()
-    {
-        // Arrange
-        var questionTypes = new List<QuestionType>
-        {
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Code = "ShortText",
-                Name = "Short Text",
-                Description = "Single line text",
-                InputType = "text",
-                DisplayOrder = 1
-            },
-            new()
-            {
-                Id = Guid.NewGuid(),
-                Code = "Number",
-                Name = "Number",
-                Description = "Numeric input",
-                InputType = "number",
-                DisplayOrder = 2
-            }
-        };
-
-        _mockRepository.Setup(r => r.GetAllQuestionTypesAsync())
-            .ReturnsAsync(questionTypes);
-
-        // Act
-        var result = await _controller.GetQuestionTypes();
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var dtos = Assert.IsAssignableFrom<IEnumerable<QuestionTypeDto>>(okResult.Value);
-        Assert.Equal(2, ((List<QuestionTypeDto>)dtos).Count);
-    }
-
-    #endregion
+    
 
     #region GetQuestionTypeById Tests
 

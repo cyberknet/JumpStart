@@ -274,7 +274,7 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
             options => { /* Options action */ },
             jumpStart =>
             {
-                scannedAssemblies = jumpStart.RepositoryAssemblies;
+                scannedAssemblies = jumpStart.Assemblies;
             });
 
         // Assert
@@ -296,7 +296,7 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
             .ToArray();
 
         // Act & Assert
-        // Now has 5 methods: 3 AddSimpleApiClient overloads, AddJumpStart, AddJumpStartWithDbContext
+        // Now has 5 methods: 3 AddApiClient overloads, AddJumpStart, AddJumpStartWithDbContext
         Assert.Equal(5, publicMethods.Length);
         Assert.Contains(publicMethods, m => m.Name == "AddJumpStartWithDbContext");
         Assert.Contains(publicMethods, m => m.Name == "AddJumpStart");

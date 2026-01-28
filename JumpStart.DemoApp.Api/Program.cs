@@ -12,13 +12,14 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
-using System.Text;
-using JumpStart.DemoApp.Api.Infrastructure.Authentication;
+using AutoMapper;
 using JumpStart.DemoApp.Api.Data;
+using JumpStart.DemoApp.Api.Infrastructure.Authentication;
 using JumpStart.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,5 +149,9 @@ app.UseAuthorization();
 
 // Map controllers
 app.MapControllers();
+
+// check AutoMapper configuration
+var mapper = app.Services.GetRequiredService<IMapper>();
+mapper.ConfigurationProvider.AssertConfigurationIsValid();
 
 app.Run();

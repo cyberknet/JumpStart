@@ -115,9 +115,9 @@ namespace JumpStart.Repositories;
 /// }
 /// 
 /// // Example 4: API response with pagination links
-/// public class PaginatedResponse&lt;T&gt;
+/// public class PaginatedResponse&lt;TAttribute&gt;
 /// {
-///     public IEnumerable&lt;T&gt; Data { get; set; }
+///     public IEnumerable&lt;TAttribute&gt; Data { get; set; }
 ///     public PaginationMetadata Metadata { get; set; }
 ///     public PaginationLinks Links { get; set; }
 /// }

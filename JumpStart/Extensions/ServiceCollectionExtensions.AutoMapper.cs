@@ -72,7 +72,7 @@ public static class JumpStartAutoMapperExtensions
             assemblies = new[] { Assembly.GetCallingAssembly() };
         }
 
-        services.AddAutoMapper(assemblies);
+        services.AddAutoMapper(cfg => { }, assemblies);
 
         return services;
     }

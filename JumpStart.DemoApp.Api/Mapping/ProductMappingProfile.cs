@@ -1,8 +1,10 @@
+using AutoMapper;
+using JumpStart.Api.DTOs;
 using JumpStart.Api.Mapping;
 using JumpStart.DemoApp.Data;
 using JumpStart.DemoApp.Shared.DTOs;
 
-namespace JumpStart.DemoApp.Mapping;
+namespace JumpStart.DemoApp.Api.Mapping;
 
 /// <summary>
 /// AutoMapper profile for Product entity mappings.
@@ -16,7 +18,9 @@ public class ProductMappingProfile : EntityMappingProfile<Product, ProductDto, C
         // Add custom mappings here if needed
     }
 
-    protected override void ConfigureAdditionalMappings()
+    protected override void ConfigureAdditionalMappings(IMappingExpression<Product, ProductDto> entityMap, 
+                                                        IMappingExpression<CreateProductDto, Product> createMap, 
+                                                        IMappingExpression<UpdateProductDto, Product> updateMap)
     {
         // Example: Custom mapping for a computed property
         // CreateMap<Product, ProductDto>()
@@ -24,11 +28,11 @@ public class ProductMappingProfile : EntityMappingProfile<Product, ProductDto, C
         //                opt => opt.MapFrom(src => src.Price * 1.1m));
 
         // For CreateProductDto to Product, set default IsActive to true
-        CreateMap<CreateProductDto, Product>()
+        createMap
             .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => true));
 
         // For UpdateProductDto to Product, preserve the SKU (don't map it)
-        CreateMap<UpdateProductDto, Product>()
+        updateMap
             .ForMember(dest => dest.SKU, opt => opt.Ignore());
     }
 }

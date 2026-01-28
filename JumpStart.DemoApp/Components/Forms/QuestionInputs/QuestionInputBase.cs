@@ -14,7 +14,7 @@
 
 using System;
 using System.Collections.Generic;
-using JumpStart.Api.DTOs.Forms;
+using JumpStart.Forms.DTOs;
 using Microsoft.AspNetCore.Components;
 
 namespace JumpStart.DemoApp.Components.Forms.QuestionInputs;

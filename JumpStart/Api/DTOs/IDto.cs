@@ -53,9 +53,9 @@ namespace JumpStart.Api.DTOs;
 /// <example>
 /// <code>
 /// // Example 1: Using IDto as a generic constraint
-/// public class DtoValidator&lt;T&gt; where T : IDto
+/// public class DtoValidator&lt;TAttribute&gt; where TAttribute : IDto
 /// {
-///     public ValidationResult Validate(T dto)
+///     public ValidationResult Validate(TAttribute dto)
 ///     {
 ///         // Can validate any DTO type
 ///         return ValidationResult.Success;
@@ -92,9 +92,9 @@ namespace JumpStart.Api.DTOs;
 /// // Example 5: Framework-level usage
 /// public class ApiResponseBuilder
 /// {
-///     public ApiResponse&lt;T&gt; BuildResponse&lt;T&gt;(T data) where T : IDto
+///     public ApiResponse&lt;TAttribute&gt; BuildResponse&lt;TAttribute&gt;(TAttribute data) where TAttribute : IDto
 ///     {
-///         return new ApiResponse&lt;T&gt;
+///         return new ApiResponse&lt;TAttribute&gt;
 ///         {
 ///             Data = data,
 ///             Success = true,

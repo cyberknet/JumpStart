@@ -282,7 +282,7 @@ public class JumpStartServiceCollectionExtensionsTests
             .ToArray();
 
         // Act & Assert
-        // Now has 5 methods: 3 AddSimpleApiClient overloads, AddJumpStart, AddJumpStartWithDbContext
+        // Now has 5 methods: 3 AddApiClient overloads, AddJumpStart, AddJumpStartWithDbContext
         Assert.Equal(5, publicMethods.Length);
         Assert.Contains(publicMethods, m => m.Name == nameof(JumpStartServiceCollectionExtensions.AddJumpStart));
         Assert.Contains(publicMethods, m => m.Name == "AddSimpleApiClient");

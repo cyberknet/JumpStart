@@ -12,14 +12,19 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
+using JumpStart;
+using JumpStart.Authorization;
+using JumpStart.Data;
+using JumpStart.Forms.Clients;
+using JumpStart.Repositories;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Refit;
+using RestEase;
 using System;
 using System.Linq;
 using System.Reflection;
-using JumpStart;
-using JumpStart.Data;
-using JumpStart.Repositories;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -51,7 +56,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <para>
 /// <strong>API Client Registration:</strong>
 /// Provides extension methods for registering Refit-based API clients:
-/// - <see cref="AddSimpleApiClient{TInterface}(IServiceCollection, string)"/> - Basic registration with base URL
+/// - <see cref="AddApiClient{TInterface}(IServiceCollection, string)"/> - Basic registration with base URL
 /// - Overloads for HttpClient configuration and IHttpClientBuilder customization
 /// - Support for authentication handlers, retry policies, and circuit breakers
 /// - Typical usage in Blazor Server applications calling separate API projects
@@ -221,6 +226,8 @@ public static partial class JumpStartServiceCollectionExtensions
         if (options.AutoDiscoverApiClients)
         {
             RegisterApiClients(services, options);
+            //services.AddRefitClient<IFormsApiClient>()
+            //    .ConfigureHttpClient(c => c.BaseAddress = new Uri("https://localhost:7030/api/forms/"));
         }
 
         // Register Forms module services if configured
@@ -229,6 +236,17 @@ public static partial class JumpStartServiceCollectionExtensions
             RegisterFormsServices(services, options);
         }
 
+        // Register Authorization handlers and policy provider
+        services.AddSingleton<IAuthorizationPolicyProvider, EntityPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, EntityPermissionHandler>();
+        services.AddAuthorization(options =>
+        {
+            // This forces the handler to run whenever the requirement is requested
+            options.AddPolicy(EntityPolicyProvider.PolicyName, policy =>
+                policy.AddRequirements(new EntityPermissionRequirement()));
+        });
+
+        // Register Authorization
         return services;
     }
 
@@ -357,8 +375,8 @@ public static partial class JumpStartServiceCollectionExtensions
         Func<Type, bool> isCustomInterface,
         ServiceLifetime lifetime)
     {
-        var assemblies = options.RepositoryAssemblies.Any()
-            ? options.RepositoryAssemblies.ToArray()
+        var assemblies = options.Assemblies.Any()
+            ? options.Assemblies.ToArray()
             : new[] { Assembly.GetCallingAssembly() };
 
         foreach (var assembly in assemblies)

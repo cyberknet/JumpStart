@@ -1,7 +1,7 @@
 @page "/forms/create"
 @page "/forms/edit/{FormId:guid}"
-@using JumpStart.Api.DTOs.Forms
-@using JumpStart.Api.Clients.Forms
+@using JumpStart.Forms.DTOs
+@using JumpStart.Forms.Clients
 @using JumpStart.Forms
 @using System.ComponentModel.DataAnnotations
 @inject IFormsApiClient FormsClient
@@ -401,7 +401,7 @@ else
                     AllowAnonymous = formModel.AllowAnonymous,
                     Questions = formModel.Questions.Select(q => new UpdateQuestionDto
                     {
-                        Id = q.Id == Guid.Empty ? null : q.Id,
+                        Id = q.Id,
                         QuestionText = q.QuestionText,
                         HelpText = q.HelpText,
                         QuestionTypeId = q.QuestionTypeId,
@@ -411,7 +411,7 @@ else
                         DisplayOrder = q.DisplayOrder,
                         Options = q.Options.Select(o => new UpdateQuestionOptionDto
                         {
-                            Id = o.Id == Guid.Empty ? null : o.Id,
+                            Id = o.Id,
                             OptionText = o.OptionText,
                             OptionValue = string.IsNullOrWhiteSpace(o.OptionValue) ? null : o.OptionValue,
                             DisplayOrder = o.DisplayOrder

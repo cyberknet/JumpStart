@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using JumpStart.Api.Mapping;
 using JumpStart.Forms.DTOs;
 using System;
 using System.Collections.Generic;
@@ -12,17 +13,15 @@ namespace JumpStart.Forms.Mapping;
 /// <remarks>
 /// Configures mappings between <see cref="QuestionType"/>, <see cref="QuestionTypeDto"/>, <see cref="QuestionTypeDto"/>.
 /// </remarks>
-public class QuestionTypeProfile : Profile
+public class QuestionTypeProfile : EntityMappingProfile<QuestionType, QuestionTypeDto, CreateQuestionTypeDto, UpdateQuestionDto>
 {
-    /// <summary>
-    /// Configures mappings for QuestionType entity.
-    /// </summary>
-    public QuestionTypeProfile()
-	{
-        // QuestionType mappings
-        CreateMap<QuestionType, QuestionTypeDto>();
-        CreateMap<CreateQuestionTypeDto, QuestionType>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
+    /// <inheritdoc/>
+    protected override void ConfigureAdditionalMappings(IMappingExpression<QuestionType, QuestionTypeDto> entityMap, IMappingExpression<CreateQuestionTypeDto, QuestionType> createMap, IMappingExpression<UpdateQuestionDto, QuestionType> updateMap)
+    {
+        createMap
+            .ForMember(dest => dest.Questions, opt => opt.Ignore());
+        updateMap
             .ForMember(dest => dest.Questions, opt => opt.Ignore());
     }
+
 }

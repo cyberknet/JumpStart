@@ -27,6 +27,7 @@ namespace JumpStart.Forms.Mapping;
 /// </remarks>
 public class QuestionResponseProfile : EntityMappingProfile<QuestionResponse, QuestionResponseDto, CreateQuestionResponseDto, UpdateQuestionResponseDto>
 {
+    /// <inheritdoc/>
     protected override void ConfigureAdditionalMappings(IMappingExpression<QuestionResponse, QuestionResponseDto> entityMap, IMappingExpression<CreateQuestionResponseDto, QuestionResponse> createMap, IMappingExpression<UpdateQuestionResponseDto, QuestionResponse> updateMap)
     {
         entityMap

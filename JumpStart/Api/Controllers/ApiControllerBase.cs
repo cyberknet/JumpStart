@@ -17,10 +17,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using Correlate;
 using JumpStart.Api.DTOs;
 using JumpStart.Data;
 using JumpStart.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace JumpStart.Api.Controllers;
 
@@ -58,7 +60,7 @@ namespace JumpStart.Api.Controllers;
 ///     JumpStart.Api.DTOs.Forms.FormDto,    // Read DTO
 ///     JumpStart.Api.DTOs.Forms.CreateFormDto, // Create DTO
 ///     JumpStart.Api.DTOs.Forms.UpdateFormDto, // Update DTO
-///     JumpStart.Repositories.Forms.IFormRepository // Repository
+///     JumpStart.Repositories.Forms.IFormRepository // _repository
 /// &gt;
 /// {
 ///     public FormsController(JumpStart.Repositories.Forms.IFormRepository repository, AutoMapper.IMapper mapper)
@@ -83,21 +85,33 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     where TUpdateDto : IUpdateDto
     where TRepository : IRepository<TEntity>
 {
-    /// <summary>
-    /// Gets the repository instance for data access operations.
-    /// </summary>
-    protected readonly TRepository Repository;
+	/// <summary>
+	/// Gets the repository instance for data access operations.
+	/// </summary>
+	protected readonly TRepository _repository;
+
+	/// <summary>
+	/// Gets the AutoMapper instance for entity-DTO conversions.
+	/// </summary>
+	protected readonly IMapper _mapper;
+
+	/// <summary>
+	/// Gets the _logger instance for logging operations.
+	/// </summary>
+	protected readonly ILogger<ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, TRepository>> _logger;
 
     /// <summary>
-    /// Gets the AutoMapper instance for entity-DTO conversions.
+    /// Gets the correlation context Accessor for tracing and correlation.
     /// </summary>
-    protected readonly IMapper Mapper;
+    protected readonly ICorrelationContextAccessor _correlationContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ApiControllerBase{TEntity, TDto, TCreateDto, TUpdateDto, TRepository}"/> class.
     /// </summary>
     /// <param name="repository">The repository instance for data access.</param>
     /// <param name="mapper">The AutoMapper instance for entity-DTO conversions.</param>
+    /// <param name="logger">The _logger instance for logging operations.</param>
+    /// <param name="correlationContext">The correlation context accessor for tracing.</param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="repository"/> or <paramref name="mapper"/> is null.
     /// </exception>
@@ -112,10 +126,12 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     /// }
     /// </code>
     /// </example>
-    protected ApiControllerBase(TRepository repository, IMapper mapper)
-    {
-        Repository = repository ?? throw new ArgumentNullException(nameof(repository));
-        Mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+	protected ApiControllerBase(TRepository repository, IMapper mapper, ILogger<ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, TRepository>> logger, ICorrelationContextAccessor correlationContext)
+	{
+		_repository = repository ?? throw new ArgumentNullException(nameof(repository));
+		_mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+		_logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _correlationContext = correlationContext ?? throw new ArgumentNullException(nameof(correlationContext));
     }
 
     /// <summary>
@@ -150,13 +166,28 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     [EntityAuthorize(action: "Get")]
     public virtual async Task<ActionResult<TDto>> GetById(Guid id)
     {
-        var entity = await Repository.GetByIdAsync(id, GetIncludesForGetById());
+        string entityType = typeof(TEntity).Name;
+        string entityId = id.ToString();
+        var correlationId = _correlationContext.CorrelationContext?.CorrelationId ?? "No Correlation Id";
+        using (_logger.BeginScope(new Dictionary<string, object> { 
+            ["correlationId"] = correlationId,
+            ["entityType"] = entityType,
+            ["entityId"] = entityId
+        }))
+        {
+            _logger.LogInformation("Getting entity {entityType}:{entityId}", entityType, entityId);
+            var entity = await _repository.GetByIdAsync(id, GetIncludesForGetById());
 
-        if (entity == null)
-            return NotFound();
+            if (entity == null)
+            {
+                _logger.LogWarning("Entity {entityType}:{entityId} Not Found", entityType, entityId);
+                return NotFound();
+            }
 
-        var dto = Mapper.Map<TDto>(entity);
-        return Ok(dto);
+            var dto = _mapper.Map<TDto>(entity);
+            _logger.LogInformation("Successfully retrieved entity {entityType}:{entityId}", entityType, entityId);
+            return Ok(dto);
+        }
     }
 
     /// <summary>
@@ -210,58 +241,74 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
         [FromQuery] string? sortBy = null,
         [FromQuery] bool sortDescending = false)
     {
-        var options = new QueryOptions<TEntity>
+        string entityType = typeof(TEntity).Name;
+        var correlationId = _correlationContext.CorrelationContext?.CorrelationId ?? "No Correlation Id";
+        using (_logger.BeginScope(new Dictionary<string, object> {
+            ["correlationId"] = correlationId,
+            ["entityType"] = entityType,
+            ["pageNumber"] = pageNumber,
+            ["pageSize"] = pageSize,
+            ["sortBy"] = sortBy ?? string.Empty,
+            ["sortDescending"] = sortDescending
+        }))
         {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
-            SortDescending = sortDescending
-        };
-
-        // If sortBy is provided, validate and create a property expression for it
-        if (!string.IsNullOrWhiteSpace(sortBy))
-        {
-            try
+            _logger.LogInformation("Getting all entities");
+            var options = new QueryOptions<TEntity>
             {
-                // Validate that the property exists using reflection (case-insensitive)
-                var propertyInfo = typeof(TEntity).GetProperty(
-                    sortBy,
-                    System.Reflection.BindingFlags.Public |
-                    System.Reflection.BindingFlags.Instance |
-                    System.Reflection.BindingFlags.IgnoreCase);
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortDescending = sortDescending
+            };
 
-                if (propertyInfo == null)
+            // If sortBy is provided, validate and create a property expression for it
+            if (!string.IsNullOrWhiteSpace(sortBy))
+            {
+                try
                 {
-                    return BadRequest($"Invalid sort property: '{sortBy}'. Property does not exist on {typeof(TEntity).Name}.");
+                    // Validate that the property exists using reflection (case-insensitive)
+                    var propertyInfo = typeof(TEntity).GetProperty(
+                        sortBy,
+                        System.Reflection.BindingFlags.Public |
+                        System.Reflection.BindingFlags.Instance |
+                        System.Reflection.BindingFlags.IgnoreCase);
+
+                    if (propertyInfo == null)
+                    {
+                        _logger.LogWarning("Invalid sort property: {sortBy}", sortBy);
+                        return BadRequest($"Invalid sort property: '{sortBy}'. Property does not exist on {typeof(TEntity).Name}.");
+                    }
+
+                    // Use the actual property name (with correct casing)
+                    var actualPropertyName = propertyInfo.Name;
+
+                    // Create the expression: x => x.PropertyName
+                    var parameter = System.Linq.Expressions.Expression.Parameter(typeof(TEntity), "x");
+                    var property = System.Linq.Expressions.Expression.Property(parameter, actualPropertyName);
+                    var conversion = System.Linq.Expressions.Expression.Convert(property, typeof(object));
+                    var lambda = System.Linq.Expressions.Expression.Lambda<Func<TEntity, object>>(conversion, parameter);
+
+                    options.SortBy = lambda;
                 }
-
-                // Use the actual property name (with correct casing)
-                var actualPropertyName = propertyInfo.Name;
-
-                // Create the expression: x => x.PropertyName
-                var parameter = System.Linq.Expressions.Expression.Parameter(typeof(TEntity), "x");
-                var property = System.Linq.Expressions.Expression.Property(parameter, actualPropertyName);
-                var conversion = System.Linq.Expressions.Expression.Convert(property, typeof(object));
-                var lambda = System.Linq.Expressions.Expression.Lambda<Func<TEntity, object>>(conversion, parameter);
-
-                options.SortBy = lambda;
+                catch (ArgumentException ex)
+                {
+                    _logger.LogError(ex, "Invalid sort property: {sortBy}", sortBy);
+                    return BadRequest($"Invalid sort property: '{sortBy}'. {ex.Message}");
+                }
             }
-            catch (ArgumentException ex)
+
+            var result = await _repository.GetAllAsync(options);
+
+            var dtoResult = new PagedResult<TDto>
             {
-                return BadRequest($"Invalid sort property: '{sortBy}'. {ex.Message}");
-            }
+                Items = _mapper.Map<List<TDto>>(result.Items),
+                TotalCount = result.TotalCount,
+                PageNumber = result.PageNumber,
+                PageSize = result.PageSize
+            };
+
+            _logger.LogInformation("Successfully retrieved {count} entities", dtoResult.Items.Count());
+            return Ok(dtoResult);
         }
-
-        var result = await Repository.GetAllAsync(options);
-
-        var dtoResult = new PagedResult<TDto>
-        {
-            Items = Mapper.Map<List<TDto>>(result.Items),
-            TotalCount = result.TotalCount,
-            PageNumber = result.PageNumber,
-            PageSize = result.PageSize
-        };
-
-        return Ok(dtoResult);
     }
 
     /// <summary>
@@ -308,19 +355,35 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     [EntityAuthorize(action: "Create")]
     public virtual async Task<ActionResult<TDto>> Create([FromBody] TCreateDto createDto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        string entityType = typeof(TEntity).Name;
+        var correlationId = _correlationContext.CorrelationContext?.CorrelationId ?? "No Correlation Id";
+        using (_logger.BeginScope(new Dictionary<string, object> {
+            ["correlationId"] = correlationId,
+            ["entityType"] = entityType
+        }))
+        {
+            _logger.LogInformation("Creating new entity {entityType}", entityType);
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Model state invalid for entity creation");
+                return BadRequest(ModelState);
+            }
 
-        var entity = Mapper.Map<TEntity>(createDto);
+            var entity = _mapper.Map<TEntity>(createDto);
 
-        var (isValid, errorResult) = OnBeforeCreate(entity);
-        if (!isValid)
-            return BadRequest(errorResult);
+            var (isValid, errorResult) = OnBeforeCreate(entity);
+            if (!isValid)
+            {
+                _logger.LogWarning("OnBeforeCreate failed for entity: {errorResult}", errorResult);
+                return BadRequest(errorResult);
+            }
 
-        var created = await Repository.AddAsync(entity);
-        var dto = Mapper.Map<TDto>(created);
+            var created = await _repository.AddAsync(entity);
+            var dto = _mapper.Map<TDto>(created);
 
-        return CreatedAtAction(nameof(GetById), new { id = created.Id }, dto);
+            _logger.LogInformation("Successfully created entity {entityType}:{entityId}", entityType, created.Id);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, dto);
+        }
     }
 
     /// <summary>
@@ -372,28 +435,52 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     [EntityAuthorize(action: "Update")]
     public virtual async Task<ActionResult<TDto>> Update(Guid id, [FromBody] TUpdateDto updateDto)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
+        string entityType = typeof(TEntity).Name;
+        string entityId = id.ToString();
+        var correlationId = _correlationContext.CorrelationContext?.CorrelationId ?? "No Correlation Id";
+        using (_logger.BeginScope(new Dictionary<string, object> {
+            ["correlationId"] = correlationId,
+            ["entityType"] = entityType,
+            ["entityId"] = entityId
+        }))
+        {
+            _logger.LogInformation("Updating entity {entityType}:{entityId}", entityType, entityId);
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Model state invalid for entity update");
+                return BadRequest(ModelState);
+            }
 
-        if (!id.Equals(updateDto.Id))
-            return BadRequest("ID mismatch");
+            if (!id.Equals(updateDto.Id))
+            {
+                _logger.LogWarning("ID mismatch for update: route id {entityId}, dto id {dtoId}", entityId, updateDto.Id);
+                return BadRequest("ID mismatch");
+            }
 
-        var entity = await Repository.GetByIdAsync(id, GetIncludesForGetById());
+            var entity = await _repository.GetByIdAsync(id, GetIncludesForGetById());
 
-        var (isValid, errorResult) = OnBeforeUpdate(entity!);
-        if (!isValid)
-            return BadRequest(errorResult);
+            if (entity == null)
+            {
+                _logger.LogWarning("Entity {entityType}:{entityId} not found for update", entityType, entityId);
+                return NotFound();
+            }
 
-        if (entity == null)
-            return NotFound();
+            var (isValid, errorResult) = OnBeforeUpdate(entity);
+            if (!isValid)
+            {
+                _logger.LogWarning("OnBeforeUpdate failed for entity {entityType}:{entityId}: {errorResult}", entityType, entityId, errorResult);
+                return BadRequest(errorResult);
+            }
 
-        // Map updateDto properties to existing entity
-        Mapper.Map(updateDto, entity);
+            // Map updateDto properties to existing entity
+            _mapper.Map(updateDto, entity);
 
-        var updated = await Repository.UpdateAsync(entity);
-        var dto = Mapper.Map<TDto>(updated);
+            var updated = await _repository.UpdateAsync(entity);
+            var dto = _mapper.Map<TDto>(updated);
 
-        return Ok(dto);
+            _logger.LogInformation("Successfully updated entity {entityType}:{entityId}", entityType, entityId);
+            return Ok(dto);
+        }
     }
 
     /// <summary>
@@ -430,22 +517,39 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     [EntityAuthorize(action: "Delete")]
     public virtual async Task<IActionResult> Delete(Guid id)
     {
-        var entity = await Repository.GetByIdAsync(id, null);
-        if (entity == null)
-            return NotFound();
-
-        var result = OnBeforeDelete(entity);
-        if (!result.isValid)
-        { 
-            return BadRequest(result.errorResult);
-        }
-        else
+        string entityType = typeof(TEntity).Name;
+        string entityId = id.ToString();
+        var correlationId = _correlationContext.CorrelationContext?.CorrelationId ?? "No Correlation Id";
+        using (_logger.BeginScope(new Dictionary<string, object> {
+            ["correlationId"] = correlationId,
+            ["entityType"] = entityType,
+            ["entityId"] = entityId
+        }))
         {
-            var success = await Repository.DeleteAsync(id);
+            _logger.LogInformation("Deleting entity {entityType}:{entityId}", entityType, entityId);
+            var entity = await _repository.GetByIdAsync(id, null);
+            if (entity == null)
+            {
+                _logger.LogWarning("Entity {entityType}:{entityId} not found for delete", entityType, entityId);
+                return NotFound();
+            }
+
+            var result = OnBeforeDelete(entity);
+            if (!result.isValid)
+            {
+                _logger.LogWarning("OnBeforeDelete failed for entity {entityType}:{entityId}: {errorResult}", entityType, entityId, result.errorResult);
+                return BadRequest(result.errorResult);
+            }
+
+            var success = await _repository.DeleteAsync(id);
 
             if (!success)
+            {
+                _logger.LogWarning("Delete operation failed for entity {entityType}:{entityId}", entityType, entityId);
                 return NotFound();
+            }
 
+            _logger.LogInformation("Successfully deleted entity {entityType}:{entityId}", entityType, entityId);
             return NoContent();
         }
     }

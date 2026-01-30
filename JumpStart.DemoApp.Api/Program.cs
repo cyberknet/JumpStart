@@ -13,6 +13,8 @@
  */
 
 using AutoMapper;
+using Correlate.AspNetCore;
+using Correlate.DependencyInjection;
 using JumpStart.DemoApp.Api.Data;
 using JumpStart.DemoApp.Api.Infrastructure.Authentication;
 using JumpStart.Repositories;
@@ -122,11 +124,19 @@ builder.Services.AddControllers()
 var app = builder.Build();
 
 // ============================================
+// 10. CORRELATION
+// ============================================
+builder.Services.AddCorrelate(options =>
+{
+
+});
+
+// ============================================
 // MIDDLEWARE PIPELINE
 // ============================================
 
 // ============================================
-// 10. API DOCUMENTATION (development only)
+// 11. API DOCUMENTATION (development only)
 // ============================================
 if (app.Environment.IsDevelopment())
 {
@@ -136,6 +146,11 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "JumpStart DemoApp API v1");
     });
 }
+
+// ============================================
+// 12. CORRELATION
+// ============================================
+app.UseCorrelate();
 
 // HTTPS redirection
 app.UseHttpsRedirection();

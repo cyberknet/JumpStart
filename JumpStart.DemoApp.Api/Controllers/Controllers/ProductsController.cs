@@ -1,4 +1,5 @@
 using AutoMapper;
+using Correlate;
 using JumpStart.Api.Controllers;
 using JumpStart.DemoApp.Api.Repositories;
 using JumpStart.DemoApp.Data;
@@ -17,8 +18,8 @@ namespace JumpStart.DemoApp.Controllers;
 public class ProductsController 
     : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
-    public ProductsController(IProductRepository repository, IMapper mapper) 
-        : base(repository, mapper)
+    public ProductsController(IProductRepository repository, IMapper mapper, ILogger<ProductsController> logger, ICorrelationContextAccessor correlationAccessor) 
+        : base(repository, mapper, logger, correlationAccessor)
     {
     }
 
@@ -38,8 +39,8 @@ public class ProductsController
         [FromQuery] decimal minPrice,
         [FromQuery] decimal maxPrice)
     {
-        var products = await Repository.GetProductsByPriceRangeAsync(minPrice, maxPrice);
-        var dtos = Mapper.Map<List<ProductDto>>(products);
+        var products = await _repository.GetProductsByPriceRangeAsync(minPrice, maxPrice);
+        var dtos = _mapper.Map<List<ProductDto>>(products);
         return Ok(dtos);
     }
 
@@ -50,8 +51,8 @@ public class ProductsController
     [HttpGet("low-stock")]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetLowStock([FromQuery] int threshold = 10)
     {
-        var products = await Repository.GetLowStockProductsAsync(threshold);
-        var dtos = Mapper.Map<List<ProductDto>>(products);
+        var products = await _repository.GetLowStockProductsAsync(threshold);
+        var dtos = _mapper.Map<List<ProductDto>>(products);
         return Ok(dtos);
     }
 
@@ -62,8 +63,8 @@ public class ProductsController
     [HttpGet("active")]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetActive()
     {
-        var products = await Repository.GetActiveProductsAsync();
-        var dtos = Mapper.Map<List<ProductDto>>(products);
+        var products = await _repository.GetActiveProductsAsync();
+        var dtos = _mapper.Map<List<ProductDto>>(products);
         return Ok(dtos);
     }
 }

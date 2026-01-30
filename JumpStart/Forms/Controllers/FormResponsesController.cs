@@ -12,15 +12,18 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using AutoMapper;
+using Correlate;
 using JumpStart.Api.Controllers;
+using JumpStart.Api.DTOs;
 using JumpStart.Forms;
 using JumpStart.Forms.DTOs;
 using JumpStart.Forms.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace JumpStart.Forms.Controllers;
 
@@ -35,8 +38,10 @@ public class FormResponsesController : ApiControllerBase<
 {
     public FormResponsesController(
         IFormResponseRepository repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IMapper mapper,
+        ILogger<FormResponsesController> logger, 
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
     }
 }

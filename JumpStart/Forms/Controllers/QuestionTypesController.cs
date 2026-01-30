@@ -16,11 +16,13 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AutoMapper;
+using Correlate;
 using JumpStart.Api.Controllers;
 using JumpStart.Forms;
 using JumpStart.Forms.DTOs;
 using JumpStart.Forms.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace JumpStart.Forms.Controllers;
 
@@ -35,8 +37,10 @@ public class QuestionTypesController : ApiControllerBase<
 {
     public QuestionTypesController(
         IQuestionTypeRepository repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IMapper mapper,
+        ILogger<QuestionTypesController> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
     }
 }

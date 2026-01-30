@@ -43,23 +43,6 @@ public class JumpStartAutoMapperExtensionsTests
         Assert.True(method.IsStatic);
         Assert.Equal(typeof(IServiceCollection), method.ReturnType);
     }
-
-    [Fact]
-    public void AddJumpStartAutoMapper_WithTypes_HasCorrectSignature()
-    {
-        // Arrange
-        var extensionType = typeof(JumpStartAutoMapperExtensions);
-        var method = extensionType.GetMethod(
-            nameof(JumpStartAutoMapperExtensions.AddJumpStartAutoMapper),
-            new[] { typeof(IServiceCollection), typeof(Type[]) });
-
-        // Act & Assert
-        Assert.NotNull(method);
-        Assert.True(method!.IsPublic);
-        Assert.True(method.IsStatic);
-        Assert.Equal(typeof(IServiceCollection), method.ReturnType);
-    }
-
     #endregion
 
     #region Class Structure Tests
@@ -137,46 +120,9 @@ public class JumpStartAutoMapperExtensionsTests
         // Assert
         Assert.Same(services, result);
     }
-
-    [Fact]
-    public void AddJumpStartAutoMapper_WithTypes_ReturnsServiceCollection()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        var result = services.AddJumpStartAutoMapper(typeof(JumpStartAutoMapperExtensionsTests));
-
-        // Assert
-        Assert.Same(services, result);
-    }
-
     #endregion
 
     #region Parameter Validation Tests
-
-    [Fact]
-    public void AddJumpStartAutoMapper_WithTypes_ThrowsWhenNull()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() => 
-            services.AddJumpStartAutoMapper((Type[])null!));
-    }
-
-    [Fact]
-    public void AddJumpStartAutoMapper_WithTypes_ThrowsWhenEmpty()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act & Assert
-        Assert.Throws<ArgumentException>(() => 
-            services.AddJumpStartAutoMapper(Array.Empty<Type>()));
-    }
-
     [Fact]
     public void AddJumpStartAutoMapper_WithAssemblies_HandlesNull()
     {
@@ -217,7 +163,7 @@ public class JumpStartAutoMapperExtensionsTests
 
         // Act
         var result = services
-            .AddJumpStartAutoMapper(typeof(JumpStartAutoMapperExtensionsTests))
+            .AddJumpStartAutoMapper(typeof(JumpStartAutoMapperExtensionsTests).Assembly)
             .AddSingleton<string>("test");
 
         // Assert
@@ -244,29 +190,12 @@ public class JumpStartAutoMapperExtensionsTests
         Assert.NotNull(result);
         Assert.Same(services, result);
     }
-
-    [Fact]
-    public void AddJumpStartAutoMapper_WithTypes_AcceptsMultiple()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        var result = services.AddJumpStartAutoMapper(
-            typeof(JumpStartAutoMapperExtensionsTests),
-            typeof(JumpStartAutoMapperExtensions));
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Same(services, result);
-    }
-
     #endregion
 
     #region Method Count Tests
 
     [Fact]
-    public void JumpStartAutoMapperExtensions_HasTwoOverloads()
+    public void JumpStartAutoMapperExtensions_HasNoOverloads()
     {
         // Arrange
         var extensionType = typeof(JumpStartAutoMapperExtensions);
@@ -275,7 +204,7 @@ public class JumpStartAutoMapperExtensionsTests
             .ToArray();
 
         // Act & Assert
-        Assert.Equal(2, methods.Length);
+        Assert.Single(methods);
     }
 
     #endregion
@@ -310,50 +239,21 @@ public class JumpStartAutoMapperExtensionsTests
 
     #endregion
 
-    #region Type Conversion Tests
+
+
+    #region Null Service Collection Tests
 
     [Fact]
-    public void AddJumpStartAutoMapper_WithTypes_ExtractsAssemblies()
+    public void AddJumpStartAutoMapper_WithAssemblies_ThrowsWhenServicesIsNull()
     {
         // Arrange
-        var services = new ServiceCollection();
-        var type1 = typeof(JumpStartAutoMapperExtensionsTests);
-        var type2 = typeof(JumpStartAutoMapperExtensions);
+        IServiceCollection services = null!;
+        var assembly = Assembly.GetExecutingAssembly();
 
-        // Act - Should extract assemblies from types and call the assemblies overload
-        var result = services.AddJumpStartAutoMapper(type1, type2);
-
-        // Assert
-        Assert.NotNull(result);
-        Assert.Same(services, result);
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() =>
+            services.AddJumpStartAutoMapper(assembly));
     }
 
     #endregion
-
-        #region Null Service Collection Tests
-
-        [Fact]
-        public void AddJumpStartAutoMapper_WithAssemblies_ThrowsWhenServicesIsNull()
-        {
-            // Arrange
-            IServiceCollection services = null!;
-            var assembly = Assembly.GetExecutingAssembly();
-
-            // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => 
-                services.AddJumpStartAutoMapper(assembly));
-        }
-
-        [Fact]
-        public void AddJumpStartAutoMapper_WithTypes_ThrowsWhenServicesIsNull()
-        {
-            // Arrange
-            IServiceCollection services = null!;
-
-            // Act & Assert
-            Assert.Throws<ArgumentNullException>(() => 
-                services.AddJumpStartAutoMapper(typeof(JumpStartAutoMapperExtensionsTests)));
-        }
-
-        #endregion
-    }
+}

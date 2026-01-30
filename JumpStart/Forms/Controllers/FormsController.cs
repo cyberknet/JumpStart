@@ -12,20 +12,23 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using AutoMapper;
+using Correlate;
 using JumpStart.Api.Controllers;
 using JumpStart.Data.Auditing;
 using JumpStart.Forms;
 using JumpStart.Forms.DTOs;
 using JumpStart.Forms.Repositories;
+using JumpStart.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace JumpStart.Forms.Controllers;
 
@@ -76,15 +79,13 @@ public class FormsController : ApiControllerBase<
         UpdateFormDto,
         IFormRepository>
 {
-    private readonly ILogger<FormsController> logger;
-
     public FormsController(
         IFormRepository formRepository,
         AutoMapper.IMapper mapper,
-        ILogger<FormsController> logger)
-        : base(formRepository, mapper)
+        ILogger<FormsController> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(formRepository, mapper, logger, correlationContext)
     {
-        this.logger = logger;
     }
 
 
@@ -104,10 +105,10 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(typeof(IEnumerable<FormDto>), 200)]
     public async Task<ActionResult<IEnumerable<FormDto>>> GetActiveForms()
     {
-        logger.LogInformation("Retrieving active forms");
+        _logger.LogInformation("Retrieving active forms");
 
-        var forms = await Repository.GetActiveFormsAsync();
-        var formDtos = Mapper.Map<IEnumerable<FormDto>>(forms);
+        var forms = await _repository.GetActiveFormsAsync();
+        var formDtos = _mapper.Map<IEnumerable<FormDto>>(forms);
 
         return Ok(formDtos);
     }
@@ -273,7 +274,7 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(404)]
     public override async Task<ActionResult<FormDto>> Update(Guid id, [FromBody] UpdateFormDto updateDto)
     {
-        logger.LogInformation("Updating form {FormId}", id);
+        _logger.LogInformation("Updating form {FormId}", id);
 
         if (!ModelState.IsValid)
         {
@@ -282,28 +283,28 @@ public class FormsController : ApiControllerBase<
 
         if (id != updateDto.Id)
         {
-            logger.LogWarning("Form ID mismatch: URL={UrlId}, Body={BodyId}", id, updateDto.Id);
+            _logger.LogWarning("Form ID mismatch: URL={UrlId}, Body={BodyId}", id, updateDto.Id);
             BadRequest(new { message = "Form ID in URL does not match ID in request body." });
         }
 
         try
         {
-            await Repository.UpdateFormWithQuestionsAsync(id, updateDto);
-            logger.LogInformation("Form {FormId} updated successfully", id);
+            await _repository.UpdateFormWithQuestionsAsync(id, updateDto);
+            _logger.LogInformation("Form {FormId} updated successfully", id);
 
             // Fetch the updated form with questions
-            var updatedForm = await Repository.GetFormWithQuestionsAsync(id);
+            var updatedForm = await _repository.GetFormWithQuestionsAsync(id);
             if (updatedForm == null)
             {
-                logger.LogWarning("Form {FormId} not found after update", id);
+                _logger.LogWarning("Form {FormId} not found after update", id);
                 return NotFound(new { message = $"Form with ID {id} not found after update." });
             }
-            var formDto = Mapper.Map<FormDto>(updatedForm);
+            var formDto = _mapper.Map<FormDto>(updatedForm);
             return Ok(formDto);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
         {
-            logger.LogWarning("Form {FormId} not found for update", id);
+            _logger.LogWarning("Form {FormId} not found for update", id);
             return NotFound(new { message = ex.Message });
         }
     }
@@ -327,17 +328,17 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(404)]
     public async Task<ActionResult<FormStatisticsDto>> GetFormStatistics(Guid id)
     {
-        logger.LogInformation("Retrieving statistics for form {FormId}", id);
+        _logger.LogInformation("Retrieving statistics for form {FormId}", id);
 
-        var form = await Repository.GetByIdAsync(id, GetIncludesForGetById());
+        var form = await _repository.GetByIdAsync(id, GetIncludesForGetById());
         if (form == null)
         {
-            logger.LogWarning("Form {FormId} not found", id);
+            _logger.LogWarning("Form {FormId} not found", id);
             return NotFound(new { message = $"Form with ID {id} not found." });
         }
 
-        var totalResponses = await Repository.GetFormResponseCountAsync(id);
-        var completeResponses = await Repository.GetCompleteResponseCountAsync(id);
+        var totalResponses = await _repository.GetFormResponseCountAsync(id);
+        var completeResponses = await _repository.GetCompleteResponseCountAsync(id);
 
         var statistics = new FormStatisticsDto
         {
@@ -360,7 +361,7 @@ public class FormsController : ApiControllerBase<
 
     //        if (validationErrors.Any())
     //        {
-    //            logger.LogWarning("Form response validation failed for form {FormId}", formId);
+    //            _logger.LogWarning("Form response validation failed for form {FormId}", formId);
     //            return BadRequest(new
     //            {
     //        message = "One or more responses are invalid",
@@ -369,18 +370,18 @@ public class FormsController : ApiControllerBase<
     //        }
 
     //        // Map DTO to entity
-    //        var formResponse = Mapper.Map<FormResponse>(createDto);
+    //        var formResponse = _mapper.Map<FormResponse>(createDto);
     //        formResponse.FormId = formId;
     //        formResponse.SubmittedOn = DateTime.UtcNow;
 
     //        // Save response
-    //        var savedResponse = await Repository.SaveFormResponseAsync(formResponse);
+    //        var savedResponse = await _repository.SaveFormResponseAsync(formResponse);
 
     //// Load the saved response with all related data
-    //var responseWithData = await Repository.GetFormResponseAsync(savedResponse.Id);
-    //var responseDto = Mapper.Map<FormResponseDto>(responseWithData);
+    //var responseWithData = await _repository.GetFormResponseAsync(savedResponse.Id);
+    //var responseDto = _mapper.Map<FormResponseDto>(responseWithData);
 
-    //logger.LogInformation("Form response {ResponseId} submitted successfully for form {FormId}",
+    //_logger.LogInformation("Form response {ResponseId} submitted successfully for form {FormId}",
     //            savedResponse.Id, formId);
 
     //        return CreatedAtAction(
@@ -405,17 +406,17 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(404)]
     public async Task<ActionResult<FormResponseDto>> GetFormResponseById(Guid formId, Guid responseId)
     {
-        logger.LogInformation("Retrieving response {ResponseId} for form {FormId}", responseId, formId);
+        _logger.LogInformation("Retrieving response {ResponseId} for form {FormId}", responseId, formId);
 
-        var response = await Repository.GetFormResponseAsync(responseId);
+        var response = await _repository.GetFormResponseAsync(responseId);
 
         if (response == null || response.FormId != formId)
         {
-            logger.LogWarning("Response {ResponseId} not found for form {FormId}", responseId, formId);
+            _logger.LogWarning("Response {ResponseId} not found for form {FormId}", responseId, formId);
             return NotFound(new { message = $"Response with ID {responseId} not found for this form." });
         }
 
-        var responseDto = Mapper.Map<FormResponseDto>(response);
+        var responseDto = _mapper.Map<FormResponseDto>(response);
         return Ok(responseDto);
     }
 
@@ -444,19 +445,19 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(404)]
     public async Task<ActionResult<int>> DeleteAllFormResponses(Guid formId)
     {
-        logger.LogInformation("Deleting all responses for form {FormId}", formId);
+        _logger.LogInformation("Deleting all responses for form {FormId}", formId);
 
         // Verify form exists
-        var form = await Repository.GetByIdAsync(formId, GetIncludesForGetById());
+        var form = await _repository.GetByIdAsync(formId, GetIncludesForGetById());
         if (form == null)
         {
-            logger.LogWarning("Form {FormId} not found", formId);
+            _logger.LogWarning("Form {FormId} not found", formId);
             return NotFound(new { message = $"Form with ID {formId} not found." });
         }
 
-        var deletedCount = await Repository.DeleteAllFormResponsesAsync(formId);
+        var deletedCount = await _repository.DeleteAllFormResponsesAsync(formId);
 
-        logger.LogInformation("Deleted {Count} responses for form {FormId}", deletedCount, formId);
+        _logger.LogInformation("Deleted {Count} responses for form {FormId}", deletedCount, formId);
 
         return Ok(deletedCount);
     }
@@ -477,7 +478,7 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(400)]
     public async Task<ActionResult<QuestionTypeDto>> CreateQuestionType([FromBody] CreateQuestionTypeDto createDto)
     {
-        logger.LogInformation("Creating question type with code {Code}", createDto.Code);
+        _logger.LogInformation("Creating question type with code {Code}", createDto.Code);
 
         if (!ModelState.IsValid)
         {
@@ -485,18 +486,18 @@ public class FormsController : ApiControllerBase<
         }
 
         // Check if a question type with the same code already exists
-        var existing = await Repository.GetQuestionTypeByCodeAsync(createDto.Code);
+        var existing = await _repository.GetQuestionTypeByCodeAsync(createDto.Code);
         if (existing != null)
         {
-            logger.LogWarning("Question type with code {Code} already exists", createDto.Code);
+            _logger.LogWarning("Question type with code {Code} already exists", createDto.Code);
             return BadRequest(new { message = $"A question type with code '{createDto.Code}' already exists." });
         }
 
-        var questionType = Mapper.Map<QuestionType>(createDto);
-        var created = await Repository.CreateQuestionTypeAsync(questionType);
+        var questionType = _mapper.Map<QuestionType>(createDto);
+        var created = await _repository.CreateQuestionTypeAsync(questionType);
 
-        var dto = Mapper.Map<QuestionTypeDto>(created);
-        logger.LogInformation("Created question type {Id} with code {Code}", created.Id, created.Code);
+        var dto = _mapper.Map<QuestionTypeDto>(created);
+        _logger.LogInformation("Created question type {Id} with code {Code}", created.Id, created.Code);
 
         return CreatedAtAction(nameof(GetQuestionTypeById), new { id = created.Id }, dto);
     }
@@ -516,16 +517,16 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(404)]
     public async Task<ActionResult<QuestionTypeDto>> GetQuestionTypeById(Guid id)
     {
-        logger.LogInformation("Retrieving question type {Id}", id);
+        _logger.LogInformation("Retrieving question type {Id}", id);
 
-        var questionType = await Repository.GetQuestionTypeByIdAsync(id);
+        var questionType = await _repository.GetQuestionTypeByIdAsync(id);
         if (questionType == null)
         {
-            logger.LogWarning("Question type {Id} not found", id);
+            _logger.LogWarning("Question type {Id} not found", id);
             return NotFound(new { message = $"Question type with ID {id} not found." });
         }
 
-        var dto = Mapper.Map<QuestionTypeDto>(questionType);
+        var dto = _mapper.Map<QuestionTypeDto>(questionType);
         return Ok(dto);
     }
 
@@ -548,17 +549,17 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(404)]
     public async Task<IActionResult> UpdateQuestionType(Guid id, [FromBody] UpdateQuestionTypeDto updateDto)
     {
-        logger.LogInformation("Updating question type {Id}", id);
+        _logger.LogInformation("Updating question type {Id}", id);
 
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var questionType = await Repository.GetQuestionTypeByIdAsync(id);
+        var questionType = await _repository.GetQuestionTypeByIdAsync(id);
         if (questionType == null)
         {
-            logger.LogWarning("Question type {Id} not found", id);
+            _logger.LogWarning("Question type {Id} not found", id);
             return NotFound(new { message = $"Question type with ID {id} not found." });
         }
 
@@ -572,9 +573,9 @@ public class FormsController : ApiControllerBase<
         if (updateDto.DisplayOrder.HasValue) questionType.DisplayOrder = updateDto.DisplayOrder.Value;
         if (updateDto.ApplicationData != null) questionType.ApplicationData = updateDto.ApplicationData;
 
-        await Repository.UpdateQuestionTypeAsync(questionType);
+        await _repository.UpdateQuestionTypeAsync(questionType);
 
-        logger.LogInformation("Updated question type {Id}", id);
+        _logger.LogInformation("Updated question type {Id}", id);
         return NoContent();
     }
 
@@ -599,24 +600,24 @@ public class FormsController : ApiControllerBase<
     [ProducesResponseType(404)]
     public async Task<IActionResult> DeleteQuestionType(Guid id)
     {
-        logger.LogInformation("Deleting question type {Id}", id);
+        _logger.LogInformation("Deleting question type {Id}", id);
 
-        var questionType = await Repository.GetQuestionTypeByIdAsync(id);
+        var questionType = await _repository.GetQuestionTypeByIdAsync(id);
         if (questionType == null)
         {
-            logger.LogWarning("Question type {Id} not found", id);
+            _logger.LogWarning("Question type {Id} not found", id);
             return NotFound(new { message = $"Question type with ID {id} not found." });
         }
 
         try
         {
-            await Repository.DeleteQuestionTypeAsync(id);
-            logger.LogInformation("Deleted question type {Id}", id);
+            await _repository.DeleteQuestionTypeAsync(id);
+            _logger.LogInformation("Deleted question type {Id}", id);
             return NoContent();
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to delete question type {Id} - may be in use", id);
+            _logger.LogWarning(ex, "Failed to delete question type {Id} - may be in use", id);
             return BadRequest(new { message = "Cannot delete question type because it is in use by existing questions." });
         }
     }

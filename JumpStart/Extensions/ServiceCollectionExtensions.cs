@@ -12,10 +12,12 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
+using Correlate.DependencyInjection;
 using JumpStart;
 using JumpStart.Authorization;
 using JumpStart.Data;
 using JumpStart.Forms.Clients;
+using JumpStart.Forms.Controllers;
 using JumpStart.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -236,6 +238,8 @@ public static partial class JumpStartServiceCollectionExtensions
             RegisterFormsServices(services, options);
         }
 
+        services.AddCorrelate();
+
         // Register Authorization handlers and policy provider
         services.AddSingleton<IAuthorizationPolicyProvider, EntityPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, EntityPermissionHandler>();
@@ -339,7 +343,7 @@ public static partial class JumpStartServiceCollectionExtensions
 
             // Register DbContext as a factory that resolves the concrete type
             // This allows repositories with DbContext constructor parameters to work
-            services.AddScoped<DbContext>(provider =>
+            services.TryAddScoped<DbContext>(provider =>
                 (DbContext)provider.GetRequiredService(concreteType));
         }
     }

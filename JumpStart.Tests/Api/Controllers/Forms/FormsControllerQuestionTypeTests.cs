@@ -12,18 +12,19 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using AutoMapper;
-using JumpStart.Forms.DTOs;
+using Correlate;
 using JumpStart.Forms;
 using JumpStart.Forms.Controllers;
+using JumpStart.Forms.DTOs;
 using JumpStart.Forms.Mapping;
 using JumpStart.Forms.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace JumpStart.Tests.Api.Controllers.Forms;
@@ -56,8 +57,18 @@ public class FormsControllerQuestionTypeTests
         _mapper = config.CreateMapper();
         
         _mockLogger = new Mock<ILogger<FormsController>>();
-        
-        _controller = new FormsController(_mockRepository.Object, _mapper, _mockLogger.Object);
+
+        // Create a mock correlation context
+        var mockCorrelationContext = new Mock<CorrelationContext>();
+        mockCorrelationContext.SetupGet(c => c.CorrelationId).Returns("test-correlation-id");
+
+        // Create a mock accessor that returns the mock context
+        var mockCorrelationContextAccessor = new Mock<ICorrelationContextAccessor>();
+        mockCorrelationContextAccessor.SetupGet(a => a.CorrelationContext).Returns(mockCorrelationContext.Object);
+
+        // Pass mockCorrelationContextAccessor.Object to your controller or service under test
+
+        _controller = new FormsController(_mockRepository.Object, _mapper, _mockLogger.Object, mockCorrelationContextAccessor.Object);
     }
 
     

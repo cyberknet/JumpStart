@@ -72,78 +72,12 @@ public static class JumpStartAutoMapperExtensions
             assemblies = new[] { Assembly.GetCallingAssembly() };
         }
 
-        services.AddAutoMapper(cfg => { }, assemblies);
+        // Check for existing AutoMapper registration
+        if (!services.Any(sd => sd.ServiceType == typeof(AutoMapper.IMapper)))
+        {
+            services.AddAutoMapper(cfg => { }, assemblies);
+        }
 
         return services;
-    }
-
-    /// <summary>
-    /// Adds AutoMapper with profiles from assemblies containing the specified marker types.
-    /// </summary>
-    /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
-    /// <param name="markerTypes">
-    /// Types whose containing assemblies should be scanned for AutoMapper profiles.
-    /// At least one type must be provided.
-    /// </param>
-    /// <returns>The <see cref="IServiceCollection"/> for method chaining.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="markerTypes"/> is null or empty.
-    /// </exception>
-    /// <remarks>
-    /// <para>
-    /// This is a convenience method that extracts the assembly from each provided type and scans those
-    /// assemblies for AutoMapper profiles. It's useful when you want to scan multiple assemblies without
-    /// explicitly getting the Assembly object for each one.
-    /// </para>
-    /// <para>
-    /// <strong>Marker Types:</strong>
-    /// Marker types are typically well-known types from each assembly you want to scan, such as:
-    /// - Program or Startup class
-    /// - A representative Profile class
-    /// - Any class from the assembly
-    /// </para>
-    /// <para>
-    /// This method is particularly useful in modular applications where AutoMapper profiles are spread
-    /// across multiple assemblies or class libraries.
-    /// </para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// // Register using marker types from different assemblies
-    /// services.AddJumpStartAutoMapper(
-    ///     typeof(Program),              // Web project
-    ///     typeof(DataModule),           // Data layer
-    ///     typeof(ProductProfile));      // Profile assembly
-    /// 
-    /// // Register from modular application
-    /// services.AddJumpStartAutoMapper(
-    ///     typeof(CoreModule),
-    ///     typeof(IdentityModule),
-    ///     typeof(CatalogModule),
-    ///     typeof(OrderingModule));
-    /// 
-    /// // Chain with other configuration
-    /// services
-    ///     .AddJumpStart(options => options.RegisterUserContext&lt;UserContext&gt;())
-    ///     .AddJumpStartAutoMapper(typeof(Program), typeof(DataModule))
-    ///     .AddDbContext&lt;ApplicationDbContext&gt;();
-    /// </code>
-    /// </example>
-    public static IServiceCollection AddJumpStartAutoMapper(
-        this IServiceCollection services,
-        params Type[] markerTypes)
-    {
-        if (markerTypes == null || markerTypes.Length == 0)
-        {
-            throw new ArgumentException("At least one marker type must be provided", nameof(markerTypes));
-        }
-
-        var assemblies = new Assembly[markerTypes.Length];
-        for (int i = 0; i < markerTypes.Length; i++)
-        {
-            assemblies[i] = markerTypes[i].Assembly;
-        }
-
-        return AddJumpStartAutoMapper(services, assemblies);
     }
 }

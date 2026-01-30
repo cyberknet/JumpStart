@@ -59,13 +59,8 @@ namespace MyProductCatalog.Data;
 /// <summary>
 /// Represents a product in the catalog.
 /// </summary>
-public class Product : Entity
+public class Product : NamedEntity
 {
-    /// <summary>
-    /// Gets or sets the product name.
-    /// </summary>
-    public string Name { get; set; } = string.Empty;
-
     /// <summary>
     /// Gets or sets the product description.
     /// </summary>
@@ -85,7 +80,9 @@ public class Product : Entity
 
 **What You Get:**
 - `Entity` provides an `Id` property (Guid) automatically
+- `NamedEntity` adds a `Name` property
 - Inheriting from `AuditableEntity` would add audit tracking (CreatedBy, CreatedOn, etc.)
+- Inheriting from `AuditableNamedEntity` would add a name *and* audit tracking
 
 ### Step 3: Create a DbContext
 
@@ -320,7 +317,7 @@ Navigate to `https://localhost:5001/Products` (or your configured port) to see y
 Congratulations! You've created your first JumpStart application. Here's what to explore next:
 
 ### Add Audit Tracking
-Change your entity to inherit from `SimpleAuditableEntity` to automatically track who created and modified records:
+Change your entity to inherit from `AuditableEntity` to automatically track who created and modified records:
 
 ```csharp
 public class Product : AuditableEntity
@@ -341,8 +338,10 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
 {
     public ProductsController(
         IRepository<Product> repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IMapper mapper,
+        ILogger<ProductsController> logger,
+        ICorrelationContextAccessor accessor)
+        : base(repository, mapper, logger, accessor)
     {
     }
 }

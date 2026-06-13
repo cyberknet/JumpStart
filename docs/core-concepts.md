@@ -15,10 +15,9 @@ JumpStart is built around several core concepts that work together to provide a 
 
 ## Entity System
 
+JumpStart provides a flexible entity system with Guid-based keys for simplicity and consistency.
 
-JumpStart provides a flexible entity system based on a single set of base classes with Guid keys by default, but extensible for custom key types.
-
-### Entity (Guid-based)
+### Entity
 
 **Purpose:** Quick and easy development with sensible defaults for most applications.
 
@@ -94,8 +93,6 @@ Repositories provide an abstraction layer between your domain/business logic and
 2. **Testability** - Easy to mock for unit tests
 3. **Consistency** - Standard CRUD operations across entities
 4. **Reusability** - Common queries in one place
-
-### Simple Repositories
 
 For Guid-based entities:
 
@@ -532,7 +529,7 @@ Database
 
 ? **Do:**
 - Keep entities focused on domain logic
-- Use appropriate base classes (Simple vs Advanced)
+- Use appropriate base classes (Entity, AuditableEntity, etc.)
 - Add navigation properties for relationships
 - Override `ToString()` for debugging
 

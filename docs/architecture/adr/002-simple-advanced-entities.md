@@ -1,34 +1,55 @@
-# ADR-002: Simple vs Advanced Entities
+# ADR-002: Guid-Only Entity System
 
 **Status:** Accepted
 
-**Date:** 2025-01-15
+**Date:** 2025-01-15 (Original Decision)
+**Revised:** 2026-06-13 (Revised to Guid-Only)
 
 **Decision Makers:** JumpStart Core Team
 
 ## Context
 
-When designing a framework for rapid application development, we faced a fundamental decision about entity design. Different applications have different needs:
+When designing a framework for rapid application development, we initially explored supporting both Guid-based and custom key type entities.
 
-- **New applications** typically use Guid identifiers and modern patterns
-- **Legacy systems** may require int, long, or custom key types
-- **Distributed systems** benefit from Guid's global uniqueness
-- **Traditional databases** often use auto-increment integer keys
-- **Developer experience** is improved with simpler APIs when possible
-- **Flexibility** is needed for advanced scenarios
+After implementation, we found that:
+- The "Advanced" generic entity system with custom key types proved overly complex
+- The C# generic constraints made the code difficult to maintain and extend
+- The added complexity didn't justify the marginal benefit
+- Most applications benefit from a simple, opinionated approach
 
-We needed to balance **simplicity for common cases** with **flexibility for complex scenarios** without forcing developers to choose one or the other.
+We decided to simplify by committing to **Guid-based entities exclusively**, removing the Advanced entity system entirely.
 
 ## Decision
 
-JumpStart provides a unified entity system using `Entity`, `AuditableEntity`, and `NamedEntity` base classes with Guid keys.
+JumpStart uses a **single, unified entity system** with Guid-based keys exclusively.
 
-**Example:**
+**Base Classes:**
 ```csharp
-public class Product : AuditableNamedEntity
+// Simple entity with Guid key
+public class Product : Entity
 {
+    public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
+}
+
+// Entity with audit tracking
+public class Order : AuditableEntity
+{
+    public decimal Total { get; set; }
+}
+
+// Named entity with audit tracking
+public class Category : AuditableNamedEntity
+{
     public string Description { get; set; } = string.Empty;
+}
+```
+
+**Repository Pattern:**
+```csharp
+public interface IProductRepository : IRepository<Product>
+{
+    Task<IList<Product>> GetByCategoryAsync(Guid categoryId);
 }
 
 public class ProductRepository : Repository<Product>, IProductRepository
@@ -36,105 +57,88 @@ public class ProductRepository : Repository<Product>, IProductRepository
     public ProductRepository(DbContext context, IUserContext? userContext = null)
         : base(context, userContext) { }
 }
-
-public class ProductService
-{
-    private readonly IRepository<Product> _repository;
-    public ProductService(IRepository<Product> repository)
-    {
-        _repository = repository;
-    }
-}
 ```
 
 ## Consequences
 
 ### Positive Consequences
 
-- **Unified API** – Most applications use a single, simple set of base classes (`Entity`, `AuditableEntity`, `NamedEntity`) with Guid keys by default.
-- **Extensibility** – Advanced/legacy scenarios are supported by allowing custom key types via inheritance, without duplicating the core logic.
-- **Modern Defaults** – Encourages best practices (Guid IDs, audit tracking, clean separation of concerns).
-- **Backward Compatibility** – Existing code using custom key types can be supported with minimal changes.
-- **Reduced Complexity** – No need to choose between two parallel systems; the default is simple, but extensible.
-- **Consistent Patterns** – All repositories, services, and controllers follow the same conventions.
+- **Simpler Codebase** – No complex generic constraints, easier to maintain and extend
+- **Faster Development** – Opinionated approach means less decision-making for developers
+- **Consistent API** – All entities use the same pattern, no confusion about which base class to use
+- **Easier Onboarding** – New developers learn one system, not multiple parallel systems
+- **Fewer Edge Cases** – Guid-based entities eliminate edge cases around key type handling
+- **Better Documentation** – Documentation can focus on one system, not complex conditional logic
 
 ### Negative Consequences
 
-- **Slightly More Verbose for Custom Keys** – Using custom key types requires explicit inheritance and configuration, but this is rare for new projects.
-- **Migration Effort** – Legacy code using the old "Simple" or "Advanced" types may require refactoring to the new unified base classes.
-- **Documentation Updates** – Existing documentation and samples must be updated to reflect the unified approach.
+- **No Custom Key Types** – Applications that absolutely require int, long, or custom key types cannot use JumpStart without significant modification
+- **Legacy Migration** – Applications with existing int-based schemas may need to migrate to Guid
+- **Slight Performance Overhead** – Guid keys are slightly larger than int keys (negligible for most applications)
+- **Sequel Compatibility** – Applications using SQL Server SEQUENTIALIDGUID benefit from Guid.NewGuid() overhead
 
 ## Alternatives Considered
 
-### 1. Generic-Only Approach
+### 1. Keep Both Systems
+Maintain both Guid-based and generic entity systems in parallel.
 
-Require all entities and repositories to specify key types (e.g., `Entity<TKey>`, `Repository<TEntity, TKey>`).
+**Rejected:** Proved too complex to maintain, confusing for developers, and the added complexity didn't justify the marginal benefit of supporting custom key types.
 
-**Rejected:** Too verbose for the common case; most modern applications use Guid keys and benefit from a simpler default.
+### 2. Configuration-Based System
+Allow applications to configure their preferred key type globally.
 
-### 2. Configuration-Based Approach
+**Rejected:** Still required complex generic constraints underneath, didn't solve the core maintainability issues.
 
-Allow a single key type to be configured globally for the application.
+### 3. Hybrid Approach
+Provide Guid-based as default, with extension points for custom key types.
 
-**Rejected:** Inflexible for applications that need to mix key types (e.g., during migrations or when integrating with legacy systems).
-
-### 3. Parallel Systems (Simple/Advanced)
-
-Maintain two separate sets of base classes and infrastructure for Guid and custom key types.
-
-**Rejected:** Duplicates logic, increases maintenance burden, and causes confusion. A unified, extensible system is simpler and easier to maintain.
+**Rejected:** Still required maintaining complex inheritance hierarchies and generic constraints. Simpler to just commit to one approach.
 
 ## Implementation Details
 
-### Inheritance Chain Example
+### Removed Components
 
-```csharp
-// Advanced system
-public interface IEntity<TKey> where TKey : struct
-{
-    TKey Id { get; set; }
-}
+The following components were removed as part of this decision:
 
-public abstract class Entity<TKey> : IEntity<TKey> where TKey : struct
-{
-    [Key]
-    public TKey Id { get; set; }
-}
+- `JumpStart.Data.Advanced.Entity<TKey>` - Generic entity with custom key types
+- `JumpStart.Data.Advanced.Auditing.AuditableEntity<TKey>` - Advanced audit tracking
+- `JumpStart.Repositories.Advanced.Repository<TEntity, TKey>` - Generic repository
+- All `IRepository<TEntity, TKey>` interfaces with custom key type constraints
+- ADR-001 decision discussing parallel systems
 
-// Simple system inherits and specializes
-public interface ISimpleEntity : IEntity<Guid>
-{
-}
+### Migration Path
 
-public abstract class SimpleEntity : Entity<Guid>, ISimpleEntity
-{
-}
-```
+For applications with existing int-based schemas, JumpStart recommends:
 
-### User Context Parallel
+1. **Migrate to Guid IDs** – Convert primary keys to Guid
+2. **Use Entity framework migrations** – EF Core handles Guid migrations smoothly
+3. **Update application code** – Change all repository and service code to use Guid
+4. **Benefit from better distributed system design** – Guid IDs work better across services
 
-```csharp
-// Advanced
-public interface IUserContext<TKey> where TKey : struct
-{
-    TKey? UserId { get; }
-}
+### Why Guid?
 
-// Simple
-public interface ISimpleUserContext : IUserContext<Guid>
-{
-}
-```
+Guid-based identifiers were chosen over other options because:
+
+- **Uniqueness** – Globally unique, no coordination needed
+- **Performance** – Comparable to int for most workloads
+- **Best Practices** – Recommended for modern distributed systems
+- **EF Core Support** – Excellent Entity Framework Core support for Guid keys
+- **Security** – Harder to enumerate than sequential int IDs
+
+## Decision Owners
+
+- Scott Blomfield - Framework Lead
 
 ## References
 
-- [ADR-001: Repository Pattern](001-repository-pattern.md)
-- [ADR-003: Audit Tracking Implementation](003-audit-tracking.md)
 - [Guid vs Int as Primary Key - Microsoft Docs](https://docs.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/infrastructure-persistence-layer-design)
+- [When to Use Guid vs Int - Stack Overflow](https://stackoverflow.com/questions/1060057/when-should-i-use-guid-vs-int-as-primary-key)
+- [EF Core Guid Best Practices](https://docs.microsoft.com/en-us/ef/core/modeling/property-types)
 
 ## Related Documentation
 
-- [Getting Started: Creating Entities](../../getting-started/creating-entities.md)
-- [How-To: Custom Repository](../../how-to/custom-repository.md)
-- [API Reference: SimpleEntity](../../api/data/simpleentity.md)
-- [API Reference: Entity<TKey>](../../api/data/entity.md)
+- [Getting Started: Creating Entities](../../getting-started.md)
+- [Core Concepts: Entity System](../../core-concepts.md)
+- [Architecture: Extension Points](../../architecture/extension-points.md)
+- [API Reference: Entity](../../api/data/entity.md)
+- [API Reference: AuditableEntity](../../api/data/auditableentity.md)

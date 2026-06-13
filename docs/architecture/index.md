@@ -33,11 +33,6 @@ Where and how you can extend JumpStart.
 
 ### [Architecture Decision Records](adr/index.md)
 Documented decisions about significant architectural choices.
-- [ADR-001: Repository Pattern](adr/001-repository-pattern.md)
-- [ADR-002: Simple vs Advanced Entities](adr/002-simple-advanced-entities.md)
-- [ADR-003: Audit Tracking Implementation](adr/003-audit-tracking.md)
-- [ADR-004: JWT Authentication](adr/004-jwt-authentication.md)
-- [ADR-005: Refit for API Clients](adr/005-refit-api-clients.md)
 
 ## Design Patterns
 
@@ -70,8 +65,8 @@ Used in service collection extensions to simplify configuration and registration
 
 ## Key Architectural Decisions
 
-### Why Two Entity Systems?
-JumpStart provides both "Simple" (Guid-based) and "Advanced" (generic key type) entity systems to balance ease of use with flexibility. See [ADR-002](adr/002-simple-advanced-entities.md) for details.
+### Why Guid-Based Entities?
+JumpStart uses Guid-based entities exclusively to maintain simplicity and avoid the complexity of generic entity systems. See the decision to remove Advanced entities in [ADR-002](adr/002-simple-advanced-entities.md) for details.
 
 ### Why Separate API Project?
 The API can be deployed independently from the Blazor Server application, enabling:

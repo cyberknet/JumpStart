@@ -21,36 +21,31 @@ We needed a pattern that would provide a clean abstraction over data access whil
 
 ## Decision
 
-We will implement the **Repository Pattern** with two levels of abstraction:
+We will implement the **Repository Pattern** with a single level of abstraction:
 
-### 1. Generic Repository Base Classes
+### 1. Generic Repository Base Class
 
-**Advanced (Generic Key Type):**
-- `IRepository<TEntity, TKey>` - Interface for entities with custom key types
-- `Repository<TEntity, TKey>` - Abstract base implementation with EF Core
-
-**Simple (Guid-Only):**
-- `ISimpleRepository<TEntity>` - Interface for Guid-based entities
-- `SimpleRepository<TEntity>` - Abstract base inheriting from `Repository<TEntity, Guid>`
+- `IRepository<TEntity>` - Interface for entities with Guid key type
+- `Repository<TEntity>` - Abstract base implementation with EF Core
 
 ### 2. Entity-Specific Repositories
 
 Application developers extend the base repositories to create entity-specific repositories:
 
 ```csharp
-public interface IProductRepository : ISimpleRepository<Product>
+public interface IProductRepository : IRepository<Product>
 {
-    Task<IEnumerable<Product>> GetByCategoryAsync(Guid categoryId);
+    Task<IList<Product>> GetByCategoryAsync(Guid categoryId);
 }
 
-public class ProductRepository : SimpleRepository<Product>, IProductRepository
+public class ProductRepository : Repository<Product>, IProductRepository
 {
-    public ProductRepository(DbContext context, ISimpleUserContext userContext)
+    public ProductRepository(DbContext context, IUserContext? userContext = null)
         : base(context, userContext)
     {
     }
     
-    public async Task<IEnumerable<Product>> GetByCategoryAsync(Guid categoryId)
+    public async Task<IList<Product>> GetByCategoryAsync(Guid categoryId)
     {
         return await _dbSet
             .Where(p => p.CategoryId == categoryId)
@@ -110,7 +105,7 @@ builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
 
 - **Not a Pure Repository Pattern** - Exposes `IQueryable<T>` in some methods for flexibility
 - **Entity Framework Dependency** - Repositories still use EF Core types (DbContext, IQueryable)
-- **Two Entity Systems** - Maintain both Simple (Guid) and Advanced (generic) implementations
+- **Guid-Only Approach** - Opinionated approach eliminates complexity of maintaining parallel systems
 
 ## Alternatives Considered
 
@@ -139,7 +134,7 @@ builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
 - More complex API with generic parameters
 - Harder to use for common Guid-based scenarios
 
-**Why Rejected:** Decided to provide both for simplicity (Simple) and flexibility (Advanced).
+**Why Rejected:** Decided to provide a simpler Guid-only approach.
 
 ### 3. Specification Pattern
 

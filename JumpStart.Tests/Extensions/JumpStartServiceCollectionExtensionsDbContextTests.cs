@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -296,11 +296,13 @@ public class JumpStartServiceCollectionExtensionsDbContextTests
             .ToArray();
 
         // Act & Assert
-        // Now has 5 methods: 3 AddApiClient overloads, AddJumpStart, AddJumpStartWithDbContext
-        Assert.Equal(5, publicMethods.Length);
+        // 3 methods declared directly on this partial class: AddJumpStart, AddApiClient<TInterface>,
+        // AddJumpStartWithDbContext. AddJumpStartAutoMapper lives on the separate
+        // JumpStartAutoMapperExtensions class, not on JumpStartServiceCollectionExtensions.
+        Assert.Equal(3, publicMethods.Length);
         Assert.Contains(publicMethods, m => m.Name == "AddJumpStartWithDbContext");
         Assert.Contains(publicMethods, m => m.Name == "AddJumpStart");
-        Assert.Contains(publicMethods, m => m.Name == "AddSimpleApiClient");
+        Assert.Contains(publicMethods, m => m.Name == "AddApiClient");
     }
 
     #endregion

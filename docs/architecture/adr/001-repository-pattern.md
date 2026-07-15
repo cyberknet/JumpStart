@@ -1,10 +1,20 @@
 # ADR-001: Repository Pattern
 
-**Status:** Accepted
+**Status:** Accepted (partially superseded - see note)
 
 **Date:** 2025-01-15
 
 **Decision Makers:** JumpStart Core Team
+
+> **⚠️ Partially superseded (2026-01-25):** The core decision here - use the repository pattern,
+> with CRUD, pagination, audit tracking, soft delete, and DI/assembly-scanning support - still
+> stands. But the "Simple vs Advanced" (`ISimpleRepository`/`SimpleRepository` vs
+> `IRepository<TEntity, TKey>`/`Repository<TEntity, TKey>`) dual system described below was
+> removed; there is now a single `IRepository<TEntity>`/`Repository<TEntity>` pair, Guid-only.
+> See [ADR-009: Guid-Only Entities](009-guid-only-entities.md). Code samples below that reference
+> `ISimpleUserContext`, `SimpleRepository`, or `IUserContext<TKey>` are historical and do not
+> compile against the current codebase - see [Core Concepts](../../core-concepts.md) for current
+> repository examples.
 
 ## Context
 
@@ -155,44 +165,42 @@ builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
 
 ## Implementation Notes
 
-### User Context Abstraction
+### User Context Abstraction (current)
 
-Repositories accept `ISimpleUserContext` or `IUserContext<TKey>` to determine the current user for audit fields:
+Repositories accept a single `IUserContext` (async, Guid-only) to determine the current user for audit fields:
 
 ```csharp
-public interface ISimpleUserContext
+public interface IUserContext
 {
-    Guid? UserId { get; }
+    Task<Guid?> GetCurrentUserIdAsync();
 }
 ```
 
-### Soft Delete Filter
+### Soft Delete Filter (current)
 
 The base repository automatically filters soft-deleted entities:
 
 ```csharp
-protected IQueryable<TEntity> GetQueryable(bool includeDeleted = false)
+protected virtual IQueryable<TEntity> ApplySoftDeleteFilter(IQueryable<TEntity> query)
 {
-    var query = _dbSet.AsQueryable();
-    
-    if (!includeDeleted && typeof(IDeletable<TKey>).IsAssignableFrom(typeof(TEntity)))
+    if (typeof(IDeletable).IsAssignableFrom(typeof(TEntity)))
     {
-        query = query.Where(e => ((IDeletable<TKey>)e).DeletedOn == null);
+        return query.Where(e => EF.Property<DateTimeOffset?>(e, nameof(IDeletable.DeletedOn)) == null);
     }
-    
     return query;
 }
 ```
 
-### Pagination
+### Pagination (current)
 
-`QueryOptions` provides pagination and sorting:
+`QueryOptions<TEntity>` provides pagination and sorting (page number/size are nullable - omitting
+both returns everything):
 
 ```csharp
 public class QueryOptions<TEntity>
 {
-    public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int? PageNumber { get; set; }
+    public int? PageSize { get; set; }
     public Expression<Func<TEntity, object>>? SortBy { get; set; }
     public bool SortDescending { get; set; }
 }

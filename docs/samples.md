@@ -87,7 +87,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IList<Product>> GetLowStockProductsAsync(int threshold)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .Where(p => p.StockQuantity <= threshold)
             .OrderBy(p => p.StockQuantity)
             .ToListAsync();
@@ -95,7 +95,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IList<Product>> GetProductsByCategoryAsync(Guid categoryId)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .Where(p => p.CategoryId == categoryId)
             .Include(p => p.Category)
             .OrderBy(p => p.Name)
@@ -394,7 +394,11 @@ public class AuthenticationService
         if (result.Succeeded)
         {
             var user = await _signInManager.UserManager.FindByNameAsync(username);
-            return _tokenService.GenerateToken((int)user.Id, user.UserName!);
+            // NOTE: IJwtTokenService.GenerateToken takes an `int userId`. If ApplicationUser
+            // uses IdentityUser<Guid> (as JumpStart's Guid-only model would suggest), `user.Id`
+            // has no direct conversion to int - you'll need a separate numeric identifier until
+            // this mismatch is reconciled.
+            return _tokenService.GenerateToken(user.NumericId, user.UserName!);
         }
 
         throw new InvalidOperationException("Login failed");

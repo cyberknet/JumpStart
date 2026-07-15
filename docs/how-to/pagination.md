@@ -12,7 +12,8 @@ Pagination prevents:
 
 ## Built-In Pagination
 
-JumpStart repositories include pagination out of the box.
+JumpStart repositories include pagination out of the box via `GetAllAsync(QueryOptions<TEntity>)` -
+there is no separate `GetPagedAsync` method; pagination is just one overload of `GetAllAsync`.
 
 ### Basic Usage
 
@@ -28,29 +29,58 @@ public class ProductService
 
     public async Task<PagedResult<Product>> GetProductsAsync(int page = 1, int pageSize = 20)
     {
-        return await _repository.GetPagedAsync(page, pageSize);
+        return await _repository.GetAllAsync(new QueryOptions<Product>
+        {
+            PageNumber = page,
+            PageSize = pageSize
+        });
     }
 }
 ```
 
 ### PagedResult Structure
 
+`PagedResult<T>` (`JumpStart.Repositories`) has four settable properties; `TotalPages`,
+`HasNextPage`, and `HasPreviousPage` are calculated - you cannot set them:
+
 ```csharp
 public class PagedResult<T>
 {
-    public IList<T> Items { get; set; }           // Current page items
-    public int CurrentPage { get; set; }          // Current page number
+    public IEnumerable<T> Items { get; set; }     // Current page items
+    public int TotalCount { get; set; }           // Total count across all pages
+    public int PageNumber { get; set; }           // Current page number (1-based)
     public int PageSize { get; set; }             // Items per page
-    public int TotalItems { get; set; }           // Total count across all pages
-    public int TotalPages { get; set; }           // Total number of pages
-    public bool HasNextPage { get; set; }         // Can navigate forward
-    public bool HasPreviousPage { get; set; }     // Can navigate backward
+
+    // Calculated - read-only:
+    public int TotalPages { get; }                // Ceiling(TotalCount / PageSize)
+    public bool HasPreviousPage { get; }           // PageNumber > 1
+    public bool HasNextPage { get; }               // PageNumber < TotalPages
+}
+```
+
+### QueryOptions Structure
+
+`QueryOptions<TEntity>` (`JumpStart.Repositories`) controls what page/sort you get back. Page
+number and size are nullable - omit both to get every row:
+
+```csharp
+public class QueryOptions<TEntity>
+{
+    public int? PageNumber { get; set; }
+    public int? PageSize { get; set; }
+    public Expression<Func<TEntity, object>>? SortBy { get; set; }
+    public bool SortDescending { get; set; }
 }
 ```
 
 ## API Pagination
 
 ### Controller with Pagination
+
+The framework's `ApiControllerBase<TEntity,TDto,TCreateDto,TUpdateDto,TRepository>` already
+implements paginated `GetAll` for you (see [API Development](../api-development.md)) - the
+example below shows what to do if you're rolling your own controller instead of using the base
+class:
 
 ```csharp
 [ApiController]
@@ -69,33 +99,34 @@ public class ProductsController : ControllerBase
     /// <summary>
     /// Gets paginated list of products.
     /// </summary>
-    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageNumber">Page number (1-based)</param>
     /// <param name="pageSize">Number of items per page (max 100)</param>
     [HttpGet]
     public async Task<ActionResult<PagedResult<ProductDto>>> GetAll(
-        [FromQuery] int page = 1,
+        [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20)
     {
         // Validate parameters
-        if (page < 1)
+        if (pageNumber < 1)
             return BadRequest("Page must be 1 or greater");
 
         if (pageSize < 1 || pageSize > 100)
             return BadRequest("Page size must be between 1 and 100");
 
         // Get paginated data
-        var result = await _repository.GetPagedAsync(page, pageSize);
+        var result = await _repository.GetAllAsync(new QueryOptions<Product>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        });
 
-        // Map to DTOs
+        // Map to DTOs - TotalPages/HasNextPage/HasPreviousPage are calculated automatically
         var dtoResult = new PagedResult<ProductDto>
         {
-            Items = _mapper.Map<IList<ProductDto>>(result.Items),
-            CurrentPage = result.CurrentPage,
+            Items = _mapper.Map<IEnumerable<ProductDto>>(result.Items),
+            PageNumber = result.PageNumber,
             PageSize = result.PageSize,
-            TotalItems = result.TotalItems,
-            TotalPages = result.TotalPages,
-            HasNextPage = result.HasNextPage,
-            HasPreviousPage = result.HasPreviousPage
+            TotalCount = result.TotalCount
         };
 
         return Ok(dtoResult);
@@ -119,9 +150,9 @@ public class ProductsController : ControllerBase
       "price": 29.99
     }
   ],
-  "currentPage": 1,
+  "totalCount": 45,
+  "pageNumber": 1,
   "pageSize": 20,
-  "totalItems": 45,
   "totalPages": 3,
   "hasNextPage": true,
   "hasPreviousPage": false
@@ -140,44 +171,48 @@ public class ProductApiClient
         _httpClient = httpClient;
     }
 
-    public async Task<PagedResult<ProductDto>> GetProductsAsync(int page, int pageSize)
+    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int pageNumber, int pageSize)
     {
-        var response = await _httpClient.GetAsync($"/api/products?page={page}&pageSize={pageSize}");
+        var response = await _httpClient.GetAsync(
+            $"/api/products?pageNumber={pageNumber}&pageSize={pageSize}");
         response.EnsureSuccessStatusCode();
-        
+
         return await response.Content.ReadFromJsonAsync<PagedResult<ProductDto>>();
     }
 }
 ```
+
+> If you're using the generated Refit client (`IApiClient<TDto,TCreateDto,TUpdateDto>`), prefer
+> `GetAllAsync(new JumpStart.Api.Clients.QueryOptions { PageNumber = pageNumber, PageSize = pageSize })`
+> instead of hand-rolling `HttpClient` calls - see [API Development](../api-development.md).
 
 ## Custom Pagination
 
 ### Pagination with Filtering
 
 ```csharp
-
 public interface IProductRepository : IRepository<Product>
 {
     Task<PagedResult<Product>> GetPagedWithFilterAsync(
         ProductFilter filter,
-        int page,
+        int pageNumber,
         int pageSize);
 }
 
 public class ProductRepository : Repository<Product>, IProductRepository
 {
-    public ProductRepository(DbContext context, IUserContext? userContext)
+    public ProductRepository(DbContext context, IUserContext? userContext = null)
         : base(context, userContext)
     {
     }
 
     public async Task<PagedResult<Product>> GetPagedWithFilterAsync(
         ProductFilter filter,
-        int page,
+        int pageNumber,
         int pageSize)
     {
         // Start with base query
-        var query = Context.Set<Product>().AsQueryable();
+        var query = _context.Set<Product>().AsQueryable();
 
         // Apply filters
         if (!string.IsNullOrWhiteSpace(filter.Name))
@@ -195,7 +230,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
         // Apply sorting
         query = filter.SortBy switch
         {
-            "name" => filter.Descending 
+            "name" => filter.Descending
                 ? query.OrderByDescending(p => p.Name)
                 : query.OrderBy(p => p.Name),
             "price" => filter.Descending
@@ -205,24 +240,21 @@ public class ProductRepository : Repository<Product>, IProductRepository
         };
 
         // Get total count
-        var totalItems = await query.CountAsync();
+        var totalCount = await query.CountAsync();
 
         // Get page of items
         var items = await query
-            .Skip((page - 1) * pageSize)
+            .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
-        // Build result
+        // Build result - TotalPages/HasNextPage/HasPreviousPage are calculated, not set
         return new PagedResult<Product>
         {
             Items = items,
-            CurrentPage = page,
+            PageNumber = pageNumber,
             PageSize = pageSize,
-            TotalItems = totalItems,
-            TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize),
-            HasNextPage = page < (int)Math.Ceiling(totalItems / (double)pageSize),
-            HasPreviousPage = page > 1
+            TotalCount = totalCount
         };
     }
 }
@@ -249,7 +281,7 @@ public async Task<ActionResult<PagedResult<ProductDto>>> Search(
     [FromQuery] Guid? categoryId = null,
     [FromQuery] string sortBy = "name",
     [FromQuery] bool descending = false,
-    [FromQuery] int page = 1,
+    [FromQuery] int pageNumber = 1,
     [FromQuery] int pageSize = 20)
 {
     var filter = new ProductFilter
@@ -262,8 +294,8 @@ public async Task<ActionResult<PagedResult<ProductDto>>> Search(
         Descending = descending
     };
 
-    var result = await _repository.GetPagedWithFilterAsync(filter, page, pageSize);
-    
+    var result = await _repository.GetPagedWithFilterAsync(filter, pageNumber, pageSize);
+
     return Ok(_mapper.Map<PagedResult<ProductDto>>(result));
 }
 ```
@@ -308,7 +340,7 @@ else
     <nav>
         <ul class="pagination">
             <li class="page-item @(products.HasPreviousPage ? "" : "disabled")">
-                <button class="page-link" @onclick="() => LoadPageAsync(products.CurrentPage - 1)">
+                <button class="page-link" @onclick="() => LoadPageAsync(products.PageNumber - 1)">
                     Previous
                 </button>
             </li>
@@ -316,7 +348,7 @@ else
             @for (int i = 1; i <= products.TotalPages; i++)
             {
                 var pageNumber = i; // Capture for closure
-                <li class="page-item @(pageNumber == products.CurrentPage ? "active" : "")">
+                <li class="page-item @(pageNumber == products.PageNumber ? "active" : "")">
                     <button class="page-link" @onclick="() => LoadPageAsync(pageNumber)">
                         @pageNumber
                     </button>
@@ -324,7 +356,7 @@ else
             }
 
             <li class="page-item @(products.HasNextPage ? "" : "disabled")">
-                <button class="page-link" @onclick="() => LoadPageAsync(products.CurrentPage + 1)">
+                <button class="page-link" @onclick="() => LoadPageAsync(products.PageNumber + 1)">
                     Next
                 </button>
             </li>
@@ -332,9 +364,9 @@ else
     </nav>
 
     <p>
-        Showing @((products.CurrentPage - 1) * products.PageSize + 1) 
-        to @Math.Min(products.CurrentPage * products.PageSize, products.TotalItems)
-        of @products.TotalItems items
+        Showing @((products.PageNumber - 1) * products.PageSize + 1)
+        to @Math.Min(products.PageNumber * products.PageSize, products.TotalCount)
+        of @products.TotalCount items
     </p>
 }
 
@@ -347,9 +379,13 @@ else
         await LoadPageAsync(1);
     }
 
-    private async Task LoadPageAsync(int page)
+    private async Task LoadPageAsync(int pageNumber)
     {
-        products = await Repository.GetPagedAsync(page, pageSize);
+        products = await Repository.GetAllAsync(new QueryOptions<Product>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        });
     }
 }
 ```
@@ -374,7 +410,7 @@ Create a reusable pagination component:
             @for (int i = StartPage; i <= EndPage; i++)
             {
                 var pageNumber = i;
-                <li class="page-item @(pageNumber == PagedResult.CurrentPage ? "active" : "")">
+                <li class="page-item @(pageNumber == PagedResult.PageNumber ? "active" : "")">
                     <button class="page-link" @onclick="() => OnPageChanged(pageNumber)">
                         @pageNumber
                     </button>
@@ -391,7 +427,7 @@ Create a reusable pagination component:
 </nav>
 
 <p class="text-muted">
-    Showing @StartItem to @EndItem of @PagedResult.TotalItems items
+    Showing @StartItem to @EndItem of @PagedResult.TotalCount items
 </p>
 
 @code {
@@ -407,26 +443,26 @@ Create a reusable pagination component:
     [Parameter]
     public int MaxPageNumbers { get; set; } = 5;
 
-    private int StartPage => Math.Max(1, PagedResult.CurrentPage - MaxPageNumbers / 2);
+    private int StartPage => Math.Max(1, PagedResult.PageNumber - MaxPageNumbers / 2);
     private int EndPage => Math.Min(PagedResult.TotalPages, StartPage + MaxPageNumbers - 1);
-    private int StartItem => (PagedResult.CurrentPage - 1) * PagedResult.PageSize + 1;
-    private int EndItem => Math.Min(PagedResult.CurrentPage * PagedResult.PageSize, PagedResult.TotalItems);
+    private int StartItem => (PagedResult.PageNumber - 1) * PagedResult.PageSize + 1;
+    private int EndItem => Math.Min(PagedResult.PageNumber * PagedResult.PageSize, PagedResult.TotalCount);
 
-    private async Task OnPageChanged(int page)
+    private async Task OnPageChanged(int pageNumber)
     {
-        await OnPageChange.InvokeAsync(page);
+        await OnPageChange.InvokeAsync(pageNumber);
     }
 
     private async Task OnPreviousPage()
     {
         if (PagedResult.HasPreviousPage)
-            await OnPageChange.InvokeAsync(PagedResult.CurrentPage - 1);
+            await OnPageChange.InvokeAsync(PagedResult.PageNumber - 1);
     }
 
     private async Task OnNextPage()
     {
         if (PagedResult.HasNextPage)
-            await OnPageChange.InvokeAsync(PagedResult.CurrentPage + 1);
+            await OnPageChange.InvokeAsync(PagedResult.PageNumber + 1);
     }
 }
 ```
@@ -434,8 +470,8 @@ Create a reusable pagination component:
 **Usage:**
 
 ```razor
-<PaginationComponent TItem="Product" 
-                     PagedResult="@products" 
+<PaginationComponent TItem="Product"
+                     PagedResult="@products"
                      OnPageChange="LoadPageAsync" />
 ```
 
@@ -459,16 +495,17 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 ### Select Only Needed Columns
 
-Project to DTOs in the query:
+Project to DTOs in the query. Note this bypasses `IRepository<TEntity>.GetAllAsync` entirely (it
+always returns full entities), so this needs to be a custom repository method:
 
 ```csharp
-public async Task<PagedResult<ProductSummaryDto>> GetPagedSummaryAsync(int page, int pageSize)
+public async Task<PagedResult<ProductSummaryDto>> GetPagedSummaryAsync(int pageNumber, int pageSize)
 {
-    var totalItems = await Context.Set<Product>().CountAsync();
+    var totalCount = await _context.Set<Product>().CountAsync();
 
-    var items = await Context.Set<Product>()
+    var items = await _context.Set<Product>()
         .OrderBy(p => p.Name)
-        .Skip((page - 1) * pageSize)
+        .Skip((pageNumber - 1) * pageSize)
         .Take(pageSize)
         .Select(p => new ProductSummaryDto
         {
@@ -481,25 +518,26 @@ public async Task<PagedResult<ProductSummaryDto>> GetPagedSummaryAsync(int page,
     return new PagedResult<ProductSummaryDto>
     {
         Items = items,
-        CurrentPage = page,
+        PageNumber = pageNumber,
         PageSize = pageSize,
-        TotalItems = totalItems,
-        TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+        TotalCount = totalCount
     };
 }
 ```
 
 ### Avoid Count Queries
 
-For large datasets, counting can be expensive. Consider alternatives:
+For large datasets, counting can be expensive. Consider alternatives (both require a custom
+repository method, since `IRepository<TEntity>.GetAllAsync` always computes an exact count):
 
 ```csharp
-// Option 1: Estimated count
-public async Task<PagedResult<Product>> GetPagedWithEstimateAsync(int page, int pageSize)
+// Option 1: Estimated count (PagedResult.TotalCount left at 0 - TotalPages/HasNextPage
+// will be wrong, so only use this if the caller doesn't need real pagination metadata)
+public async Task<(IList<Product> Items, bool HasMore)> GetPageWithEstimateAsync(int pageNumber, int pageSize)
 {
-    var items = await Context.Set<Product>()
+    var items = await _context.Set<Product>()
         .OrderBy(p => p.Name)
-        .Skip((page - 1) * pageSize)
+        .Skip((pageNumber - 1) * pageSize)
         .Take(pageSize + 1) // Take one extra
         .ToListAsync();
 
@@ -507,59 +545,51 @@ public async Task<PagedResult<Product>> GetPagedWithEstimateAsync(int page, int 
     if (hasMore)
         items = items.Take(pageSize).ToList();
 
-    return new PagedResult<Product>
-    {
-        Items = items,
-        CurrentPage = page,
-        PageSize = pageSize,
-        HasNextPage = hasMore,
-        HasPreviousPage = page > 1,
-        // Don't include total count
-    };
+    return (items, hasMore);
 }
 
 // Option 2: Cached count
 private int? _cachedTotalCount;
 private DateTime? _cacheTime;
 
-public async Task<PagedResult<Product>> GetPagedWithCachedCountAsync(int page, int pageSize)
+public async Task<PagedResult<Product>> GetPagedWithCachedCountAsync(int pageNumber, int pageSize)
 {
     // Refresh cache every 5 minutes
-    if (_cachedTotalCount == null || 
-        _cacheTime == null || 
+    if (_cachedTotalCount == null ||
+        _cacheTime == null ||
         DateTime.UtcNow - _cacheTime > TimeSpan.FromMinutes(5))
     {
-        _cachedTotalCount = await Context.Set<Product>().CountAsync();
+        _cachedTotalCount = await _context.Set<Product>().CountAsync();
         _cacheTime = DateTime.UtcNow;
     }
 
-    var items = await Context.Set<Product>()
+    var items = await _context.Set<Product>()
         .OrderBy(p => p.Name)
-        .Skip((page - 1) * pageSize)
+        .Skip((pageNumber - 1) * pageSize)
         .Take(pageSize)
         .ToListAsync();
 
     return new PagedResult<Product>
     {
         Items = items,
-        CurrentPage = page,
+        PageNumber = pageNumber,
         PageSize = pageSize,
-        TotalItems = _cachedTotalCount.Value,
-        TotalPages = (int)Math.Ceiling(_cachedTotalCount.Value / (double)pageSize)
+        TotalCount = _cachedTotalCount.Value
     };
 }
 ```
 
 ## Cursor-Based Pagination
 
-For better performance with large datasets:
+For better performance with large datasets (this is a custom pattern - JumpStart's built-in
+pagination is offset-based only):
 
 ```csharp
 public async Task<CursorPagedResult<Product>> GetPagedByCursorAsync(
     Guid? cursor,
     int pageSize)
 {
-    var query = Context.Set<Product>().AsQueryable();
+    var query = _context.Set<Product>().AsQueryable();
 
     if (cursor.HasValue)
     {
@@ -596,7 +626,7 @@ public class CursorPagedResult<T>
 
 ## Best Practices
 
-### Do's ?
+### Do's ✅
 
 - **Limit maximum page size** (e.g., 100 items)
 - **Use 1-based page numbers** (more user-friendly)
@@ -606,7 +636,7 @@ public class CursorPagedResult<T>
 - **Consider cursor pagination** for very large datasets
 - **Cache counts** for expensive queries
 
-### Don'ts ?
+### Don'ts ❌
 
 - **Don't allow unlimited page sizes**
 - **Don't use Skip/Take without ordering**
@@ -618,7 +648,6 @@ public class CursorPagedResult<T>
 ## Next Steps
 
 - **[How-To: Custom Repository](custom-repository.md)** - Add custom query methods
-- **[How-To: Optimize Queries](optimize-queries.md)** - Improve query performance
 - **[Core Concepts: Repository Pattern](../core-concepts.md#repository-pattern)** - Understand the basics
 - **[API Development](../api-development.md)** - Build paginated APIs
 

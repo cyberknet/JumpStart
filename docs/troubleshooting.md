@@ -482,7 +482,11 @@ modelBuilder.Entity<Product>(entity =>
 
 2. **Use pagination:**
 ```csharp
-var result = await repository.GetPagedAsync(page: 1, pageSize: 20);
+var result = await repository.GetAllAsync(new QueryOptions<Product>
+{
+    PageNumber = 1,
+    PageSize = 20
+});
 ```
 
 3. **Optimize includes:**
@@ -513,7 +517,11 @@ var products = await context.Products
 var allProducts = await repository.GetAllAsync(); // Loads everything
 
 // Do this
-var pagedProducts = await repository.GetPagedAsync(1, 20);
+var pagedProducts = await repository.GetAllAsync(new QueryOptions<Product>
+{
+    PageNumber = 1,
+    PageSize = 20
+});
 ```
 
 2. **Project to DTOs:**

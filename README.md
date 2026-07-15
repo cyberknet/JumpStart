@@ -61,11 +61,11 @@ This ensures framework data (like QuestionTypes for Forms) is automatically seed
 ### Your First Repository
 
 ```csharp
-public interface IProductRepository : IRepository<Product, Guid> { }
+public interface IProductRepository : IRepository<Product> { }
 
 public class ProductRepository : Repository<Product>, IProductRepository
 {
-    public ProductRepository(DbContext context, IUserContext? userContext)
+    public ProductRepository(DbContext context, IUserContext? userContext = null)
         : base(context, userContext) { }
 }
 ```
@@ -76,12 +76,14 @@ public class ProductRepository : Repository<Product>, IProductRepository
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ApiControllerBase<
-    Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+    Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     public ProductsController(
-        IRepository<Product, Guid> repository,
-        IMapper mapper)
-        : base(repository, mapper) { }
+        IProductRepository repository,
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext) { }
 }
 ```
 
@@ -119,17 +121,15 @@ That's it! You now have full CRUD endpoints with audit tracking. ??
 
 ### Entity System
 
-Choose between **Simple** (Guid-based) or **Advanced** (custom key types) entities:
+JumpStart is opinionated: all entities use `Guid` identifiers (see [ADR-009](docs/architecture/adr/009-guid-only-entities.md)).
 
 ```csharp
-// Simple - Quick and easy with Guids
 public class Category : AuditableEntity
 {
     public string Name { get; set; } = string.Empty;
 }
 
-// Advanced - Custom key types with maximum flexibility
-public class Order : AuditableEntity<int, Guid>
+public class Order : AuditableEntity
 {
     public decimal Total { get; set; }
 }
@@ -148,9 +148,9 @@ No manual tracking needed! Just use the repository methods.
 ### Repository Pattern
 
 Built-in methods include:
-- `GetByIdAsync(id)` - Get single entity
+- `GetByIdAsync(id, includes)` - Get single entity
 - `GetAllAsync()` - Get all entities
-- `GetPagedAsync(page, pageSize)` - Paginated results
+- `GetAllAsync(queryOptions)` - Paginated and sorted results
 - `AddAsync(entity)` - Create new
 - `UpdateAsync(entity)` - Update existing
 - `DeleteAsync(id)` - Remove entity
@@ -354,12 +354,14 @@ public class CreateProductDto : ICreateDto
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ApiControllerBase<
-    Product, ProductDto, CreateProductDto, UpdateProductDto, Guid>
+    Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     public ProductsController(
-        IRepository<Product, Guid> repository,
-        IMapper mapper)
-        : base(repository, mapper) { }
+        IProductRepository repository,
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext) { }
 
     // All CRUD endpoints automatically available!
 }

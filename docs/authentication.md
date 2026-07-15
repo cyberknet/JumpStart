@@ -89,7 +89,12 @@ public class AuthenticationService
         var user = await ValidateCredentialsAsync(username, password);
         
         // 2. Generate JWT token
-        var token = _jwtTokenService.GenerateToken(user.Id, user.UserName);
+        // NOTE: IJwtTokenService.GenerateToken takes an `int userId`, which doesn't line up
+        // with the rest of JumpStart's Guid-only identity model (ASP.NET Core Identity's
+        // default IdentityUser also uses a string Id, not int or Guid). You'll need a mapping
+        // step here (e.g. a numeric external ID) until this is reconciled - see the framework
+        // issue tracker.
+        var token = _jwtTokenService.GenerateToken(user.NumericId, user.UserName);
         
         // 3. Store token for API calls
         _tokenStore.SetToken(token);
@@ -134,12 +139,14 @@ In the API project, use the `[Authorize]` attribute:
 [ApiController]
 [Route("api/[controller]")]
 [Authorize] // Requires valid JWT token
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     public ProductsController(
-        IRepository<Product> repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IProductRepository repository,
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
     }
 }
@@ -147,7 +154,7 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
 
 ### 4. Accessing User Information in API
 
-The `ApiUserContext` provides access to the authenticated user:
+`IUserContext` only exposes `GetCurrentUserIdAsync()` (no `UserId`/`Username` properties) - that's the one piece of information the framework needs for audit tracking. If you need more (e.g. username), read it directly from `HttpContext.User` claims:
 
 ```csharp
 public class CustomController : ControllerBase
@@ -161,10 +168,10 @@ public class CustomController : ControllerBase
     
     [HttpGet]
     [Authorize]
-    public IActionResult GetCurrentUser()
+    public async Task<IActionResult> GetCurrentUser()
     {
-        var userId = _userContext.UserId;
-        var username = _userContext.Username;
+        var userId = await _userContext.GetCurrentUserIdAsync();
+        var username = User.Identity?.Name;
         
         return Ok(new { userId, username });
     }
@@ -225,7 +232,7 @@ builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
 
 // API Client with JWT Handler
-builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
+builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 ```
 

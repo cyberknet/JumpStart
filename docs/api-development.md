@@ -87,18 +87,29 @@ public class ProductMappingProfile : Profile
 Use base controller for instant CRUD endpoints:
 
 ```csharp
+public interface IProductRepository : IRepository<Product> { }
+
+public class ProductRepository : Repository<Product>, IProductRepository
+{
+    public ProductRepository(DbContext context, IUserContext? userContext = null)
+        : base(context, userContext) { }
+}
+
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ApiControllerBase<
-    Product,           // Entity
-    ProductDto,        // Read DTO
-    CreateProductDto,  // Create DTO
-    UpdateProductDto>  // Update DTO
+    Product,             // Entity
+    ProductDto,          // Read DTO
+    CreateProductDto,    // Create DTO
+    UpdateProductDto,    // Update DTO
+    IProductRepository>  // Repository type
 {
     public ProductsController(
-        IRepository<Product> repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IProductRepository repository,
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
     }
 }
@@ -164,7 +175,7 @@ That's it! You now have these endpoints:
 #### GET All (with pagination)
 
 ```http
-GET /api/products?page=1&pageSize=20
+GET /api/products?pageNumber=1&pageSize=20&sortBy=Name&sortDescending=false
 ```
 
 **Response:**
@@ -253,25 +264,27 @@ DELETE /api/products/3fa85f64-5717-4562-b3fc-2c963f66afa6
 
 Extend base controllers with custom actions:
 
+> **Note:** `Repository<TEntity>` and `IRepository<TEntity>` only expose the standard CRUD/paging
+> methods — there's no `GetQuery()` or other query-builder escape hatch. Custom queries belong on
+> a custom repository interface/class (as shown below), consistent with the framework's "inject
+> repositories, not DbContext" guidance in [Core Concepts](core-concepts.md).
+
 ### Simple Custom Endpoint
 
 ```csharp
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public interface IProductRepository : IRepository<Product>
 {
-    public ProductsController(
-        IRepository<Product> repository,
-        IMapper mapper)
-        : base(repository, mapper)
-    {
-    }
+    Task<IEnumerable<Product>> SearchAsync(string? name, decimal? minPrice, decimal? maxPrice);
+}
 
-    [HttpGet("search")]
-    public async Task<ActionResult<IEnumerable<ProductDto>>> Search(
-        [FromQuery] string? name = null,
-        [FromQuery] decimal? minPrice = null,
-        [FromQuery] decimal? maxPrice = null)
+public class ProductRepository : Repository<Product>, IProductRepository
+{
+    public ProductRepository(DbContext context, IUserContext? userContext = null)
+        : base(context, userContext) { }
+
+    public async Task<IEnumerable<Product>> SearchAsync(string? name, decimal? minPrice, decimal? maxPrice)
     {
-        var query = Repository.GetQuery();
+        var query = _dbSet.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(name))
             query = query.Where(p => p.Name.Contains(name));
@@ -282,9 +295,29 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
         if (maxPrice.HasValue)
             query = query.Where(p => p.Price <= maxPrice.Value);
 
-        var products = await query.ToListAsync();
-        
-        return Ok(Mapper.Map<IEnumerable<ProductDto>>(products));
+        return await query.ToListAsync();
+    }
+}
+
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
+{
+    public ProductsController(
+        IProductRepository repository,
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
+    {
+    }
+
+    [HttpGet("search")]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> Search(
+        [FromQuery] string? name = null,
+        [FromQuery] decimal? minPrice = null,
+        [FromQuery] decimal? maxPrice = null)
+    {
+        var products = await _repository.SearchAsync(name, minPrice, maxPrice);
+        return Ok(_mapper.Map<IEnumerable<ProductDto>>(products));
     }
 }
 ```
@@ -292,31 +325,36 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
 ### Using Custom Repository
 
 ```csharp
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public interface IProductRepository : IRepository<Product>
 {
-    private readonly IProductRepository _productRepository;
+    Task<IEnumerable<Product>> GetLowStockProductsAsync(int threshold);
+    Task<IEnumerable<Product>> GetProductsByCategoryAsync(Guid categoryId);
+}
 
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
+{
     public ProductsController(
         IProductRepository repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
-        _productRepository = repository;
     }
 
     [HttpGet("low-stock")]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetLowStock(
         [FromQuery] int threshold = 10)
     {
-        var products = await _productRepository.GetLowStockProductsAsync(threshold);
-        return Ok(Mapper.Map<IEnumerable<ProductDto>>(products));
+        var products = await _repository.GetLowStockProductsAsync(threshold);
+        return Ok(_mapper.Map<IEnumerable<ProductDto>>(products));
     }
 
     [HttpGet("by-category/{categoryId}")]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetByCategory(Guid categoryId)
     {
-        var products = await _productRepository.GetProductsByCategoryAsync(categoryId);
-        return Ok(Mapper.Map<IEnumerable<ProductDto>>(products));
+        var products = await _repository.GetProductsByCategoryAsync(categoryId);
+        return Ok(_mapper.Map<IEnumerable<ProductDto>>(products));
     }
 
     [HttpPost("{id}/restock")]
@@ -324,15 +362,15 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
         Guid id,
         [FromBody] RestockRequest request)
     {
-        var product = await _productRepository.GetByIdAsync(id);
+        var product = await _repository.GetByIdAsync(id, null);
         
         if (product == null)
             return NotFound();
 
         product.StockQuantity += request.Quantity;
-        await _productRepository.UpdateAsync(product);
+        await _repository.UpdateAsync(product);
 
-        return Ok(Mapper.Map<ProductDto>(product));
+        return Ok(_mapper.Map<ProductDto>(product));
     }
 }
 
@@ -498,7 +536,7 @@ public interface IProductApiClient : IApiClient<ProductDto, CreateProductDto, Up
 ### Register API Client
 
 ```csharp
-builder.Services.AddSimpleApiClient<IProductApiClient>("https://api.example.com/api/products");
+builder.Services.AddApiClient<IProductApiClient>("https://api.example.com/api/products");
 ```
 
 ### Use API Client
@@ -515,14 +553,8 @@ public class ProductService
 
     public async Task<ProductDto?> GetProductAsync(Guid id)
     {
-        try
-        {
-            return await _apiClient.GetByIdAsync(id);
-        }
-        catch (ApiException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-        {
-            return null;
-        }
+        // GetByIdAsync returns null on HTTP 404 - no try/catch needed for the not-found case.
+        return await _apiClient.GetByIdAsync(id);
     }
 
     public async Task<IEnumerable<ProductDto>> SearchProductsAsync(string name)
@@ -571,7 +603,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 [ApiController]
 [Route("api/[controller]")]
 [Authorize] // Requires authentication
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     // ... endpoints require valid JWT token
 }
@@ -584,9 +616,9 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
 ```csharp
 [Authorize(Roles = "Admin")]
 [HttpDelete("{id}")]
-public override Task<IActionResult> DeleteAsync(Guid id)
+public override Task<IActionResult> Delete(Guid id)
 {
-    return base.DeleteAsync(id);
+    return base.Delete(id);
 }
 ```
 
@@ -603,9 +635,9 @@ builder.Services.AddAuthorization(options =>
 // Controller
 [Authorize(Policy = "ProductManager")]
 [HttpPost]
-public override Task<ActionResult<ProductDto>> CreateAsync([FromBody] CreateProductDto dto)
+public override Task<ActionResult<ProductDto>> Create([FromBody] CreateProductDto dto)
 {
-    return base.CreateAsync(dto);
+    return base.Create(dto);
 }
 ```
 
@@ -634,14 +666,14 @@ JumpStart controllers return standard problem details:
 ### Custom Error Handling
 
 ```csharp
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     [HttpPost("{id}/restock")]
     public async Task<ActionResult<ProductDto>> Restock(Guid id, [FromBody] RestockRequest request)
     {
         try
         {
-            var product = await Repository.GetByIdAsync(id);
+            var product = await _repository.GetByIdAsync(id, null);
             
             if (product == null)
                 return NotFound(new { message = $"Product {id} not found" });
@@ -657,9 +689,9 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
             }
 
             product.StockQuantity += request.Quantity;
-            await Repository.UpdateAsync(product);
+            await _repository.UpdateAsync(product);
 
-            return Ok(Mapper.Map<ProductDto>(product));
+            return Ok(_mapper.Map<ProductDto>(product));
         }
         catch (Exception ex)
         {

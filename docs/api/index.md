@@ -6,15 +6,13 @@ Welcome to the JumpStart API reference documentation with detailed information a
 
 ### Core Data Model
 
-- **[JumpStart.Data](JumpStart.Data.html)** - Core entity interfaces and base classes
-- **[JumpStart.Data.Auditing](JumpStart.Data.Auditing.html)** - Automatic audit tracking (Guid-based)
-- **[JumpStart.Data.Advanced](JumpStart.Data.Advanced.html)** - Generic entities with custom key types
-- **[JumpStart.Data.Advanced.Auditing](JumpStart.Data.Advanced.Auditing.html)** - Generic audit tracking
+- **[JumpStart.Data](JumpStart.Data.html)** - Core entity interfaces and base classes (Guid-only - see [ADR-009](../architecture/adr/009-guid-only-entities.md))
+- **[JumpStart.Data.Auditing](JumpStart.Data.Auditing.html)** - Automatic audit tracking
+- **[JumpStart.Data.MultiTenant](JumpStart.Data.MultiTenant.html)** - Multi-tenant entity scoping
 
 ### Repository Pattern
 
-- **[JumpStart.Repositories](JumpStart.Repositories.html)** - Repository interfaces and implementations (Guid-based)
-- **[JumpStart.Repositories.Advanced](JumpStart.Repositories.Advanced.html)** - Generic repositories with custom key types
+- **[JumpStart.Repositories](JumpStart.Repositories.html)** - Repository interfaces and implementations
 
 ### API Development
 
@@ -31,13 +29,13 @@ Welcome to the JumpStart API reference documentation with detailed information a
 
 ## Popular Types
 
-**Entity Classes:** [SimpleEntity](JumpStart.Data.SimpleEntity.html) · [SimpleAuditableEntity](JumpStart.Data.Auditing.SimpleAuditableEntity.html) · [Entity](JumpStart.Data.Advanced.Entity-1.html)
+**Entity Classes:** [Entity](JumpStart.Data.Entity.html) ï¿½ [AuditableEntity](JumpStart.Data.Auditing.AuditableEntity.html) ï¿½ [NamedEntity](JumpStart.Data.NamedEntity.html) ï¿½ [AuditableNamedEntity](JumpStart.Data.Auditing.AuditableNamedEntity.html)
 
-**Repositories:** [IRepository](JumpStart.Repositories.IRepository-1.html) · [Repository](JumpStart.Repositories.Repository-1.html) · [QueryOptions](JumpStart.Repositories.QueryOptions-1.html)
+**Repositories:** [IRepository](JumpStart.Repositories.IRepository-1.html) ï¿½ [Repository](JumpStart.Repositories.Repository-1.html) ï¿½ [QueryOptions](JumpStart.Repositories.QueryOptions-1.html)
 
-**API Controllers:** [ApiControllerBase](JumpStart.Api.Controllers.ApiControllerBase-5.html) · [AdvancedApiControllerBase](JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase-6.html)
+**API Controllers:** [ApiControllerBase](JumpStart.Api.Controllers.ApiControllerBase-5.html)
 
-**API Clients:** [IApiClient](JumpStart.Api.Clients.IApiClient-3.html) · [IAdvancedApiClient](JumpStart.Api.Clients.Advanced.IAdvancedApiClient-4.html)
+**API Clients:** [IApiClient](JumpStart.Api.Clients.IApiClient-3.html)
 
 ## Getting Started
 
@@ -47,4 +45,4 @@ Welcome to the JumpStart API reference documentation with detailed information a
 
 ## Support
 
-**[GitHub](https://github.com/cyberknet/JumpStart)** · **[Issues](https://github.com/cyberknet/JumpStart/issues)** · **[Discussions](https://github.com/cyberknet/JumpStart/discussions)**
+**[GitHub](https://github.com/cyberknet/JumpStart)** ï¿½ **[Issues](https://github.com/cyberknet/JumpStart/issues)** ï¿½ **[Discussions](https://github.com/cyberknet/JumpStart/discussions)**

@@ -62,14 +62,21 @@ public class Product : AuditableEntity
 
 ### Do I need to create a repository for every entity?
 
-No! Use the base repository directly if you don't need custom methods:
+You still need a minimal concrete class - `Repository<TEntity>` is abstract - but it can be a one-liner if you don't need custom methods:
 
 ```csharp
-// No custom repository needed
-builder.Services.AddScoped<IRepository<Category>, Repository<Category>>();
+public class CategoryRepository : Repository<Category>
+{
+    public CategoryRepository(DbContext context, IUserContext? userContext = null)
+        : base(context, userContext) { }
+}
 ```
 
-Create custom repositories only when you need specialized query methods.
+```csharp
+builder.Services.AddScoped<IRepository<Category>, CategoryRepository>();
+```
+
+Create a custom repository *interface* with extra methods only when you need specialized queries.
 
 ### Can repositories access multiple entity types?
 
@@ -105,9 +112,11 @@ Yes! Create your own base class:
 public abstract class CustomAuditableEntity : Entity, IAuditable
 {
     public Guid CreatedById { get; set; }
-    public DateTime CreatedOn { get; set; }
+    public DateTimeOffset CreatedOn { get; set; }
     public Guid? ModifiedById { get; set; }
-    public DateTime? ModifiedOn { get; set; }
+    public DateTimeOffset? ModifiedOn { get; set; }
+    public Guid? DeletedById { get; set; }
+    public DateTimeOffset? DeletedOn { get; set; }
     
     // Custom fields
     public string? CreatedByName { get; set; }
@@ -115,6 +124,8 @@ public abstract class CustomAuditableEntity : Entity, IAuditable
     public string? IpAddress { get; set; }
 }
 ```
+
+> `IAuditable` combines `ICreatable`, `IModifiable`, and `IDeletable`, so a class implementing it directly must supply all six audit properties (including `DeletedById`/`DeletedOn`), not just the creation/modification ones.
 
 ### Does audit tracking work in background jobs?
 
@@ -170,7 +181,7 @@ public class UpdateProductDto : IUpdateDto
 Just add new methods:
 
 ```csharp
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     [HttpGet("low-stock")]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetLowStock(
@@ -183,18 +194,18 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
 
 ### Can I override base controller methods?
 
-Yes! Mark the method as `override`:
+Yes! Mark the method as `override` (note the base method is named `Create`, not `CreateAsync`):
 
 ```csharp
 [HttpPost]
-public override async Task<ActionResult<ProductDto>> CreateAsync([FromBody] CreateProductDto dto)
+public override async Task<ActionResult<ProductDto>> Create([FromBody] CreateProductDto dto)
 {
     // Custom validation
     if (dto.Price <= 0)
         return BadRequest("Price must be positive");
 
     // Call base implementation
-    return await base.CreateAsync(dto);
+    return await base.Create(dto);
 }
 ```
 
@@ -265,9 +276,10 @@ private static readonly Func<ApplicationDbContext, Guid, Task<Product?>> GetProd
     EF.CompileAsyncQuery((ApplicationDbContext context, Guid id) =>
         context.Set<Product>().FirstOrDefault(p => p.Id == id));
 
-public async Task<Product?> GetByIdAsync(Guid id)
+// Inside a Repository<Product> subclass - _context is the protected DbContext field
+public async Task<Product?> GetByIdCompiledAsync(Guid id)
 {
-    return await GetProductByIdCompiled(Context, id);
+    return await GetProductByIdCompiled((ApplicationDbContext)_context, id);
 }
 ```
 
@@ -293,7 +305,7 @@ public async Task GetByIdAsync_ReturnsProduct()
     await repository.AddAsync(product);
 
     // Act
-    var result = await repository.GetByIdAsync(product.Id);
+    var result = await repository.GetByIdAsync(product.Id, null);
 
     // Assert
     Assert.NotNull(result);

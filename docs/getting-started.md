@@ -157,9 +157,9 @@ public class ProductRepository : Repository<Product>, IProductRepository
 ```
 
 **What You Get:**
-- `GetByIdAsync(Guid id)`
+- `GetByIdAsync(Guid id, includes)`
 - `GetAllAsync()`
-- `GetPagedAsync(int page, int pageSize)`
+- `GetAllAsync(QueryOptions<Product> options)` - paginated and sorted
 - `AddAsync(Product entity)`
 - `UpdateAsync(Product entity)`
 - `DeleteAsync(Guid id)`
@@ -265,7 +265,7 @@ public class IndexModel : PageModel
 
     public async Task OnGetAsync()
     {
-        Products = await _repository.GetAllAsync();
+        Products = (await _repository.GetAllAsync()).ToList();
     }
 }
 ```
@@ -334,14 +334,15 @@ Add API controllers to expose your data as RESTful endpoints:
 ```csharp
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<
+    Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     public ProductsController(
-        IRepository<Product> repository,
+        IProductRepository repository,
         IMapper mapper,
-        ILogger<ProductsController> logger,
-        ICorrelationContextAccessor accessor)
-        : base(repository, mapper, logger, accessor)
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
     }
 }
@@ -355,7 +356,11 @@ Handle large datasets efficiently:
 ```csharp
 public async Task OnGetAsync(int page = 1)
 {
-    var result = await _repository.GetPagedAsync(page, pageSize: 20);
+    var result = await _repository.GetAllAsync(new QueryOptions<Product>
+    {
+        PageNumber = page,
+        PageSize = 20
+    });
     Products = result.Items;
     TotalPages = result.TotalPages;
 }

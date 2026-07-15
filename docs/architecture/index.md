@@ -34,10 +34,11 @@ Where and how you can extend JumpStart.
 ### [Architecture Decision Records](adr/index.md)
 Documented decisions about significant architectural choices.
 - [ADR-001: Repository Pattern](adr/001-repository-pattern.md)
-- [ADR-002: Simple vs Advanced Entities](adr/002-simple-advanced-entities.md)
+- [ADR-002: Simple vs Advanced Entities](adr/002-simple-advanced-entities.md) (superseded by ADR-009)
 - [ADR-003: Audit Tracking Implementation](adr/003-audit-tracking.md)
 - [ADR-004: JWT Authentication](adr/004-jwt-authentication.md)
 - [ADR-005: Refit for API Clients](adr/005-refit-api-clients.md)
+- [ADR-009: Guid-Only Entities](adr/009-guid-only-entities.md)
 
 ## Design Patterns
 
@@ -70,8 +71,11 @@ Used in service collection extensions to simplify configuration and registration
 
 ## Key Architectural Decisions
 
-### Why Two Entity Systems?
-JumpStart provides both "Simple" (Guid-based) and "Advanced" (generic key type) entity systems to balance ease of use with flexibility. See [ADR-002](adr/002-simple-advanced-entities.md) for details.
+### Why Guid-Only Entities?
+JumpStart is opinionated: all entities use `Guid` identifiers. An earlier design (see
+[ADR-002](adr/002-simple-advanced-entities.md), now superseded) explored a dual Guid/generic
+key-type system, but it was dropped in favor of a single, simpler entity hierarchy - see
+[ADR-009](adr/009-guid-only-entities.md) for the rationale.
 
 ### Why Separate API Project?
 The API can be deployed independently from the Blazor Server application, enabling:
@@ -81,7 +85,7 @@ The API can be deployed independently from the Blazor Server application, enabli
 - Reuse across multiple clients
 
 ### Why User Context Abstraction?
-`IUserContext` and `IUserContext` abstract user information retrieval, allowing different implementations for:
+`IUserContext` abstracts user information retrieval, allowing different implementations for:
 - Blazor Server (cookie authentication)
 - Web API (JWT bearer tokens)
 - Testing (mock implementations)

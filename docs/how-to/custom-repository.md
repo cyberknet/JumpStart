@@ -51,7 +51,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IList<Product>> GetLowStockProductsAsync(int threshold)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .Where(p => p.StockQuantity <= threshold)
             .OrderBy(p => p.StockQuantity)
             .ToListAsync();
@@ -59,7 +59,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IList<Product>> GetProductsByCategoryAsync(Guid categoryId)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .Where(p => p.CategoryId == categoryId)
             .OrderBy(p => p.Name)
             .ToListAsync();
@@ -67,19 +67,19 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<Product?> GetBySkuAsync(string sku)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .FirstOrDefaultAsync(p => p.Sku == sku);
     }
 
     public async Task<decimal> GetAveragePriceAsync()
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .AverageAsync(p => p.Price);
     }
 
     public async Task<IList<Product>> SearchAsync(string searchTerm)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .Where(p => p.Name.Contains(searchTerm) || 
                        p.Description.Contains(searchTerm))
             .OrderBy(p => p.Name)
@@ -122,7 +122,7 @@ Load related entities efficiently:
 ```csharp
 public async Task<IList<Product>> GetProductsWithCategoryAsync()
 {
-    return await Context.Set<Product>()
+    return await _context.Set<Product>()
         .Include(p => p.Category)
         .OrderBy(p => p.Name)
         .ToListAsync();
@@ -130,7 +130,7 @@ public async Task<IList<Product>> GetProductsWithCategoryAsync()
 
 public async Task<Product?> GetProductWithDetailsAsync(Guid id)
 {
-    return await Context.Set<Product>()
+    return await _context.Set<Product>()
         .Include(p => p.Category)
         .Include(p => p.Reviews)
         .Include(p => p.Supplier)
@@ -162,7 +162,7 @@ public class ProductsByPriceRangeSpec : ISpecification<Product>
 
 public async Task<IList<Product>> GetBySpecificationAsync(ISpecification<Product> spec)
 {
-    var query = Context.Set<Product>().Where(spec.Criteria);
+    var query = _context.Set<Product>().Where(spec.Criteria);
     
     query = spec.Includes.Aggregate(query, (current, include) => 
         current.Include(include));
@@ -178,7 +178,7 @@ Build queries dynamically based on parameters:
 ```csharp
 public async Task<IList<Product>> GetFilteredProductsAsync(ProductFilter filter)
 {
-    var query = Context.Set<Product>().AsQueryable();
+    var query = _context.Set<Product>().AsQueryable();
 
     if (!string.IsNullOrWhiteSpace(filter.Name))
         query = query.Where(p => p.Name.Contains(filter.Name));
@@ -232,7 +232,7 @@ public async Task<PagedResult<Product>> GetFilteredPagedAsync(
     int page,
     int pageSize)
 {
-    var query = Context.Set<Product>().AsQueryable();
+    var query = _context.Set<Product>().AsQueryable();
 
     // Apply filters (same as above)
     if (!string.IsNullOrWhiteSpace(filter.Name))
@@ -252,13 +252,14 @@ public async Task<PagedResult<Product>> GetFilteredPagedAsync(
         .Take(pageSize)
         .ToListAsync();
 
+    // TotalPages/HasNextPage/HasPreviousPage are calculated properties on PagedResult<T> -
+    // only Items, TotalCount, PageNumber, and PageSize can be set.
     return new PagedResult<Product>
     {
         Items = items,
-        CurrentPage = page,
+        PageNumber = page,
         PageSize = pageSize,
-        TotalItems = totalItems,
-        TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize)
+        TotalCount = totalItems
     };
 }
 ```
@@ -270,7 +271,7 @@ Custom methods for statistics and calculations:
 ```csharp
 public async Task<ProductStatistics> GetStatisticsAsync()
 {
-    var products = await Context.Set<Product>().ToListAsync();
+    var products = await _context.Set<Product>().ToListAsync();
 
     return new ProductStatistics
     {
@@ -301,19 +302,19 @@ Efficient batch operations:
 ```csharp
 public async Task<int> BulkUpdatePricesAsync(decimal percentageIncrease)
 {
-    var products = await Context.Set<Product>().ToListAsync();
+    var products = await _context.Set<Product>().ToListAsync();
     
     foreach (var product in products)
     {
         product.Price *= (1 + percentageIncrease / 100);
     }
     
-    return await Context.SaveChangesAsync();
+    return await _context.SaveChangesAsync();
 }
 
 public async Task<int> BulkDeleteByCategoryAsync(Guid categoryId)
 {
-    return await Context.Set<Product>()
+    return await _context.Set<Product>()
         .Where(p => p.CategoryId == categoryId)
         .ExecuteDeleteAsync(); // EF Core 7+
 }
@@ -321,7 +322,7 @@ public async Task<int> BulkDeleteByCategoryAsync(Guid categoryId)
 public async Task<int> BulkUpdateStockAsync(Dictionary<Guid, int> stockUpdates)
 {
     var productIds = stockUpdates.Keys.ToList();
-    var products = await Context.Set<Product>()
+    var products = await _context.Set<Product>()
         .Where(p => productIds.Contains(p.Id))
         .ToListAsync();
 
@@ -333,7 +334,7 @@ public async Task<int> BulkUpdateStockAsync(Dictionary<Guid, int> stockUpdates)
         }
     }
 
-    return await Context.SaveChangesAsync();
+    return await _context.SaveChangesAsync();
 }
 ```
 
@@ -466,7 +467,7 @@ public class CachedProductRepository : IProductRepository
         if (_cache.TryGetValue(cacheKey, out Product? product))
             return product;
 
-        product = await _innerRepository.GetByIdAsync(id);
+        product = await _innerRepository.GetByIdAsync(id, null);
         
         if (product != null)
         {
@@ -519,7 +520,6 @@ public class LoggingProductRepository : IProductRepository
 ## Next Steps
 
 - **[How-To: Pagination](pagination.md)** - Implement efficient pagination
-- **[How-To: Use Advanced Entities](advanced-entities.md)** - Work with custom key types
 - **[Core Concepts: Repository Pattern](../core-concepts.md#repository-pattern)** - Understand the basics
 - **[API Development](../api-development.md)** - Use repositories in APIs
 

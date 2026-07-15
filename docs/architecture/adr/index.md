@@ -68,17 +68,23 @@ What other options were considered?
 ### Active Records
 
 - [ADR-001: Repository Pattern](001-repository-pattern.md) - Why we use the repository pattern
-- [ADR-002: Simple vs Advanced Entities](002-simple-advanced-entities.md) - Dual entity system rationale
 - [ADR-003: Audit Tracking Implementation](003-audit-tracking.md) - Automatic audit tracking approach
 - [ADR-004: JWT Authentication](004-jwt-authentication.md) - JWT authentication strategy
 - [ADR-005: Refit for API Clients](005-refit-api-clients.md) - Using Refit for API clients
-- [ADR-006: AutoMapper Integration](006-automapper-integration.md) - DTO mapping approach
-- [ADR-007: Entity Framework Core](007-entity-framework-core.md) - ORM choice
-- [ADR-008: Separate API Project](008-separate-api-project.md) - Why DemoApp.Api is separate
+- [ADR-009: Guid-Only Entities](009-guid-only-entities.md) - Removal of custom key type support; entities are Guid-only
 
 ### Superseded Records
 
-_(None yet)_
+- [ADR-002: Simple vs Advanced Entities](002-simple-advanced-entities.md) - Superseded by [ADR-009](009-guid-only-entities.md); the dual/generic key-type system it described was removed
+
+### Not Yet Written
+
+The following decisions are real (and worth documenting) but don't have an ADR written yet.
+Treat any reference to these as forward-looking, not as existing documentation:
+
+- **AutoMapper Integration** - DTO mapping approach
+- **Entity Framework Core** - ORM choice
+- **Separate API Project** - Why DemoApp.Api is separate
 
 ## Creating a New ADR
 

@@ -100,7 +100,7 @@ Repositories provide an abstraction layer between your domain/business logic and
 For Guid-based entities:
 
 ```csharp
-public interface IProductRepository : IRepository<Product, Guid>
+public interface IProductRepository : IRepository<Product>
 {
     // Add custom methods here
 }
@@ -120,10 +120,9 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
 ```csharp
 // Retrieval
-Task<Product?> GetByIdAsync(Guid id);
-Task<IList<Product>> GetAllAsync();
-Task<PagedResult<Product>> GetPagedAsync(int page, int pageSize);
-Task<IList<Product>> QueryAsync(QueryOptions options);
+Task<Product?> GetByIdAsync(Guid id, Func<IQueryable<Product>, IQueryable<Product>>? includes);
+Task<IEnumerable<Product>> GetAllAsync();
+Task<PagedResult<Product>> GetAllAsync(QueryOptions<Product> options); // paginated + sorted
 
 // Creation
 Task<Product> AddAsync(Product entity);
@@ -131,16 +130,12 @@ Task<Product> AddAsync(Product entity);
 // Update
 Task<Product> UpdateAsync(Product entity);
 
-// Deletion
-Task DeleteAsync(Guid id);
-Task DeleteAsync(Product entity);
-
-// Existence Check
-Task<bool> ExistsAsync(Guid id);
-
-// Count
-Task<int> CountAsync();
+// Deletion (soft delete if the entity implements IDeletable, hard delete otherwise)
+Task<bool> DeleteAsync(Guid id);
 ```
+
+That's the full `IRepository<TEntity>` surface today - there's no built-in `ExistsAsync` or
+`CountAsync`; add those as custom methods on your own repository interface if you need them.
 
 
 
@@ -160,14 +155,14 @@ public class ProductRepository : Repository<Product>, IProductRepository
 {
     public ProductRepository(
         DbContext context,
-        IUserContext? userContext)
+        IUserContext? userContext = null)
         : base(context, userContext)
     {
     }
 
     public async Task<IList<Product>> GetLowStockProductsAsync(int threshold)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .Where(p => p.StockQuantity <= threshold)
             .OrderBy(p => p.StockQuantity)
             .ToListAsync();
@@ -175,7 +170,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<IList<Product>> GetProductsByCategoryAsync(Guid categoryId)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .Where(p => p.CategoryId == categoryId)
             .OrderBy(p => p.Name)
             .ToListAsync();
@@ -183,7 +178,7 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
     public async Task<Product?> GetBySkuAsync(string sku)
     {
-        return await Context.Set<Product>()
+        return await _context.Set<Product>()
             .FirstOrDefaultAsync(p => p.Sku == sku);
     }
 }
@@ -191,19 +186,27 @@ public class ProductRepository : Repository<Product>, IProductRepository
 
 ### Pagination
 
-Built-in pagination support prevents loading large datasets:
+Built-in pagination support prevents loading large datasets, via `GetAllAsync(QueryOptions<TEntity>)`:
 
 ```csharp
-var page1 = await repository.GetPagedAsync(page: 1, pageSize: 20);
+var page1 = await repository.GetAllAsync(new QueryOptions<Product>
+{
+    PageNumber = 1,
+    PageSize = 20
+});
 
-Console.WriteLine($"Items: {page1.Items.Count}");
-Console.WriteLine($"Total Items: {page1.TotalItems}");
+Console.WriteLine($"Items: {page1.Items.Count()}");
+Console.WriteLine($"Total Items: {page1.TotalCount}");
 Console.WriteLine($"Total Pages: {page1.TotalPages}");
 Console.WriteLine($"Has Next: {page1.HasNextPage}");
 Console.WriteLine($"Has Previous: {page1.HasPreviousPage}");
 
 // Navigate pages
-var page2 = await repository.GetPagedAsync(page: 2, pageSize: 20);
+var page2 = await repository.GetAllAsync(new QueryOptions<Product>
+{
+    PageNumber = 2,
+    PageSize = 20
+});
 ```
 
 ## User Context
@@ -432,15 +435,18 @@ Base controllers provide standard RESTful endpoints with minimal code.
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ApiControllerBase<
-    Product,           // Entity type
-    ProductDto,        // Read DTO
-    CreateProductDto,  // Create DTO
-    UpdateProductDto>  // Update DTO
+    Product,             // Entity type
+    ProductDto,          // Read DTO
+    CreateProductDto,    // Create DTO
+    UpdateProductDto,    // Update DTO
+    IProductRepository>  // Repository type
 {
     public ProductsController(
-        IRepository<Product> repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IProductRepository repository,
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
     }
 }
@@ -456,38 +462,37 @@ public class ProductsController : ApiControllerBase<
 
 ### Adding Custom Endpoints
 
-Extend base controllers with custom actions:
+Extend base controllers with custom actions. Note that the base class exposes its repository, mapper, logger, and correlation context as protected fields (`_repository`, `_mapper`, `_logger`, `_correlationContext`):
 
 ```csharp
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
-    private readonly IProductRepository _productRepository;
-
     public ProductsController(
         IProductRepository repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
-        _productRepository = repository;
     }
 
     [HttpGet("low-stock")]
     public async Task<ActionResult<IEnumerable<ProductDto>>> GetLowStock(
         [FromQuery] int threshold = 10)
     {
-        var products = await _productRepository.GetLowStockProductsAsync(threshold);
-        return Ok(Mapper.Map<IEnumerable<ProductDto>>(products));
+        var products = await _repository.GetLowStockProductsAsync(threshold);
+        return Ok(_mapper.Map<IEnumerable<ProductDto>>(products));
     }
 
     [HttpGet("by-sku/{sku}")]
     public async Task<ActionResult<ProductDto>> GetBySku(string sku)
     {
-        var product = await _productRepository.GetBySkuAsync(sku);
+        var product = await _repository.GetBySkuAsync(sku);
         
         if (product == null)
             return NotFound();
 
-        return Ok(Mapper.Map<ProductDto>(product));
+        return Ok(_mapper.Map<ProductDto>(product));
     }
 }
 ```

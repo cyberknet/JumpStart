@@ -10,7 +10,6 @@ These guides show you how to accomplish specific tasks with JumpStart. Each guid
 
 - [Create a Custom Repository](custom-repository.md) - Extend the base repository with custom methods
 - [Query with Pagination](pagination.md) - Implement efficient paginated queries
-- [Use Advanced Entities](advanced-entities.md) - Work with strongly-typed user IDs and complex entities
 
 ## Audit Tracking
 

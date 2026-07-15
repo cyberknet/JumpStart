@@ -135,9 +135,15 @@ public class Product : AuditableEntity
 
 **Audit Fields:**
 - `Guid CreatedById` - Who created it
-- `DateTime CreatedOn` - When created (UTC)
+- `DateTimeOffset CreatedOn` - When created (UTC)
 - `Guid? ModifiedById` - Who last modified (null if never modified)
-- `DateTime? ModifiedOn` - When last modified (null if never modified)
+- `DateTimeOffset? ModifiedOn` - When last modified (null if never modified)
+- `Guid? DeletedById` - Who soft-deleted it (null if not deleted)
+- `DateTimeOffset? DeletedOn` - When soft-deleted (null if not deleted)
+
+`AuditableEntity` implements `IAuditable` (`ICreatable` + `IModifiable` + `IDeletable`), so soft
+delete support is included automatically - see [Soft Delete](#soft-delete) below, which is less
+"advanced" than it sounds.
 
 ### AuditableNamedEntity
 
@@ -167,7 +173,7 @@ await repository.AddAsync(product);
 1. Repository checks if entity is auditable
 2. Calls `userContext.GetCurrentUserIdAsync()`
 3. Sets `CreatedById` to current user
-4. Sets `CreatedOn` to `DateTime.UtcNow`
+4. Sets `CreatedOn` to `DateTimeOffset.UtcNow`
 5. Saves to database
 
 #### UpdateAsync (Modify)
@@ -179,7 +185,7 @@ await repository.UpdateAsync(product);
 1. Repository checks if entity is auditable
 2. Calls `userContext.GetCurrentUserIdAsync()`
 3. Sets `ModifiedById` to current user
-4. Sets `ModifiedOn` to `DateTime.UtcNow`
+4. Sets `ModifiedOn` to `DateTimeOffset.UtcNow`
 5. Saves to database
 
 **Note:** `CreatedById` and `CreatedOn` are **not** changed during updates.
@@ -318,75 +324,51 @@ await repository.AddAsync(product);
 Assert.Equal(testUserId, product.CreatedById);
 ```
 
-## Soft Delete (Advanced)
+## Soft Delete
 
-For entities that should be marked as deleted instead of physically removed:
+Any entity inheriting from `AuditableEntity` (or implementing `IDeletable` directly) already gets
+soft delete for free - there's no extra interface to add and no repository code to write:
 
-### Create Soft-Deletable Entity
+- `Repository<TEntity>.DeleteAsync(id)` automatically detects `IDeletable` and sets
+  `DeletedOn`/`DeletedById` instead of physically removing the row.
+- `JumpStartDbContext` applies a global EF Core query filter
+  (`WHERE DeletedOn IS NULL`) to every `IDeletable` entity automatically, in `OnModelCreating` -
+  you don't need to add your own `HasQueryFilter` call.
 
 ```csharp
-public class Product : AuditableEntity, ISimpleDeletable
+public class Product : AuditableEntity // already includes DeletedById/DeletedOn via IDeletable
 {
     public string Name { get; set; } = string.Empty;
-    
-    // Soft delete properties
-    public Guid? DeletedById { get; set; }
-    public DateTime? DeletedOn { get; set; }
 }
+
+// Repository.DeleteAsync(id) soft-deletes automatically - no override needed:
+await repository.DeleteAsync(product.Id);
 ```
 
-### Configure Entity Framework
+### Querying Including Deleted
+
+This is the one gap: `IRepository<TEntity>` has no built-in way to include soft-deleted rows, so a
+custom repository method is the way to reach them (bypassing the base class's automatic filter,
+not the global EF Core query filter, which requires `IgnoreQueryFilters()`):
 
 ```csharp
-protected override void OnModelCreating(ModelBuilder modelBuilder)
+public interface IProductRepository : IRepository<Product>
 {
-    base.OnModelCreating(modelBuilder);
-
-    modelBuilder.Entity<Product>()
-        .HasQueryFilter(p => p.DeletedOn == null); // Exclude deleted by default
+    Task<IList<Product>> GetDeletedProductsAsync();
 }
-```
 
-### Implement Soft Delete in Repository
-
-```csharp
 public class ProductRepository : Repository<Product>, IProductRepository
 {
-    private readonly IUserContext? _userContext;
+    public ProductRepository(DbContext context, IUserContext? userContext = null)
+        : base(context, userContext) { }
 
-    public ProductRepository(
-        DbContext context,
-        IUserContext? userContext)
-        : base(context, userContext)
+    public async Task<IList<Product>> GetDeletedProductsAsync()
     {
-        _userContext = userContext;
+        return await _context.Set<Product>()
+            .IgnoreQueryFilters() // bypass the global soft-delete filter
+            .Where(p => p.DeletedOn != null)
+            .ToListAsync();
     }
-
-    public override async Task DeleteAsync(Guid id)
-    {
-        var entity = await GetByIdAsync(id);
-        if (entity == null)
-            throw new InvalidOperationException($"Entity with ID {id} not found");
-
-        var userId = await _userContext?.GetCurrentUserIdAsync();
-        
-        entity.DeletedById = userId;
-        entity.DeletedOn = DateTime.UtcNow;
-
-        await Context.SaveChangesAsync();
-    }
-}
-```
-
-### Query Including Deleted
-
-```csharp
-public async Task<IList<Product>> GetDeletedProductsAsync()
-{
-    return await Context.Set<Product>()
-        .IgnoreQueryFilters() // Include deleted
-        .Where(p => p.DeletedOn != null)
-        .ToListAsync();
 }
 ```
 
@@ -420,11 +402,11 @@ public class ProductDto : AuditableEntityDto
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
     
-    // Inherited from SimpleAuditableEntityDto:
+    // Inherited from AuditableEntityDto:
     // public Guid CreatedById { get; set; }
-    // public DateTime CreatedOn { get; set; }
+    // public DateTimeOffset CreatedOn { get; set; }
     // public Guid? ModifiedById { get; set; }
-    // public DateTime? ModifiedOn { get; set; }
+    // public DateTimeOffset? ModifiedOn { get; set; }
 }
 ```
 
@@ -446,7 +428,7 @@ public class ProductWithUserDto : AuditableEntityDto
 ```csharp
 public async Task<ProductWithUserDto?> GetProductWithUserInfoAsync(Guid id)
 {
-    return await Context.Set<Product>()
+    return await _context.Set<Product>()
         .Where(p => p.Id == id)
         .Select(p => new ProductWithUserDto
         {

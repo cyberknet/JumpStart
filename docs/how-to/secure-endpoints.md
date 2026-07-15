@@ -88,12 +88,14 @@ public class JwtSettings
 [Route("api/[controller]")]
 
 [Authorize] // All endpoints require authentication
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     public ProductsController(
-        IRepository<Product> repository,
-        IMapper mapper)
-        : base(repository, mapper)
+        IProductRepository repository,
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
     }
     // GET /api/products - Requires authentication
@@ -109,22 +111,24 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     [AllowAnonymous] // Anyone can view products
     [HttpGet]
-    public override Task<ActionResult<PagedResult<ProductDto>>> GetAllAsync(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+    public override Task<ActionResult<PagedResult<ProductDto>>> GetAll(
+        [FromQuery] int? pageNumber = null,
+        [FromQuery] int? pageSize = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false)
     {
-        return base.GetAllAsync(page, pageSize);
+        return base.GetAll(pageNumber, pageSize, sortBy, sortDescending);
     }
 
     [AllowAnonymous] // Anyone can view a specific product
     [HttpGet("{id}")]
-    public override Task<ActionResult<ProductDto>> GetByIdAsync(Guid id)
+    public override Task<ActionResult<ProductDto>> GetById(Guid id)
     {
-        return base.GetByIdAsync(id);
+        return base.GetById(id);
     }
 
     // POST, PUT, DELETE still require authentication
@@ -135,10 +139,14 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
 
 ### 1. Configure Roles in JWT Token
 
-When generating tokens, include role claims:
+When generating tokens, include role claims. The built-in `IJwtTokenService.GenerateToken` takes
+an `int userId` and only a flat `Dictionary<string, string>` of extra claims (one value per key),
+so it can't add *multiple* role claims on its own. This example shows a standalone token-generation
+helper (it intentionally does not implement `IJwtTokenService`, since that interface's `int`-based
+signature doesn't fit a role list):
 
 ```csharp
-public class JwtTokenService
+public class RoleAwareJwtTokenService
 {
     public string GenerateToken(Guid userId, string username, IList<string> roles)
     {
@@ -178,35 +186,36 @@ public class JwtTokenService
 [ApiController]
 [Route("api/[controller]")]
 
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     [AllowAnonymous]
     [HttpGet]
-    public override Task<ActionResult<PagedResult<ProductDto>>> GetAllAsync(
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public override Task<ActionResult<PagedResult<ProductDto>>> GetAll(
+        [FromQuery] int? pageNumber = null, [FromQuery] int? pageSize = null,
+        [FromQuery] string? sortBy = null, [FromQuery] bool sortDescending = false)
     {
-        return base.GetAllAsync(page, pageSize);
+        return base.GetAll(pageNumber, pageSize, sortBy, sortDescending);
     }
 
     [Authorize(Roles = "Admin,Manager")] // Only Admin or Manager can create
     [HttpPost]
-    public override Task<ActionResult<ProductDto>> CreateAsync([FromBody] CreateProductDto dto)
+    public override Task<ActionResult<ProductDto>> Create([FromBody] CreateProductDto dto)
     {
-        return base.CreateAsync(dto);
+        return base.Create(dto);
     }
 
     [Authorize(Roles = "Admin,Manager")] // Only Admin or Manager can update
     [HttpPut("{id}")]
-    public override Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateProductDto dto)
+    public override Task<ActionResult<ProductDto>> Update(Guid id, [FromBody] UpdateProductDto dto)
     {
-        return base.UpdateAsync(id, dto);
+        return base.Update(id, dto);
     }
 
     [Authorize(Roles = "Admin")] // Only Admin can delete
     [HttpDelete("{id}")]
-    public override Task<IActionResult> DeleteAsync(Guid id)
+    public override Task<IActionResult> Delete(Guid id)
     {
-        return base.DeleteAsync(id);
+        return base.Delete(id);
     }
 }
 ```
@@ -244,28 +253,29 @@ builder.Services.AddAuthorization(options =>
 [ApiController]
 [Route("api/[controller]")]
 
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     [AllowAnonymous]
     [HttpGet]
-    public override Task<ActionResult<PagedResult<ProductDto>>> GetAllAsync(
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public override Task<ActionResult<PagedResult<ProductDto>>> GetAll(
+        [FromQuery] int? pageNumber = null, [FromQuery] int? pageSize = null,
+        [FromQuery] string? sortBy = null, [FromQuery] bool sortDescending = false)
     {
-        return base.GetAllAsync(page, pageSize);
+        return base.GetAll(pageNumber, pageSize, sortBy, sortDescending);
     }
 
     [Authorize(Policy = "RequireManagement")]
     [HttpPost]
-    public override Task<ActionResult<ProductDto>> CreateAsync([FromBody] CreateProductDto dto)
+    public override Task<ActionResult<ProductDto>> Create([FromBody] CreateProductDto dto)
     {
-        return base.CreateAsync(dto);
+        return base.Create(dto);
     }
 
     [Authorize(Policy = "RequireAdmin")]
     [HttpDelete("{id}")]
-    public override Task<IActionResult> DeleteAsync(Guid id)
+    public override Task<IActionResult> Delete(Guid id)
     {
-        return base.DeleteAsync(id);
+        return base.Delete(id);
     }
 }
 ```
@@ -328,23 +338,27 @@ Authorize based on the resource being accessed:
 [Route("api/[controller]")]
 [Authorize]
 
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     private readonly IAuthorizationService _authorizationService;
 
     public ProductsController(
-        IRepository<Product> repository,
+        IProductRepository repository,
         IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext,
         IAuthorizationService authorizationService)
-        : base(repository, mapper)
+        : base(repository, mapper, logger, correlationContext)
     {
         _authorizationService = authorizationService;
     }
 
+    // Must actually override the base Update method (same name/signature/return type) -
+    // a differently-named method on the same route would conflict with the inherited one.
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateProductDto dto)
+    public override async Task<ActionResult<ProductDto>> Update(Guid id, [FromBody] UpdateProductDto dto)
     {
-        var product = await Repository.GetByIdAsync(id);
+        var product = await _repository.GetByIdAsync(id, null);
         
         if (product == null)
             return NotFound();
@@ -358,7 +372,7 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
             return Forbid();
         }
 
-        return await base.UpdateAsync(id, dto);
+        return await base.Update(id, dto);
     }
 }
 
@@ -476,7 +490,7 @@ public class ApiKeyAttribute : Attribute, IAuthorizationFilter
 [ApiController]
 [Route("api/[controller]")]
 [ApiKey] // Require API key for all endpoints
-public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
     // ...
 }

@@ -1,58 +1,49 @@
 - name: JumpStart API Reference
   href: JumpStart/
   items:
+  - name: JumpStart
+    items:
+    - name: JumpStartOptions
+      href: JumpStart.JumpStartOptions.html
   - name: Data
     href: JumpStart.Data.html
     items:
     - name: Entity Types
       items:
-      - name: ISimpleEntity
-        href: JumpStart.Data.ISimpleEntity.html
-      - name: SimpleEntity
-        href: JumpStart.Data.SimpleEntity.html
-      - name: SimpleNamedEntity
-        href: JumpStart.Data.SimpleNamedEntity.html
+      - name: IEntity
+        href: JumpStart.Data.IEntity.html
+      - name: Entity
+        href: JumpStart.Data.Entity.html
+      - name: INamed
+        href: JumpStart.Data.INamed.html
+      - name: NamedEntity
+        href: JumpStart.Data.NamedEntity.html
+      - name: IUser
+        href: JumpStart.Data.IUser.html
     - name: Auditing
       href: JumpStart.Data.Auditing.html
       items:
-      - name: ISimpleAuditable
-        href: JumpStart.Data.Auditing.ISimpleAuditable.html
-      - name: ISimpleCreatable
-        href: JumpStart.Data.Auditing.ISimpleCreatable.html
-      - name: ISimpleModifiable
-        href: JumpStart.Data.Auditing.ISimpleModifiable.html
-      - name: ISimpleDeletable
-        href: JumpStart.Data.Auditing.ISimpleDeletable.html
-      - name: SimpleAuditableEntity
-        href: JumpStart.Data.Auditing.SimpleAuditableEntity.html
-      - name: SimpleAuditableNamedEntity
-        href: JumpStart.Data.Auditing.SimpleAuditableNamedEntity.html
-    - name: Advanced
-      href: JumpStart.Data.Advanced.html
+      - name: IAuditable
+        href: JumpStart.Data.Auditing.IAuditable.html
+      - name: ICreatable
+        href: JumpStart.Data.Auditing.ICreatable.html
+      - name: IModifiable
+        href: JumpStart.Data.Auditing.IModifiable.html
+      - name: IDeletable
+        href: JumpStart.Data.Auditing.IDeletable.html
+      - name: AuditableEntity
+        href: JumpStart.Data.Auditing.AuditableEntity.html
+      - name: AuditableNamedEntity
+        href: JumpStart.Data.Auditing.AuditableNamedEntity.html
+    - name: MultiTenant
+      href: JumpStart.Data.MultiTenant.html
       items:
-      - name: Entity Types
-        items:
-        - name: IEntity
-          href: JumpStart.Data.Advanced.IEntity-1.html
-        - name: Entity
-          href: JumpStart.Data.Advanced.Entity-1.html
-        - name: NamedEntity
-          href: JumpStart.Data.Advanced.NamedEntity-1.html
-      - name: Auditing
-        href: JumpStart.Data.Advanced.Auditing.html
-        items:
-        - name: IAuditable
-          href: JumpStart.Data.Advanced.Auditing.IAuditable-1.html
-        - name: ICreatable
-          href: JumpStart.Data.Advanced.Auditing.ICreatable-1.html
-        - name: IModifiable
-          href: JumpStart.Data.Advanced.Auditing.IModifiable-1.html
-        - name: IDeletable
-          href: JumpStart.Data.Advanced.Auditing.IDeletable-1.html
-        - name: AuditableEntity
-          href: JumpStart.Data.Advanced.Auditing.AuditableEntity-1.html
-        - name: AuditableNamedEntity
-          href: JumpStart.Data.Advanced.Auditing.AuditableNamedEntity-1.html
+      - name: ITenantScoped
+        href: JumpStart.Data.MultiTenant.ITenantScoped.html
+      - name: Tenant
+        href: JumpStart.Data.Tenant.html
+      - name: UserTenant
+        href: JumpStart.Data.UserTenant.html
   - name: Repositories
     href: JumpStart.Repositories.html
     items:
@@ -62,28 +53,33 @@
       href: JumpStart.Repositories.Repository-1.html
     - name: IUserContext
       href: JumpStart.Repositories.IUserContext.html
+    - name: ITenantContext
+      href: JumpStart.Repositories.ITenantContext.html
     - name: PagedResult<TEntity>
       href: JumpStart.Repositories.PagedResult-1.html
     - name: QueryOptions<TEntity>
       href: JumpStart.Repositories.QueryOptions-1.html
-    - name: Advanced
-      href: JumpStart.Repositories.Advanced.html
-      items:
-      - name: IRepository<TEntity>
-        href: JumpStart.Repositories.Advanced.IRepository-2.html
-      - name: Repository<TEntity>
-        href: JumpStart.Repositories.Advanced.Repository-2.html
-      - name: IUserContext
-        href: JumpStart.Repositories.Advanced.IUserContext-1.html
+    - name: EntityAuthorizeAttribute
+      href: JumpStart.Repositories.EntityAuthorizeAttribute.html
+  - name: Authorization
+    href: JumpStart.Authorization.html
+    items:
+    - name: EntityPermissionHandler
+      href: JumpStart.Authorization.EntityPermissionHandler.html
+    - name: EntityPermissionRequirement
+      href: JumpStart.Authorization.EntityPermissionRequirement.html
+    - name: EntityPolicyProvider
+      href: JumpStart.Authorization.EntityPolicyProvider.html
   - name: API
     href: JumpStart.Api.html
     items:
     - name: Controllers
+      href: JumpStart.Api.Controllers.html
       items:
-      - name: ApiControllerBase
-        href: JumpStart.Api.Controllers.ApiControllerBase-4.html
-      - name: AdvancedApiControllerBase
-        href: JumpStart.Api.Controllers.Advanced.AdvancedApiControllerBase-5.html
+      - name: ApiControllerBase<TEntity,TDto,TCreateDto,TUpdateDto,TRepository>
+        href: JumpStart.Api.Controllers.ApiControllerBase-5.html
+      - name: ApiClientForAttribute
+        href: JumpStart.Api.Controllers.ApiClientForAttribute-6.html
     - name: DTOs
       href: JumpStart.Api.DTOs.html
       items:
@@ -92,34 +88,40 @@
       - name: ICreateDto
         href: JumpStart.Api.DTOs.ICreateDto.html
       - name: IUpdateDto
-        href: JumpStart.Api.DTOs.IUpdateDto-1.html
-      - name: SimpleEntityDto
-        href: JumpStart.Api.DTOs.SimpleEntityDto.html
-      - name: SimpleAuditableEntityDto
-        href: JumpStart.Api.DTOs.SimpleAuditableEntityDto.html
-      - name: Advanced
-        items:
-        - name: EntityDto
-          href: JumpStart.Api.DTOs.Advanced.EntityDto-1.html
-        - name: AuditableEntityDto
-          href: JumpStart.Api.DTOs.Advanced.AuditableEntityDto-1.html
+        href: JumpStart.Api.DTOs.IUpdateDto.html
+      - name: EntityDto
+        href: JumpStart.Api.DTOs.EntityDto.html
+      - name: AuditableEntityDto
+        href: JumpStart.Api.DTOs.AuditableEntityDto.html
     - name: Clients
       href: JumpStart.Api.Clients.html
       items:
-      - name: IApiClient
+      - name: IApiClient<TDto,TCreateDto,TUpdateDto>
         href: JumpStart.Api.Clients.IApiClient-3.html
-      - name: SimpleApiClientExtensions
-        href: JumpStart.Api.Clients.SimpleApiClientExtensions.html
-      - name: Advanced
-        items:
-        - name: IAdvancedApiClient
-          href: JumpStart.Api.Clients.Advanced.IAdvancedApiClient-4.html
+      - name: QueryOptions
+        href: JumpStart.Api.Clients.QueryOptions.html
     - name: Mapping
+      href: JumpStart.Api.Mapping.html
       items:
-      - name: SimpleEntityMappingProfile
-        href: JumpStart.Api.Mapping.SimpleEntityMappingProfile.html
       - name: EntityMappingProfile
-        href: JumpStart.Api.Mapping.Advanced.EntityMappingProfile.html
+        href: JumpStart.Api.Mapping.EntityMappingProfile.html
+  - name: Forms
+    href: JumpStart.Forms.html
+    items:
+    - name: Form
+      href: JumpStart.Forms.Form.html
+    - name: Question
+      href: JumpStart.Forms.Question.html
+    - name: QuestionType
+      href: JumpStart.Forms.QuestionType.html
+    - name: QuestionOption
+      href: JumpStart.Forms.QuestionOption.html
+    - name: FormResponse
+      href: JumpStart.Forms.FormResponse.html
+    - name: QuestionResponse
+      href: JumpStart.Forms.QuestionResponse.html
+    - name: QuestionResponseOption
+      href: JumpStart.Forms.QuestionResponseOption.html
   - name: Services
     href: JumpStart.Services.html
     items:
@@ -136,10 +138,8 @@
         href: JumpStart.Services.Authentication.TokenStore.html
       - name: JwtAuthenticationHandler
         href: JumpStart.Services.Authentication.JwtAuthenticationHandler.html
-  - name: Extensions
-    href: JumpStart.Extensions.html
+  - name: Extensions (Microsoft.Extensions.DependencyInjection)
+    href: Microsoft.Extensions.DependencyInjection.html
     items:
-    - name: ServiceCollectionExtensions
-      href: JumpStart.Extensions.ServiceCollectionExtensions.html
-    - name: JumpStartOptions
-      href: JumpStart.Extensions.JumpStartOptions.html
+    - name: JumpStartServiceCollectionExtensions
+      href: Microsoft.Extensions.DependencyInjection.JumpStartServiceCollectionExtensions.html

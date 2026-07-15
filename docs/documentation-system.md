@@ -207,7 +207,7 @@ public Guid Id { get; set; }
 ```markdown
 [Link Text](relative/path/to/file.md)
 [External Link](https://example.com)
-[API Reference](xref:JumpStart.Data.SimpleEntity)
+[API Reference](xref:JumpStart.Data.Entity)
 ```
 
 ### Code Blocks

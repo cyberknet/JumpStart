@@ -42,7 +42,6 @@ Task-oriented guides for common scenarios.
 - [Add Custom Audit Fields](how-to/custom-audit-fields.md)
 - [Secure API Endpoints](how-to/secure-endpoints.md)
 - [Query with Pagination](how-to/pagination.md)
-- [Use Advanced Entities](how-to/advanced-entities.md)
 
 ### [Architecture](architecture/index.md)
 Understand the design decisions and architecture of JumpStart.

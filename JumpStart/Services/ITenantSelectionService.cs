@@ -105,11 +105,11 @@ public interface ITenantSelectionService
     /// </summary>
     /// <returns>
     /// A task that represents the asynchronous operation. The task result contains:
-    /// - The currently selected <see cref="SimpleTenant"/> with Name, Code, etc.
+    /// - The currently selected <see cref="Tenant"/> with Name and other details
     /// - <c>null</c> if no tenant is selected
     /// </returns>
     /// <remarks>
-    /// Use this when you need tenant details (name, code) for display in UI.
+    /// Use this when you need tenant details (e.g. name) for display in UI.
     /// </remarks>
     Task<Tenant?> GetCurrentTenantAsync();
 

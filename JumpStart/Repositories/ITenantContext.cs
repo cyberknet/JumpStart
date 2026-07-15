@@ -222,7 +222,7 @@ namespace JumpStart.Repositories;
 /// </code>
 /// </example>
 /// <seealso cref="Data.MultiTenant.ITenantScoped"/>
-/// <seealso cref="Data.SimpleTenant"/>
+/// <seealso cref="Data.Tenant"/>
 public interface ITenantContext
 {
     /// <summary>

@@ -396,7 +396,7 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
     /// </para>
     /// <para>
     /// <strong>Multi-Tenancy (see ADR-010):</strong> If the entity implements
-    /// <see cref="MultiTenant.ITenantScoped"/> and the current <c>DbContext</c> has a current
+    /// <see cref="ITenantScoped"/> and the current <c>DbContext</c> has a current
     /// tenant (<c>JumpStartDbContext.CurrentTenantId</c>), <c>TenantId</c> is populated
     /// automatically. Application code should not set <c>TenantId</c> manually.
     /// </para>

@@ -56,59 +56,42 @@ namespace JumpStart.Data.MultiTenant;
 /// </remarks>
 /// <example>
 /// <code>
-/// // Simple tenant-scoped entity
-/// public class Invoice : SimpleAuditableEntity, ITenantScoped
+/// // Tenant-scoped entity
+/// public class Invoice : Auditing.AuditableEntity, ITenantScoped
 /// {
 ///     public Guid TenantId { get; set; }
 ///     public Tenant Tenant { get; set; } = null!;
-///     
+///
 ///     public string InvoiceNumber { get; set; } = string.Empty;
 ///     public decimal Amount { get; set; }
 /// }
-/// 
-/// // Entity with both audit tracking and tenant scoping
-/// public class Order : IEntity&lt;Guid&gt;, ICreatable&lt;Guid&gt;, IModifiable&lt;Guid&gt;, IDeletable&lt;Guid&gt;, ITenantScoped
+///
+/// // Repository - no special constructor needed. Tenant handling flows through the
+/// // DbContext (JumpStartDbContext.CurrentTenantId), not the repository itself.
+/// public class InvoiceRepository : Repositories.Repository&lt;Invoice&gt;
 /// {
-///     public Guid Id { get; set; }
-///     
-///     // Tenant scoping
-///     public Guid TenantId { get; set; }
-///     public Tenant Tenant { get; set; } = null!;
-///     
-///     public string OrderNumber { get; set; } = string.Empty;
-///     
-///     // Audit fields
-///     public DateTimeOffset CreatedOn { get; set; }
-///     public Guid? CreatedById { get; set; }
-///     public DateTimeOffset? ModifiedOn { get; set; }
-///     public Guid? ModifiedById { get; set; }
-///     public DateTimeOffset? DeletedOn { get; set; }
-///     public Guid? DeletedById { get; set; }
+///     public InvoiceRepository(DbContext context, Repositories.IUserContext? userContext = null)
+///         : base(context, userContext) { }
 /// }
-/// 
-/// // Usage with repository (automatic tenant handling)
-/// public class OrderRepository : SimpleRepository&lt;Order&gt;
+///
+/// // Your DbContext must declare and forward ITenantContext to enable tenant resolution -
+/// // it is not injected automatically just because ITenantContext is registered in DI.
+/// public class ApplicationDbContext : JumpStartDbContext
 /// {
-///     public OrderRepository(
-///         DbContext context, 
-///         ISimpleUserContext userContext,
-///         ISimpleTenantContext tenantContext) 
-///         : base(context, userContext, tenantContext)
-///     {
-///     }
+///     public ApplicationDbContext(DbContextOptions&lt;ApplicationDbContext&gt; options, Repositories.ITenantContext? tenantContext = null)
+///         : base(options, tenantContext) { }
 /// }
-/// 
+///
 /// // In your service - tenant filtering is automatic
-/// var orders = await orderRepository.GetAllAsync(); // Only current tenant's orders
-/// var order = await orderRepository.GetByIdAsync(orderId); // Null if belongs to different tenant
-/// 
+/// var invoices = await invoiceRepository.GetAllAsync(); // Only current tenant's invoices
+/// var invoice = await invoiceRepository.GetByIdAsync(invoiceId, null); // Null if it belongs to a different tenant
+///
 /// // Access tenant details via navigation property
-/// var invoice = await invoiceRepository.GetByIdAsync(invoiceId);
 /// Console.WriteLine($"Invoice for: {invoice.Tenant.Name}");
-/// 
+///
 /// // Eager load tenant
-/// var orders = await context.Orders
-///     .Include(o => o.Tenant)
+/// var withTenants = await context.Set&lt;Invoice&gt;()
+///     .Include(i =&gt; i.Tenant)
 ///     .ToListAsync(); // Tenant filter still applied automatically
 /// </code>
 /// </example>
@@ -163,20 +146,20 @@ public interface ITenantScoped
     /// <example>
     /// <code>
     /// // Eager load tenant
-    /// var invoices = await context.Invoices
+    /// var invoices = await context.Set&lt;Invoice&gt;()
     ///     .Include(i =&gt; i.Tenant)
     ///     .Where(i =&gt; i.Amount &gt; 1000)
     ///     .ToListAsync();
-    /// 
+    ///
     /// foreach (var invoice in invoices)
     /// {
     ///     Console.WriteLine($"{invoice.InvoiceNumber} - {invoice.Tenant.Name}");
     /// }
-    /// 
-    /// // Access tenant code
-    /// var order = await orderRepository.GetByIdAsync(orderId);
-    /// await context.Entry(order).Reference(o =&gt; o.Tenant).LoadAsync(); // Load if needed
-    /// var tenantCode = order.Tenant.Code;
+    ///
+    /// // Lazy-load the tenant if it wasn't eager-loaded
+    /// var invoice = await invoiceRepository.GetByIdAsync(invoiceId, null);
+    /// await context.Entry(invoice!).Reference(i =&gt; i.Tenant).LoadAsync();
+    /// var tenantName = invoice!.Tenant.Name;
     /// </code>
     /// </example>
     Tenant Tenant { get; set; }

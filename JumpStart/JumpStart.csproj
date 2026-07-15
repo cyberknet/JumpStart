@@ -14,7 +14,7 @@
     <PackageTags>blazor;entity-framework;repository;audit;framework</PackageTags>
     <PackageProjectUrl>https://github.com/yourusername/jumpstart</PackageProjectUrl>
     <RepositoryUrl>https://github.com/yourusername/jumpstart</RepositoryUrl>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

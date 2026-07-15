@@ -355,40 +355,139 @@ public class FormsController : ApiControllerBase<
         return Ok(statistics);
     }
 
+    /// <summary>
+    /// Submits a response to a form.
+    /// </summary>
+    /// <param name="formId">The unique identifier of the form being responded to.</param>
+    /// <param name="createDto">The form response data.</param>
+    /// <returns>
+    /// Returns 201 Created with the saved response.
+    /// Returns 400 Bad Request if a question or option doesn't belong to this form, or if a
+    /// response value fails validation.
+    /// Returns 404 Not Found if the form doesn't exist.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// Every submitted answer is validated against the form's actual questions rather than
+    /// trusted as-is:
+    /// </para>
+    /// <list type="bullet">
+    /// <item>Every <c>QuestionId</c> must belong to this form.</item>
+    /// <item>Every selected option ID must belong to that specific question.</item>
+    /// <item>Text/number/date answers are validated via <see cref="QuestionValidator"/>.</item>
+    /// </list>
+    /// <para>
+    /// <c>IsComplete</c> is computed server-side from whether every required question received
+    /// an answer - the client-supplied value on <see cref="CreateFormResponseDto.IsComplete"/> is
+    /// not trusted.
+    /// </para>
+    /// <para>
+    /// <strong>Known limitation:</strong> choice-based questions (SingleChoice, MultipleChoice,
+    /// Dropdown, Ranking) only have their option IDs checked for referential integrity here -
+    /// <see cref="QuestionValidator"/> does not yet validate them semantically (e.g. Ranking's
+    /// minimum/maximum item count), so a required choice question is only checked for having at
+    /// least one selected option, not for satisfying its own answer constraints.
+    /// </para>
+    /// </remarks>
+    /// <response code="201">The response was submitted successfully.</response>
+    /// <response code="400">Validation failed - see the response body for details.</response>
+    /// <response code="404">The form was not found.</response>
+    [HttpPost("{formId:guid}/responses")]
+    [ProducesResponseType(typeof(FormResponseDto), 201)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<ActionResult<FormResponseDto>> SubmitFormResponse(Guid formId, [FromBody] CreateFormResponseDto createDto)
+    {
+        _logger.LogInformation("Submitting response for form {FormId}", formId);
 
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
 
+        var form = await _repository.GetFormWithQuestionsAsync(formId);
+        if (form == null)
+        {
+            _logger.LogWarning("Form {FormId} not found", formId);
+            return NotFound(new { message = $"Form with ID {formId} not found." });
+        }
 
+        var questionsById = form.Questions.ToDictionary(q => q.Id);
+        var validationErrors = new List<string>();
 
-    //        if (validationErrors.Any())
-    //        {
-    //            _logger.LogWarning("Form response validation failed for form {FormId}", formId);
-    //            return BadRequest(new
-    //            {
-    //        message = "One or more responses are invalid",
-    //                errors = validationErrors
-    //    });
-    //        }
+        foreach (var answer in createDto.QuestionResponses)
+        {
+            if (!questionsById.TryGetValue(answer.QuestionId, out var question))
+            {
+                validationErrors.Add($"Question {answer.QuestionId} does not belong to form {formId}.");
+                continue;
+            }
 
-    //        // Map DTO to entity
-    //        var formResponse = _mapper.Map<FormResponse>(createDto);
-    //        formResponse.FormId = formId;
-    //        formResponse.SubmittedOn = DateTime.UtcNow;
+            var selectedOptionIds = answer.SelectedOptionIds ?? [];
+            var invalidOptionIds = selectedOptionIds
+                .Where(optionId => !question.Options.Any(o => o.Id == optionId))
+                .ToList();
+            if (invalidOptionIds.Count > 0)
+            {
+                validationErrors.Add(
+                    $"Question {answer.QuestionId}: option(s) {string.Join(", ", invalidOptionIds)} do not belong to this question.");
+                continue;
+            }
 
-    //        // Save response
-    //        var savedResponse = await _repository.SaveFormResponseAsync(formResponse);
+            // QuestionValidator only validates the ResponseValue field (text/number/date questions);
+            // choice-based questions answer via SelectedOptionIds instead, so ResponseValue is
+            // always empty for them - calling it here would wrongly flag a valid choice answer.
+            if (!question.QuestionType.HasOptions && !QuestionValidator.ValidateResponseValue(question, answer.ResponseValue))
+            {
+                validationErrors.Add($"Question {answer.QuestionId} ('{question.QuestionText}'): response value is invalid.");
+            }
+        }
 
-    //// Load the saved response with all related data
-    //var responseWithData = await _repository.GetFormResponseAsync(savedResponse.Id);
-    //var responseDto = _mapper.Map<FormResponseDto>(responseWithData);
+        if (validationErrors.Any())
+        {
+            _logger.LogWarning("Form response validation failed for form {FormId}", formId);
+            return BadRequest(new
+            {
+                message = "One or more responses are invalid",
+                errors = validationErrors
+            });
+        }
 
-    //_logger.LogInformation("Form response {ResponseId} submitted successfully for form {FormId}",
-    //            savedResponse.Id, formId);
+        // Map DTO to entity
+        var formResponse = _mapper.Map<FormResponse>(createDto);
+        formResponse.FormId = formId;
+        formResponse.SubmittedOn = DateTime.UtcNow;
 
-    //        return CreatedAtAction(
-    //            nameof(GetFormResponseById),
-    //            new { formId, responseId = savedResponse.Id },
-    //            responseDto);
-    //    }
+        // IsComplete is computed server-side - the client's value is never trusted
+        var answersByQuestionId = createDto.QuestionResponses.ToDictionary(a => a.QuestionId);
+        formResponse.IsComplete = form.Questions
+            .Where(q => q.IsRequired)
+            .All(q => answersByQuestionId.TryGetValue(q.Id, out var answer) && HasAnswer(q, answer));
+
+        // Save response
+        var savedResponse = await _repository.SaveFormResponseAsync(formResponse);
+
+        // Load the saved response with all related data
+        var responseWithData = await _repository.GetFormResponseAsync(savedResponse.Id);
+        var responseDto = _mapper.Map<FormResponseDto>(responseWithData);
+
+        _logger.LogInformation("Form response {ResponseId} submitted successfully for form {FormId}",
+                    savedResponse.Id, formId);
+
+        return CreatedAtAction(
+            nameof(GetFormResponseById),
+            new { formId, responseId = savedResponse.Id },
+            responseDto);
+    }
+
+    /// <summary>
+    /// Determines whether a submitted answer satisfies a question's "has been answered" test -
+    /// at least one selected option for choice-based questions, a non-empty value otherwise.
+    /// </summary>
+    private static bool HasAnswer(Question question, CreateQuestionResponseDto answer) =>
+        question.QuestionType.HasOptions
+            ? answer.SelectedOptionIds is { Count: > 0 }
+            : !string.IsNullOrWhiteSpace(answer.ResponseValue);
 
     /// <summary>
     /// Gets a specific form response by ID.

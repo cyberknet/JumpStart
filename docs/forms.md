@@ -301,6 +301,16 @@ await formsClient.SubmitFormResponseAsync(response);
 4. Click "Submit"
 5. Server-side validation using `QuestionValidator`
 
+The server also checks referential integrity that the client can't be trusted to enforce - every
+`QuestionId` must belong to the form, and every selected option ID must belong to that question -
+and computes `IsComplete` itself from whether every required question was actually answered,
+ignoring whatever the client sends for that field.
+
+> **Known limitation:** `QuestionValidator` validates text/number/date questions fully, but does
+> not yet validate choice-based questions (SingleChoice, MultipleChoice, Dropdown, Ranking)
+> semantically - a required choice question is only checked for having at least one selected
+> option, not for satisfying constraints like Ranking's minimum/maximum item count.
+
 ## Form Statistics
 
 Get statistics for any form:

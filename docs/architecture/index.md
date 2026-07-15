@@ -40,6 +40,7 @@ Documented decisions about significant architectural choices.
 - [ADR-005: Refit for API Clients](adr/005-refit-api-clients.md)
 - [ADR-009: Guid-Only Entities](adr/009-guid-only-entities.md)
 - [ADR-010: Multi-Tenant Data Isolation](adr/010-multi-tenant-data-isolation.md)
+- [ADR-011: Entity-Level Authorization](adr/011-entity-authorization.md)
 
 ## Design Patterns
 
@@ -97,6 +98,12 @@ The API can be deployed independently from the Blazor Server application, enabli
 mechanism as soft delete, rather than requiring each repository to filter by tenant manually - see
 [ADR-010](adr/010-multi-tenant-data-isolation.md) for the full design.
 
+### Why Mandatory Entity-Level Authorization?
+Every `ApiControllerBase` action requires a matching `Permission` claim (`"{EntityName}.{Action}"`)
+by default, with no opt-out - see [ADR-011](adr/011-entity-authorization.md). This guarantees no
+CRUD endpoint ships unprotected, at the cost of requiring every application to design a permission
+strategy before any endpoint will respond successfully.
+
 ## Performance Considerations
 
 ### Async All the Way
@@ -118,6 +125,10 @@ Automatic tracking of who created, modified, or deleted entities provides accoun
 
 ### JWT Best Practices
 Token validation includes issuer, audience, lifetime, and signing key checks with zero clock skew.
+
+### Entity Authorization by Default
+Every `ApiControllerBase` action requires a `Permission` claim automatically (see
+[ADR-011](adr/011-entity-authorization.md)) - there is no unprotected CRUD endpoint by default.
 
 ---
 

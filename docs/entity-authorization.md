@@ -192,6 +192,7 @@ custom actions don't need to specify the entity name themselves.
 
 ## Next Steps
 
+- **[ADR-011: Entity-Level Authorization](architecture/adr/011-entity-authorization.md)** - Full design rationale
 - **[Multi-Tenancy](multi-tenancy.md)** - Another automatic, always-on data-access concern to be
   aware of alongside entity authorization
 - **[Authentication & Security](authentication.md)** - JWT and cookie authentication setup

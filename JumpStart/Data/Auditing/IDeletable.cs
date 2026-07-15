@@ -33,14 +33,14 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Properties Defined:</strong>
 /// - DeletedById (Guid?) - The identifier of the user who deleted the entity (nullable)
-/// - DeletedOn (DateTime?) - The UTC timestamp when the entity was deleted (nullable)
+/// - DeletedOn (DateTimeOffset?) - The UTC timestamp when the entity was deleted (nullable)
 /// Both properties are nullable, indicating the entity is active when null and deleted when populated.
 /// </para>
 /// <para>
 /// <strong>Automatic Population:</strong>
 /// Both properties are automatically set by the repository layer during soft delete operations:
 /// - DeletedById is populated from the current user context (ICurrentUserService)
-/// - DeletedOn is set to DateTime.UtcNow
+/// - DeletedOn is set to DateTimeOffset.UtcNow
 /// Application code should not set these values directly; use repository soft delete methods instead.
 /// </para>
 /// <para>

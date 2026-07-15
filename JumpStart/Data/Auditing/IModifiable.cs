@@ -30,14 +30,14 @@ namespace JumpStart.Data.Auditing;
 /// <para>
 /// <strong>Properties Defined:</strong>
 /// - ModifiedById (Guid?) - The identifier of the user who last modified the entity (nullable)
-/// - ModifiedOn (DateTime?) - The UTC timestamp when the entity was last modified (nullable)
+/// - ModifiedOn (DateTimeOffset?) - The UTC timestamp when the entity was last modified (nullable)
 /// Both properties are nullable, indicating the entity has never been modified when null.
 /// </para>
 /// <para>
 /// <strong>Automatic Population:</strong>
 /// Both properties are automatically set by the repository layer during UpdateAsync operations:
 /// - ModifiedById is populated from the current user context (ICurrentUserService)
-/// - ModifiedOn is set to DateTime.UtcNow
+/// - ModifiedOn is set to DateTimeOffset.UtcNow
 /// These values are updated on every modification. Application code should not set these manually.
 /// </para>
 /// <para>

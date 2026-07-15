@@ -13,6 +13,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace JumpStart.Forms;
@@ -26,10 +27,14 @@ namespace JumpStart.Forms;
 /// - Required field validation
 /// - Type-specific validation (numeric, text, date)
 /// - Minimum and maximum value constraints
+/// - Minimum and maximum selection count constraints for choice-based questions
 /// </para>
 /// <para>
-/// Validation is type-aware and interprets <see cref="Question.MinimumValue"/> and 
-/// <see cref="Question.MaximumValue"/> differently based on the question's type.
+/// Validation is type-aware and interprets <see cref="Question.MinimumValue"/> and
+/// <see cref="Question.MaximumValue"/> differently based on the question's type: as a
+/// value/length constraint for <see cref="ValidateResponseValue"/> (text/number/date questions),
+/// or as a selection-count constraint for <see cref="ValidateSelectedOptionCount"/>
+/// (choice-based questions - SingleChoice, MultipleChoice, Dropdown, Ranking).
 /// </para>
 /// </remarks>
 /// <example>
@@ -84,8 +89,84 @@ public static class QuestionValidator
             "ShortText" => ValidateTextLength(responseValue, question.MinimumValue, question.MaximumValue),
             "LongText" => ValidateTextLength(responseValue, question.MinimumValue, question.MaximumValue),
             "Date" => ValidateDateValue(responseValue, question.MinimumValue, question.MaximumValue),
-            _ => true // No validation for Boolean, SingleChoice, MultipleChoice, Dropdown
+            // Boolean has no constraints; choice-based types (SingleChoice, MultipleChoice,
+            // Dropdown, Ranking) answer via SelectedOptionIds instead of ResponseValue - use
+            // ValidateSelectedOptionCount for those.
+            _ => true
         };
+    }
+
+    /// <summary>
+    /// Validates the number of selected options against a choice-based question's constraints.
+    /// </summary>
+    /// <param name="question">The question to validate against.</param>
+    /// <param name="selectedOptionIds">The IDs of the options the user selected or ranked.</param>
+    /// <returns>
+    /// <c>true</c> if the selection count is valid according to the question's constraints;
+    /// otherwise, <c>false</c>.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// For choice-based question types, <see cref="Question.MinimumValue"/> and
+    /// <see cref="Question.MaximumValue"/> constrain how many options may be selected, rather than
+    /// constraining a response value the way they do in <see cref="ValidateResponseValue"/> for
+    /// Number/ShortText/LongText/Date questions.
+    /// </para>
+    /// <para>
+    /// Validation logic:
+    /// </para>
+    /// <list type="number">
+    /// <item>If the question is not required and no options are selected, validation passes</item>
+    /// <item>If the question is required and no options are selected, validation fails</item>
+    /// <item>If <see cref="Question.MinimumValue"/> is set, at least that many options must be selected</item>
+    /// <item>If <see cref="Question.MaximumValue"/> is set, no more than that many options may be selected</item>
+    /// </list>
+    /// <para>
+    /// This is what makes a constraint like "rank your top 3 to 5 favorites out of a larger
+    /// option list" possible for the Ranking question type - <c>MinimumValue</c>/<c>MaximumValue</c>
+    /// is the allowed count of options included in the answer, not the total number of options
+    /// presented to the user.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// var question = new Question
+    /// {
+    ///     QuestionType = new QuestionType { Code = "Ranking", HasOptions = true },
+    ///     IsRequired = true,
+    ///     MinimumValue = "3",
+    ///     MaximumValue = "5"
+    /// };
+    ///
+    /// bool valid = QuestionValidator.ValidateSelectedOptionCount(question, new[] { id1, id2, id3 }); // true
+    /// bool tooFew = QuestionValidator.ValidateSelectedOptionCount(question, new[] { id1, id2 }); // false (below minimum)
+    /// </code>
+    /// </example>
+    public static bool ValidateSelectedOptionCount(Question question, IReadOnlyCollection<Guid>? selectedOptionIds)
+    {
+        var count = selectedOptionIds?.Count ?? 0;
+
+        // No selections is valid if the question is not required
+        if (count == 0)
+        {
+            return !question.IsRequired;
+        }
+
+        if (!string.IsNullOrWhiteSpace(question.MinimumValue)
+            && int.TryParse(question.MinimumValue, out var minimumCount)
+            && count < minimumCount)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(question.MaximumValue)
+            && int.TryParse(question.MaximumValue, out var maximumCount)
+            && count > maximumCount)
+        {
+            return false;
+        }
+
+        return true;
     }
     
     /// <summary>

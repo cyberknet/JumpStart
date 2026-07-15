@@ -139,11 +139,15 @@ public class Question : AuditableEntity
     /// - <strong>Number:</strong> Parsed as decimal (e.g., "18", "0.5", "-10")
     /// - <strong>ShortText/LongText:</strong> Minimum character count (e.g., "8", "100")
     /// - <strong>Date:</strong> ISO date string (e.g., "1900-01-01", "2020-01-01")
-    /// - <strong>Other types:</strong> Not applicable (ignored)
+    /// - <strong>Choice-based (SingleChoice/MultipleChoice/Dropdown/Ranking):</strong> Minimum
+    ///   number of options that must be selected (e.g., "3") - not a value constraint
+    /// - <strong>Boolean:</strong> Not applicable (ignored)
     /// </value>
     /// <remarks>
     /// <para>
     /// This value is used for client-side and server-side validation. When null, no minimum constraint is applied.
+    /// See <see cref="QuestionValidator.ValidateResponseValue"/> (value-based types) and
+    /// <see cref="QuestionValidator.ValidateSelectedOptionCount"/> (choice-based types).
     /// </para>
     /// <para>
     /// <strong>Examples by Type:</strong>
@@ -152,6 +156,7 @@ public class Question : AuditableEntity
     /// <item><strong>Age (Number):</strong> MinimumValue = "18" (must be 18 or older)</item>
     /// <item><strong>Password (ShortText):</strong> MinimumValue = "8" (at least 8 characters)</item>
     /// <item><strong>Birth Date (Date):</strong> MinimumValue = "1900-01-01" (no dates before 1900)</item>
+    /// <item><strong>Ranking:</strong> MinimumValue = "3" (must rank at least 3 of the presented options)</item>
     /// </list>
     /// </remarks>
     [MaxLength(100)]
@@ -165,11 +170,15 @@ public class Question : AuditableEntity
     /// - <strong>Number:</strong> Parsed as decimal (e.g., "120", "99.99", "1000")
     /// - <strong>ShortText/LongText:</strong> Maximum character count (e.g., "50", "5000")
     /// - <strong>Date:</strong> ISO date string (e.g., "2100-12-31", "2025-12-31")
-    /// - <strong>Other types:</strong> Not applicable (ignored)
+    /// - <strong>Choice-based (SingleChoice/MultipleChoice/Dropdown/Ranking):</strong> Maximum
+    ///   number of options that may be selected (e.g., "5") - not a value constraint
+    /// - <strong>Boolean:</strong> Not applicable (ignored)
     /// </value>
     /// <remarks>
     /// <para>
     /// This value is used for client-side and server-side validation. When null, no maximum constraint is applied.
+    /// See <see cref="QuestionValidator.ValidateResponseValue"/> (value-based types) and
+    /// <see cref="QuestionValidator.ValidateSelectedOptionCount"/> (choice-based types).
     /// </para>
     /// <para>
     /// <strong>Examples by Type:</strong>
@@ -178,6 +187,7 @@ public class Question : AuditableEntity
     /// <item><strong>Age (Number):</strong> MaximumValue = "120" (must be 120 or younger)</item>
     /// <item><strong>Username (ShortText):</strong> MaximumValue = "50" (no more than 50 characters)</item>
     /// <item><strong>Event Date (Date):</strong> MaximumValue = "2025-12-31" (no dates after 2025)</item>
+    /// <item><strong>Ranking:</strong> MaximumValue = "5" (may rank at most 5 of the presented options)</item>
     /// </list>
     /// </remarks>
     [MaxLength(100)]

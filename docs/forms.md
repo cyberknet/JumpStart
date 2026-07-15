@@ -188,6 +188,11 @@ bool isInvalid = QuestionValidator.ValidateResponseValue(question, "10"); // fal
 
 ### Min/Max Validation by Type
 
+For text/number/date types, MinimumValue/MaximumValue constrain the response *value*
+(`QuestionValidator.ValidateResponseValue`). For choice-based types, they instead constrain the
+*number of options selected* (`QuestionValidator.ValidateSelectedOptionCount`) - not the value of
+any individual selection.
+
 | Question Type      | MinimumValue | MaximumValue | Validation Logic                           |
 |--------------------|--------------|--------------|--------------------------------------------|
 | **Number**         | "18"         | "120"        | Parsed as decimal, numeric comparison      |
@@ -195,10 +200,10 @@ bool isInvalid = QuestionValidator.ValidateResponseValue(question, "10"); // fal
 | **LongText**       | "100"        | "5000"       | Character count                            |
 | **Date**           | "1900-01-01" | "2100-12-31" | ISO date, date comparison                  |
 | **Boolean**        | N/A          | N/A          | No constraints                             |
-| **SingleChoice**   | N/A          | N/A          | At least one option selected               |
-| **MultipleChoice** | N/A          | N/A          | At least one option selected (if required) |
-| **Dropdown**       | N/A          | N/A          | One option selected                        |
-| **Ranking**        | N/A          | N/A          | No constraints                             |
+| **SingleChoice**   | N/A          | N/A          | At least one option selected (min/max rarely useful - inherently 0 or 1) |
+| **MultipleChoice** | "1"          | "3"          | Number of options selected                 |
+| **Dropdown**       | N/A          | N/A          | One option selected (min/max rarely useful - inherently 0 or 1) |
+| **Ranking**        | "3"          | "5"          | Number of options included in the ranking  |
 
 ### UI Helpers
 
@@ -304,12 +309,9 @@ await formsClient.SubmitFormResponseAsync(response);
 The server also checks referential integrity that the client can't be trusted to enforce - every
 `QuestionId` must belong to the form, and every selected option ID must belong to that question -
 and computes `IsComplete` itself from whether every required question was actually answered,
-ignoring whatever the client sends for that field.
-
-> **Known limitation:** `QuestionValidator` validates text/number/date questions fully, but does
-> not yet validate choice-based questions (SingleChoice, MultipleChoice, Dropdown, Ranking)
-> semantically - a required choice question is only checked for having at least one selected
-> option, not for satisfying constraints like Ranking's minimum/maximum item count.
+ignoring whatever the client sends for that field. Choice-based answers (including Ranking) are
+validated via `QuestionValidator.ValidateSelectedOptionCount` - see [Min/Max Validation by
+Type](#minmax-validation-by-type) above for what MinimumValue/MaximumValue mean for those types.
 
 ## Form Statistics
 

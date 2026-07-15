@@ -207,6 +207,46 @@ public class FormsControllerSubmitResponseTests
     }
 
     [Fact]
+    public async Task SubmitFormResponse_ReturnsBadRequest_WhenRankingSelectionCountBelowMinimum()
+    {
+        // Mirrors forms.md's "rank your top 3 to 5 favorites" example - 5 options, must rank 3-5
+        var rankingQuestionId = Guid.NewGuid();
+        var rankingQuestionType = new QuestionType { Id = Guid.NewGuid(), Code = "Ranking", Name = "Ranking", HasOptions = true };
+        var options = Enumerable.Range(0, 5)
+            .Select(i => new QuestionOption { Id = Guid.NewGuid(), QuestionId = rankingQuestionId, OptionText = $"Option {i}", DisplayOrder = i })
+            .ToList();
+        var rankingQuestion = new Question
+        {
+            Id = rankingQuestionId,
+            FormId = _formId,
+            QuestionText = "Rank your top 3 to 5 favorites",
+            QuestionTypeId = rankingQuestionType.Id,
+            QuestionType = rankingQuestionType,
+            IsRequired = true,
+            MinimumValue = "3",
+            MaximumValue = "5",
+            Options = options
+        };
+        var form = new Form { Id = _formId, Name = "Ranking Form", Questions = [rankingQuestion] };
+        _mockRepository.Setup(r => r.GetFormWithQuestionsAsync(_formId)).ReturnsAsync(form);
+
+        var dto = new CreateFormResponseDto
+        {
+            FormId = _formId,
+            QuestionResponses =
+            [
+                // Only 2 ranked - below the minimum of 3
+                new CreateQuestionResponseDto { QuestionId = rankingQuestionId, SelectedOptionIds = [options[0].Id, options[1].Id] }
+            ]
+        };
+
+        var result = await _controller.SubmitFormResponse(_formId, dto);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+        _mockRepository.Verify(r => r.SaveFormResponseAsync(It.IsAny<FormResponse>()), Times.Never);
+    }
+
+    [Fact]
     public async Task SubmitFormResponse_ReturnsCreated_AndComputesIsCompleteTrue_WhenAllRequiredAnswered()
     {
         var form = BuildForm();

@@ -13,6 +13,7 @@
  */
 
 using System;
+using System.Linq;
 using JumpStart.Forms;
 using Xunit;
 
@@ -468,14 +469,145 @@ public class QuestionValidatorTests
     {
         // Arrange
         var question = CreateQuestion(questionTypeCode);
-        
+
         // Act
         bool result = QuestionValidator.ValidateResponseValue(question, "any value");
-        
+
         // Assert
         Assert.True(result);
     }
-    
+
+    #endregion
+
+    #region Selected Option Count Validation Tests
+
+    [Fact]
+    public void ValidateSelectedOptionCount_RequiredQuestion_NoSelections_ReturnsFalse()
+    {
+        var question = CreateQuestion("Ranking", isRequired: true);
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(question, []);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_RequiredQuestion_NullSelections_ReturnsFalse()
+    {
+        var question = CreateQuestion("Ranking", isRequired: true);
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(question, null);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_OptionalQuestion_NoSelections_ReturnsTrue()
+    {
+        var question = CreateQuestion("MultipleChoice", isRequired: false);
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(question, []);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_NoConstraints_AnySelectionCount_ReturnsTrue()
+    {
+        var question = CreateQuestion("SingleChoice", isRequired: true);
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(question, [Guid.NewGuid()]);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_WithMinimum_CountAboveMinimum_ReturnsTrue()
+    {
+        var question = CreateQuestion("Ranking", minimumValue: "3");
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(question, [Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()]);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_WithMinimum_CountEqualToMinimum_ReturnsTrue()
+    {
+        var question = CreateQuestion("Ranking", minimumValue: "3");
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(question, [Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()]);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_WithMinimum_CountBelowMinimum_ReturnsFalse()
+    {
+        var question = CreateQuestion("Ranking", minimumValue: "3");
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(question, [Guid.NewGuid(), Guid.NewGuid()]);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_WithMaximum_CountBelowMaximum_ReturnsTrue()
+    {
+        var question = CreateQuestion("Ranking", maximumValue: "5");
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(question, [Guid.NewGuid(), Guid.NewGuid()]);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_WithMaximum_CountEqualToMaximum_ReturnsTrue()
+    {
+        var question = CreateQuestion("Ranking", maximumValue: "5");
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(
+            question, Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToList());
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_WithMaximum_CountAboveMaximum_ReturnsFalse()
+    {
+        var question = CreateQuestion("Ranking", maximumValue: "5");
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(
+            question, Enumerable.Range(0, 6).Select(_ => Guid.NewGuid()).ToList());
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_WithMinAndMax_CountInRange_ReturnsTrue()
+    {
+        // Mirrors forms.md's "rank your top 3 to 5 favorites" example
+        var question = CreateQuestion("Ranking", minimumValue: "3", maximumValue: "5");
+
+        bool result = QuestionValidator.ValidateSelectedOptionCount(
+            question, Enumerable.Range(0, 4).Select(_ => Guid.NewGuid()).ToList());
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ValidateSelectedOptionCount_WithMinAndMax_CountOutOfRange_ReturnsFalse()
+    {
+        var question = CreateQuestion("Ranking", minimumValue: "3", maximumValue: "5");
+
+        bool resultBelowMin = QuestionValidator.ValidateSelectedOptionCount(question, [Guid.NewGuid(), Guid.NewGuid()]);
+        bool resultAboveMax = QuestionValidator.ValidateSelectedOptionCount(
+            question, Enumerable.Range(0, 6).Select(_ => Guid.NewGuid()).ToList());
+
+        Assert.False(resultBelowMin);
+        Assert.False(resultAboveMax);
+    }
+
     #endregion
     
     #region Placeholder and Help Text Tests

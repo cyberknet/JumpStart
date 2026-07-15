@@ -374,19 +374,15 @@ public class FormsController : ApiControllerBase<
     /// <list type="bullet">
     /// <item>Every <c>QuestionId</c> must belong to this form.</item>
     /// <item>Every selected option ID must belong to that specific question.</item>
-    /// <item>Text/number/date answers are validated via <see cref="QuestionValidator"/>.</item>
+    /// <item>Text/number/date answers are validated via <see cref="QuestionValidator.ValidateResponseValue"/>.</item>
+    /// <item>Choice-based answers (including Ranking) are validated via
+    /// <see cref="QuestionValidator.ValidateSelectedOptionCount"/>, which checks required/empty
+    /// and selection-count constraints (e.g. Ranking's minimum/maximum item count).</item>
     /// </list>
     /// <para>
     /// <c>IsComplete</c> is computed server-side from whether every required question received
     /// an answer - the client-supplied value on <see cref="CreateFormResponseDto.IsComplete"/> is
     /// not trusted.
-    /// </para>
-    /// <para>
-    /// <strong>Known limitation:</strong> choice-based questions (SingleChoice, MultipleChoice,
-    /// Dropdown, Ranking) only have their option IDs checked for referential integrity here -
-    /// <see cref="QuestionValidator"/> does not yet validate them semantically (e.g. Ranking's
-    /// minimum/maximum item count), so a required choice question is only checked for having at
-    /// least one selected option, not for satisfying its own answer constraints.
     /// </para>
     /// </remarks>
     /// <response code="201">The response was submitted successfully.</response>
@@ -434,12 +430,15 @@ public class FormsController : ApiControllerBase<
                 continue;
             }
 
-            // QuestionValidator only validates the ResponseValue field (text/number/date questions);
-            // choice-based questions answer via SelectedOptionIds instead, so ResponseValue is
-            // always empty for them - calling it here would wrongly flag a valid choice answer.
-            if (!question.QuestionType.HasOptions && !QuestionValidator.ValidateResponseValue(question, answer.ResponseValue))
+            // Choice-based questions answer via SelectedOptionIds (count-based constraints);
+            // everything else answers via ResponseValue (value/length constraints).
+            var isValidAnswer = question.QuestionType.HasOptions
+                ? QuestionValidator.ValidateSelectedOptionCount(question, selectedOptionIds)
+                : QuestionValidator.ValidateResponseValue(question, answer.ResponseValue);
+
+            if (!isValidAnswer)
             {
-                validationErrors.Add($"Question {answer.QuestionId} ('{question.QuestionText}'): response value is invalid.");
+                validationErrors.Add($"Question {answer.QuestionId} ('{question.QuestionText}'): response is invalid.");
             }
         }
 

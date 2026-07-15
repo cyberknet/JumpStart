@@ -19,6 +19,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using JumpStart.Data;
 using JumpStart.Data.Auditing;
+using JumpStart.Data.MultiTenant;
 using Microsoft.EntityFrameworkCore;
 
 namespace JumpStart.Repositories;
@@ -394,6 +395,12 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
     /// - CreatedById: Set to current user ID from user context (if available)
     /// </para>
     /// <para>
+    /// <strong>Multi-Tenancy (see ADR-010):</strong> If the entity implements
+    /// <see cref="MultiTenant.ITenantScoped"/> and the current <c>DbContext</c> has a current
+    /// tenant (<c>JumpStartDbContext.CurrentTenantId</c>), <c>TenantId</c> is populated
+    /// automatically. Application code should not set <c>TenantId</c> manually.
+    /// </para>
+    /// <para>
     /// The method saves changes to the database immediately. The entity's ID will be populated
     /// by the database (for auto-increment/database-generated keys).
     /// </para>
@@ -417,6 +424,14 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
                     creatableEntity.CreatedById = userId.Value;
                 }
             }
+        }
+
+        // Assign the current tenant if the entity is tenant-scoped
+        if (entity is ITenantScoped tenantScopedEntity
+            && _context is JumpStartDbContext jumpStartDbContext
+            && jumpStartDbContext.CurrentTenantId.HasValue)
+        {
+            tenantScopedEntity.TenantId = jumpStartDbContext.CurrentTenantId.Value;
         }
 
         await _dbSet.AddAsync(entity);

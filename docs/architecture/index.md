@@ -39,6 +39,7 @@ Documented decisions about significant architectural choices.
 - [ADR-004: JWT Authentication](adr/004-jwt-authentication.md)
 - [ADR-005: Refit for API Clients](adr/005-refit-api-clients.md)
 - [ADR-009: Guid-Only Entities](adr/009-guid-only-entities.md)
+- [ADR-010: Multi-Tenant Data Isolation](adr/010-multi-tenant-data-isolation.md)
 
 ## Design Patterns
 
@@ -90,6 +91,11 @@ The API can be deployed independently from the Blazor Server application, enabli
 - Web API (JWT bearer tokens)
 - Testing (mock implementations)
 - Background jobs (system user)
+
+### Why Multi-Tenancy via Global Query Filter?
+`ITenantScoped` entities are isolated automatically using the same EF Core global query filter
+mechanism as soft delete, rather than requiring each repository to filter by tenant manually - see
+[ADR-010](adr/010-multi-tenant-data-isolation.md) for the full design.
 
 ## Performance Considerations
 

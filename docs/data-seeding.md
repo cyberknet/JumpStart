@@ -23,7 +23,7 @@ Framework-required data (like QuestionTypes for Forms) is seeded using EF Core's
 
 ### QuestionTypes Example
 
-The Forms module seeds 8 default question types automatically:
+The Forms module seeds 9 default question types automatically:
 
 ```csharp
 // In QuestionTypeConfiguration.cs
@@ -37,7 +37,7 @@ builder.HasData(
         InputType = "text",
         DisplayOrder = 1
     },
-    // ... 7 more types
+    // ... 8 more types
 );
 ```
 
@@ -291,7 +291,7 @@ public int Order => 500;  // Sample products (demo data)
 
 **Type:** Framework-Required (`IsFrameworkRequired = true`)  
 **Order:** 100  
-**Seeds:** 8 default QuestionTypes (ShortText, LongText, Number, Date, Boolean, SingleChoice, MultipleChoice, Dropdown)  
+**Seeds:** 9 default QuestionTypes (ShortText, LongText, Number, Date, Boolean, SingleChoice, MultipleChoice, Dropdown, Ranking)  
 **Execution:** Automatic when Forms module is used
 
 ```csharp

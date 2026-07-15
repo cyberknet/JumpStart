@@ -6,7 +6,7 @@ The Forms module provides a flexible, database-driven form builder with support 
 
 ## Key Features
 
-- ✅ **8 Question Types** - Text, number, date, boolean, single/multiple choice, dropdown
+- ✅ **9 Question Types** - Text, number, date, boolean, single/multiple choice, dropdown, ranking
 - ✅ **Dynamic Forms** - Create and modify forms without code changes
 - ✅ **Validation** - Required fields, min/max constraints
 - ✅ **Options** - Pre-defined options for choice-based questions
@@ -448,14 +448,26 @@ public static class CustomQuestionValidator
 See [API Documentation](api/index.html) for complete endpoint reference:
 
 - `GET /api/forms` - List all forms
-- `GET /api/forms/{id}` - Get form by ID
-- `GET /api/forms/{id}/with-questions` - Get form with questions
+- `GET /api/forms/{id}` - Get form by ID (already includes questions and options - there is no separate `with-questions` endpoint)
 - `POST /api/forms` - Create new form
 - `PUT /api/forms/{id}` - Update form
 - `DELETE /api/forms/{id}` - Delete form
 - `POST /api/forms/{id}/responses` - Submit response
 - `GET /api/forms/{id}/statistics` - Get form statistics
-- `GET /api/forms/question-types` - Get all question types
+
+Question types are a separate resource, served by their own `QuestionTypesController` mounted at
+`api/forms/questiontypes` (not by `FormsController`):
+
+- `GET /api/forms/questiontypes` - List question types (paged/sorted, like any other JumpStart list endpoint)
+- `GET /api/forms/questiontypes/{id}` - Get a question type by ID
+- `POST /api/forms/questiontypes` - Create a question type
+- `PUT /api/forms/questiontypes/{id}` - Update a question type
+- `DELETE /api/forms/questiontypes/{id}` - Delete a question type
+
+`IFormsApiClient` exposes all of the above - forms and question types alike - as one Refit client;
+the split across two controllers is an implementation detail (question type CRUD is otherwise
+identical to every other JumpStart entity, so it reuses the framework's standard CRUD controller
+instead of duplicating it under `FormsController`).
 
 ## Examples
 

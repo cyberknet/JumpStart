@@ -728,7 +728,6 @@ public class SecuredProductsControllerTests
 ## Next Steps
 
 - **[Authentication & Security Guide](authentication.md)** - Complete authentication setup
-- **[How-To: Custom Controllers](custom-controllers.md)** - Advanced controller patterns
 - **[API Development](../api-development.md)** - Build RESTful APIs
 - **[Core Concepts](../core-concepts.md)** - Understand the fundamentals
 

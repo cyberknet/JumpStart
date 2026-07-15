@@ -858,7 +858,6 @@ public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Progr
 
 - **[Authentication Guide](authentication.md)** - Implement JWT authentication
 - **[How-To: Secure Endpoints](how-to/secure-endpoints.md)** - Add authorization
-- **[How-To: Custom Controllers](how-to/custom-controllers.md)** - Advanced controller patterns
 - **[Core Concepts](core-concepts.md)** - Understand the fundamentals
 
 ---

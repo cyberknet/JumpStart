@@ -471,5 +471,4 @@ public interface ITokenBlacklist
 ## Related Documentation
 
 - [How-To: Secure Endpoints](../../how-to/secure-endpoints.md)
-- [How-To: Configure JWT](../../how-to/configure-jwt.md)
 - [API Reference: IJwtTokenService](../../api/services/ijwttokenservice.md)

@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -213,7 +213,7 @@ public class JumpStartOptionsTests
             .ToArray();
 
         // Act & Assert
-        Assert.Equal(7, publicMethods.Length); // 7 fluent methods (added EnableRepositoryAutoDiscovery)
+        Assert.Equal(8, publicMethods.Length); // 8 fluent methods (added RegisterTenantContext)
     }
 
     #endregion
@@ -313,7 +313,7 @@ public class JumpStartOptionsTests
 
             // Assert
             Assert.Equal(8, publicProperties.Length); // 8 properties (added RegisterFormsController, RegisterFormsApiClient, AutoDiscoverApiClients, ApiClientLifetime, ApiBaseUrl)
-            Assert.Equal(7, publicMethods.Length); // 7 methods (added EnableRepositoryAutoDiscovery)
+            Assert.Equal(8, publicMethods.Length); // 8 methods (added RegisterTenantContext)
         }
 
     [Fact]
@@ -336,6 +336,7 @@ public class JumpStartOptionsTests
 
         // Act & Assert
         Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.RegisterUserContext)));
+        Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.RegisterTenantContext)));
         Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.ScanAssembly)));
         Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.ScanAssembliesContaining)));
         Assert.NotNull(optionsType.GetMethod(nameof(JumpStartOptions.RegisterRepository)));

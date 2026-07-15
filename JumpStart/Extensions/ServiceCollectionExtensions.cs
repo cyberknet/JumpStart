@@ -350,7 +350,7 @@ public static partial class JumpStartServiceCollectionExtensions
 
     /// <summary>
     /// Registers core JumpStart services with the dependency injection container.
-    /// Currently registers the user context if one was specified in the options.
+    /// Currently registers the user context and tenant context, if specified in the options.
     /// </summary>
     /// <param name="services">The service collection to add services to.</param>
     /// <param name="options">The JumpStart options containing configuration.</param>
@@ -360,6 +360,12 @@ public static partial class JumpStartServiceCollectionExtensions
         if (options.UserContextType != null)
         {
             services.TryAddScoped(typeof(IUserContext), options.UserContextType);
+        }
+
+        // Tenant context is optional - only register if one was specified (see ADR-010)
+        if (options.TenantContextType != null)
+        {
+            services.TryAddScoped(typeof(ITenantContext), options.TenantContextType);
         }
     }
 

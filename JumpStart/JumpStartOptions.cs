@@ -354,10 +354,77 @@ public class JumpStartOptions
     /// }
     /// </code>
     /// </example>
-    public JumpStartOptions RegisterUserContext<TUserContext>() 
+    public JumpStartOptions RegisterUserContext<TUserContext>()
         where TUserContext : class, IUserContext
     {
         UserContextType = typeof(TUserContext);
+        return this;
+    }
+
+    /// <summary>
+    /// The type of the tenant context implementation to register.
+    /// </summary>
+    internal Type? TenantContextType { get; private set; }
+
+    /// <summary>
+    /// Registers a tenant context implementation for multi-tenant data isolation (see ADR-010).
+    /// </summary>
+    /// <typeparam name="TTenantContext">
+    /// The tenant context implementation type that provides the current tenant's ID.
+    /// Must implement <see cref="JumpStart.Repositories.ITenantContext"/>.
+    /// </typeparam>
+    /// <returns>The options instance for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// The tenant context is used by <c>JumpStartDbContext</c> to resolve the current tenant once
+    /// per instance, which drives the global query filter applied to every
+    /// <see cref="Data.MultiTenant.ITenantScoped"/> entity, and by <see cref="Repository{TEntity}.AddAsync"/>
+    /// to populate <c>TenantId</c> automatically on create.
+    /// </para>
+    /// <para>
+    /// If no tenant context is registered, entities implementing <see cref="Data.MultiTenant.ITenantScoped"/>
+    /// are not filtered by tenant and <c>TenantId</c> is not populated automatically - equivalent
+    /// to single-tenant mode.
+    /// </para>
+    /// <para>
+    /// <strong>Important:</strong> registering a tenant context here makes it available for
+    /// injection, but your derived <c>DbContext</c> must also declare and forward an
+    /// <see cref="JumpStart.Repositories.ITenantContext"/> constructor parameter to
+    /// <c>JumpStartDbContext</c>'s base constructor - it is not wired in automatically just because
+    /// it's registered in the container. See <c>JumpStartDbContext</c>'s class-level example.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Register tenant context implementation
+    /// services.AddJumpStart(options =>
+    /// {
+    ///     options.RegisterTenantContext&lt;JwtTenantContext&gt;();
+    /// });
+    ///
+    /// // Example tenant context implementation
+    /// public class JwtTenantContext : ITenantContext
+    /// {
+    ///     private readonly IHttpContextAccessor _httpContextAccessor;
+    ///
+    ///     public JwtTenantContext(IHttpContextAccessor httpContextAccessor)
+    ///     {
+    ///         _httpContextAccessor = httpContextAccessor;
+    ///     }
+    ///
+    ///     public Task&lt;Guid?&gt; GetCurrentTenantIdAsync()
+    ///     {
+    ///         var tenantClaim = _httpContextAccessor.HttpContext?.User
+    ///             .FindFirst("tenant_id")?.Value;
+    ///         return Task.FromResult(Guid.TryParse(tenantClaim, out var tenantId) ? tenantId : (Guid?)null);
+    ///     }
+    /// }
+    /// </code>
+    /// </example>
+    public JumpStartOptions RegisterTenantContext<TTenantContext>()
+        where TTenantContext : class, ITenantContext
+    {
+        TenantContextType = typeof(TTenantContext);
         return this;
     }
 

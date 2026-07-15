@@ -25,6 +25,18 @@ Learn how JumpStart automatically tracks who created, modified, and deleted enti
 - User Context Integration
 - Custom Audit Scenarios
 
+### [Multi-Tenancy](multi-tenancy.md)
+Learn how JumpStart isolates each tenant's data automatically.
+- Automatic Data Isolation
+- Tenant Context Implementations
+- Tenant Selection for Multi-Tenant Users
+
+### [Entity Authorization](entity-authorization.md)
+Learn how JumpStart controls per-entity, per-action access - and why it isn't optional.
+- The Permission Claim Format
+- Issuing Claims (JWT & Cookie Auth)
+- Protecting Custom Controller Actions
+
 ### [API Development](api-development.md)
 Build RESTful APIs quickly with JumpStart's base controllers and DTOs.
 - API Controllers

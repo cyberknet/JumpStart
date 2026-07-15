@@ -1,10 +1,18 @@
 # ADR-004: JWT Authentication
 
-**Status:** Accepted
+**Status:** Accepted (Token Store / Handler sections corrected - see note)
 
 **Date:** 2025-01-15
 
 **Decision Makers:** JumpStart Core Team
+
+> **⚠️ Correction (2026-01-25):** Sections 2 and 3 below originally described a multi-user,
+> dictionary-keyed `ITokenStore`/`JwtAuthenticationHandler` design. The actual shipped
+> implementation is simpler: `ITokenStore` holds a single current-user token per scope
+> (`GetToken()`, `SetToken(string token)`, `ClearToken()` - no `userId` parameter), and
+> `JwtAuthenticationHandler` depends only on `ITokenStore` (no `IHttpContextAccessor`). This
+> works because each user gets their own DI scope (e.g. a Blazor circuit), so the store doesn't
+> need to be keyed by user explicitly. The code samples below have been updated to match.
 
 ## Context
 
@@ -88,62 +96,53 @@ public class JwtTokenService : IJwtTokenService
 
 ### 2. Token Store
 
-In-memory storage for tokens per user session:
+Scoped, per-request/per-circuit storage for the current user's token (each user gets their own
+DI scope, so there's no need to key the store by user ID explicitly):
 
 ```csharp
 public interface ITokenStore
 {
-    string? GetToken(string userId);
-    void SetToken(string userId, string token);
-    void RemoveToken(string userId);
+    string? GetToken();
+    void SetToken(string token);
+    void ClearToken();
 }
 
 public class TokenStore : ITokenStore
 {
-    private readonly ConcurrentDictionary<string, string> _tokens = new();
+    private string? _token;
 
-    public string? GetToken(string userId) => 
-        _tokens.TryGetValue(userId, out var token) ? token : null;
+    public string? GetToken() => _token;
 
-    public void SetToken(string userId, string token) => 
-        _tokens[userId] = token;
+    public void SetToken(string token) => _token = token;
 
-    public void RemoveToken(string userId) => 
-        _tokens.TryRemove(userId, out _);
+    public void ClearToken() => _token = null;
 }
 ```
 
 ### 3. JWT Authentication Handler
 
-HTTP message handler that automatically attaches JWT tokens to API requests:
+HTTP message handler that automatically attaches the current scope's JWT token to API requests:
 
 ```csharp
 public class JwtAuthenticationHandler : DelegatingHandler
 {
     private readonly ITokenStore _tokenStore;
-    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public JwtAuthenticationHandler(ITokenStore tokenStore, IHttpContextAccessor httpContextAccessor)
+    public JwtAuthenticationHandler(ITokenStore tokenStore)
     {
-        _tokenStore = tokenStore;
-        _httpContextAccessor = httpContextAccessor;
+        _tokenStore = tokenStore ?? throw new ArgumentNullException(nameof(tokenStore));
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request, 
         CancellationToken cancellationToken)
     {
-        var userId = _httpContextAccessor.HttpContext?.User
-            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var token = _tokenStore.GetToken();
 
-        if (userId != null)
+        if (!string.IsNullOrWhiteSpace(token))
         {
-            var token = _tokenStore.GetToken(userId);
-            if (!string.IsNullOrEmpty(token))
-            {
-                request.Headers.Authorization = 
-                    new AuthenticationHeaderValue("Bearer", token);
-            }
+            request.Headers.Authorization = 
+                new AuthenticationHeaderValue("Bearer", token);
         }
 
         return await base.SendAsync(request, cancellationToken);
@@ -197,7 +196,7 @@ builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
 
 // Register Refit clients with JWT handler
-builder.Services.AddSimpleApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
+builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 ```
 
@@ -217,8 +216,11 @@ public class LoginService
         if (user != null)
         {
             // Generate JWT token
+            // NOTE: GenerateToken takes an `int userId`, which doesn't line up with JumpStart's
+            // Guid-only identity model elsewhere (or with ASP.NET Core Identity's default string
+            // Id). You'll need a numeric identifier for this call until that's reconciled.
             var token = _tokenService.GenerateToken(
-                user.Id, 
+                user.NumericId, 
                 user.UserName, 
                 additionalClaims: new Dictionary<string, string>
                 {
@@ -226,8 +228,8 @@ public class LoginService
                     ["role"] = user.Role
                 });
             
-            // Store token for this user's session
-            _tokenStore.SetToken(user.Id.ToString(), token);
+            // Store token for this scope (ITokenStore holds one token per DI scope - no userId key)
+            _tokenStore.SetToken(token);
             
             return token;
         }
@@ -403,21 +405,28 @@ Balance security vs user experience:
 
 ### 1. Distributed Token Store
 
-Replace in-memory dictionary with Redis or distributed cache:
+The current `ITokenStore` interface (`GetToken()` / `SetToken(string)` / `ClearToken()`) has no
+key parameter - it relies on DI scoping for per-user isolation, which doesn't carry over to a
+distributed cache directly. A distributed implementation would need some other correlation ID
+(e.g. session ID) threaded through, which would mean extending the interface:
 
 ```csharp
 public class RedisTokenStore : ITokenStore
 {
     private readonly IDistributedCache _cache;
+    private readonly string _sessionKey; // e.g. from IHttpContextAccessor or circuit ID
+
+    public string? GetToken() =>
+        _cache.GetString($"jwt:{_sessionKey}");
     
-    public string? GetToken(string userId) =>
-        _cache.GetString($"jwt:{userId}");
-    
-    public void SetToken(string userId, string token) =>
-        _cache.SetString($"jwt:{userId}", token, new DistributedCacheEntryOptions
+    public void SetToken(string token) =>
+        _cache.SetString($"jwt:{_sessionKey}", token, new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60)
         });
+
+    public void ClearToken() =>
+        _cache.Remove($"jwt:{_sessionKey}");
 }
 ```
 

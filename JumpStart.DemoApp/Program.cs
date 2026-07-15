@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -75,6 +75,9 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
+// Issues the Permission claims every ApiControllerBase action requires (see ADR-011) -
+// without this, every API call below would return 403.
+builder.Services.AddTransient<DemoTokenProvisioningHandler>();
 
 // ============================================
 // 5. API CLIENT REGISTRATION
@@ -91,7 +94,10 @@ builder.Services.AddJumpStart(options =>
 });
 
 //// Register API clients with JWT authentication handler
+// DemoTokenProvisioningHandler must run before JwtAuthenticationHandler (outermost handler
+// added first) so a token exists in ITokenStore before JwtAuthenticationHandler tries to attach it.
 builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
+    .AddHttpMessageHandler<DemoTokenProvisioningHandler>()
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 
 var app = builder.Build();

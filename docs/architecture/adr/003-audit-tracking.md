@@ -1,10 +1,22 @@
 # ADR-003: Audit Tracking Implementation
 
-**Status:** Accepted
+**Status:** Accepted (partially superseded - see note)
 
 **Date:** 2025-01-15
 
 **Decision Makers:** JumpStart Core Team
+
+> **⚠️ Partially superseded (2026-01-25):** The core decision - automatic audit tracking via
+> `ICreatable`/`IModifiable`/`IDeletable`/`IAuditable`, populated by the repository, with soft
+> delete - still stands. But every generic/`TKey` and `Simple*`-prefixed type below
+> (`ICreatable<TKey>`, `ISimpleCreatable`, `AuditableEntity<TKey>`, `SimpleAuditableEntity`,
+> `ISimpleUserContext`, `Repository<TEntity, TKey>`, etc.) was removed when custom key-type
+> support was dropped - see [ADR-009: Guid-Only Entities](009-guid-only-entities.md). Current
+> equivalents: `ICreatable`, `IModifiable`, `IDeletable`, `IAuditable`, `AuditableEntity`,
+> `IUserContext` (with `Task<Guid?> GetCurrentUserIdAsync()`), and `Repository<TEntity>`. The
+> "Querying Including Soft-Deleted" example further down (`GetAllAsync(includeDeleted: true)`)
+> describes a parameter that does not exist on the current repository - there is currently no
+> built-in way to query soft-deleted rows through `IRepository<TEntity>`.
 
 ## Context
 
@@ -378,11 +390,15 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
 ### Querying Including Soft-Deleted
 
+> **Not currently implemented:** `IRepository<TEntity>.GetAllAsync` has no `includeDeleted`
+> parameter today. To show soft-deleted rows (e.g. an admin view), add a custom repository method
+> that queries `_dbSet` directly without going through `ApplySoftDeleteFilter`.
+
 ```csharp
-// Exclude soft-deleted (default)
+// Exclude soft-deleted (default) - actually supported today
 var activeProducts = await _repository.GetAllAsync();
 
-// Include soft-deleted (for admin views)
+// Include soft-deleted (for admin views) - illustrative; requires a custom repository method
 var allProducts = await _repository.GetAllAsync(includeDeleted: true);
 ```
 

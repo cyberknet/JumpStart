@@ -25,14 +25,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="16.0.0" />
+    <PackageReference Include="AutoMapper" Version="16.2.0" />
     <PackageReference Include="Correlate.AspNetCore" Version="6.1.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="Refit" Version="9.0.2" />
-    <PackageReference Include="Refit.HttpClientFactory" Version="9.0.2" />
+    <PackageReference Include="Refit" Version="13.1.0" />
+    <PackageReference Include="Refit.HttpClientFactory" Version="13.1.0" />
     <PackageReference Include="RestEase" Version="1.6.4" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
   </ItemGroup>
 </Project>

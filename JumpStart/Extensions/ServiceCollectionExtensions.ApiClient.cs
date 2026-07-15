@@ -53,8 +53,9 @@ public static partial class JumpStartServiceCollectionExtensions
             if (apiClientForAttr == null)
             {
                 throw new InvalidOperationException(
-                    $"API client interface '{apiClientInterface.FullName}' must be decorated with [ApiClientFor<YourController>]. " +
-                    "This is required for automatic route discovery and registration.");
+                    $"API client interface '{apiClientInterface.FullName}' must be decorated with " +
+                    "[ApiClientFor<TController,TEntity,TDto,TCreateDto,TUpdateDto,TRepository>], matching the " +
+                    "target controller's own generic arguments. This is required for automatic route discovery and registration.");
             }
 
             var controllerType = apiClientForAttr.GetType().GetGenericArguments()[0];

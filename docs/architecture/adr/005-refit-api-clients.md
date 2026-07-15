@@ -16,8 +16,8 @@
 > `ApiControllerBase<TEntity,TDto,TCreateDto,TUpdateDto,TRepository>` (see
 > [API Development](../../api-development.md)), and registration via
 > `AddApiClient<TInterface>(baseAddress)` or attribute-based auto-discovery
-> (`[ApiClientFor<TController>]` + `AutoDiscoverApiClients`). The sections below have been updated
-> to match.
+> (`[ApiClientFor<TController,TEntity,TDto,TCreateDto,TUpdateDto,TRepository>]` +
+> `AutoDiscoverApiClients`). The sections below have been updated to match.
 
 ## Context
 
@@ -118,16 +118,24 @@ than a separate `GetPagedAsync` endpoint.
 Two registration paths exist today:
 
 - **Manual:** `AddApiClient<TInterface>(baseAddress)` - explicit base URL per client.
-- **Automatic:** decorate the client interface with `[ApiClientFor<TController>]` and enable
+- **Automatic:** decorate the client interface with
+  `[ApiClientFor<TController,TEntity,TDto,TCreateDto,TUpdateDto,TRepository>]` and enable
   `AutoDiscoverApiClients` in `JumpStartOptions` - the framework derives the route from the
-  controller's `[Route]` attribute and registers the Refit client for you.
+  controller's `[Route]` attribute and registers the Refit client for you. All six type arguments
+  are required (`ApiClientForAttribute` has no shorter overload); they must match the target
+  controller's own generic arguments exactly.
 
 ```csharp
 // Manual registration
 builder.Services.AddApiClient<IProductApiClient>("https://api.example.com/api/products")
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 
-// Automatic registration
+// Automatic registration - attribute goes on the client interface itself
+[ApiClientFor<ProductsController, Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>()]
+public interface IProductApiClient : IApiClient<ProductDto, CreateProductDto, UpdateProductDto>
+{
+}
+
 builder.Services.AddJumpStart(options =>
 {
     options.AutoDiscoverApiClients = true;

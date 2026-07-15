@@ -14,6 +14,7 @@
 
 using JumpStart.Data.Configuration.Forms;
 using JumpStart.Forms;
+using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace JumpStart.Data;
@@ -73,18 +74,53 @@ namespace JumpStart.Data;
 /// {
 ///     // ...
 /// }
+///
+/// // To enable multi-tenant filtering (see ADR-010), your derived context must declare and
+/// // forward ITenantContext itself - it is not injected automatically just because the base
+/// // class constructor accepts it:
+/// public class TenantAwareDbContext : JumpStart.Data.JumpStartDbContext
+/// {
+///     public TenantAwareDbContext(
+///         Microsoft.EntityFrameworkCore.DbContextOptions&lt;TenantAwareDbContext&gt; options,
+///         JumpStart.Repositories.ITenantContext? tenantContext = null)
+///         : base(options, tenantContext)
+///     {
+///     }
+/// }
 /// </code>
 /// </example>
 public abstract partial class JumpStartDbContext : DbContext
 {
     /// <summary>
+    /// Gets the current tenant ID, resolved once when this context instance was constructed.
+    /// </summary>
+    /// <value>
+    /// The tenant ID returned by the <see cref="ITenantContext"/> supplied at construction, or
+    /// <c>null</c> if no tenant context was supplied (single-tenant mode, or a system-wide
+    /// operation). When <c>null</c>, the global tenant query filter is a no-op.
+    /// </value>
+    public Guid? CurrentTenantId { get; }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="JumpStartDbContext"/> class.
     /// </summary>
     /// <param name="options">The options for this context.</param>
-    protected JumpStartDbContext(DbContextOptions options) : base(options)
+    /// <param name="tenantContext">
+    /// Optional. Supplies the current tenant ID for multi-tenant data isolation (see ADR-010).
+    /// Resolved once, synchronously, at construction time - this context is scoped per
+    /// request/circuit, so the resolved value is stable for its lifetime. If null (the default),
+    /// entities implementing <see cref="MultiTenant.ITenantScoped"/> are not filtered by tenant.
+    /// </param>
+    /// <remarks>
+    /// A derived DbContext must declare and forward this parameter itself for tenant filtering to
+    /// take effect - it is not injected automatically merely because the base class constructor
+    /// accepts it. See the class-level example.
+    /// </remarks>
+    protected JumpStartDbContext(DbContextOptions options, ITenantContext? tenantContext = null) : base(options)
     {
+        CurrentTenantId = tenantContext?.GetCurrentTenantIdAsync().GetAwaiter().GetResult();
     }
-    
+
     /// <summary>
     /// Gets or sets the QuestionTypes DbSet.
     /// </summary>

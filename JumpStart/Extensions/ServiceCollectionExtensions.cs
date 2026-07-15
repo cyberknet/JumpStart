@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -159,7 +159,7 @@ public static partial class JumpStartServiceCollectionExtensions
     /// </para>
     /// <para>
     /// <strong>Default Behavior:</strong>
-    /// - AutoDiscoverRepositories: true
+    /// - AutoDiscoverRepositories: false
     /// - RepositoryLifetime: Scoped (recommended for EF Core)
     /// - Assemblies: Calling assembly if none specified
     /// - UserContext: None (must be explicitly registered)

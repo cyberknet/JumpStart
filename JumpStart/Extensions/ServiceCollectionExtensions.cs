@@ -228,14 +228,12 @@ public static partial class JumpStartServiceCollectionExtensions
         if (options.AutoDiscoverApiClients)
         {
             RegisterApiClients(services, options);
-            //services.AddRefitClient<IFormsApiClient>()
-            //    .ConfigureHttpClient(c => c.BaseAddress = new Uri("https://localhost:7030/api/forms/"));
         }
 
         // Register Forms module services if configured
-        if (options.RegisterFormsController || options.RegisterFormsApiClient)
+        if (options.RegisterFormsController)
         {
-            RegisterFormsServices(services, options);
+            RegisterFormsServices(services);
         }
 
         services.AddCorrelate();

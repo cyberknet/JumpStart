@@ -52,7 +52,7 @@ In your **Blazor project** `Program.cs`:
 ```csharp
 services.AddJumpStart(options =>
 {
-    options.RegisterFormsApiClient = true; // ✅ Consume Forms API
+    options.AutoDiscoverApiClients = true; // ✅ Consume Forms API (IFormsApiClient is auto-discovered)
     options.ApiBaseUrl = "https://localhost:7001"; // Your API URL
 });
 ```
@@ -451,7 +451,7 @@ public static class CustomQuestionValidator
 
 **Solution:**
 1. Check FormsController is registered: `options.RegisterFormsController = true`
-2. Check FormsApiClient is registered: `options.RegisterFormsApiClient = true`
+2. Check API clients are being auto-discovered: `options.AutoDiscoverApiClients = true`
 3. Verify ApiBaseUrl is correct
 4. Check forms have `IsActive = true`
 

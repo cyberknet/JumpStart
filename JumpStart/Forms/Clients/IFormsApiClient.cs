@@ -43,12 +43,14 @@ namespace JumpStart.Forms.Clients;
 /// </para>
 /// <para>
 /// <strong>Registration:</strong>
-/// Enable via JumpStart options:
+/// This interface is decorated with <c>[ApiClientFor&lt;...&gt;]</c>, so it is discovered and
+/// registered automatically when <c>AutoDiscoverApiClients</c> is enabled - no separate flag
+/// is needed:
 /// <code language="csharp">
 /// builder.Services.AddJumpStart(options =>
 /// {
 ///     options.ApiBaseUrl = "https://localhost:7030";
-///     options.RegisterFormsApiClient = true;
+///     options.AutoDiscoverApiClients = true;
 /// });
 /// </code>
 /// </para>

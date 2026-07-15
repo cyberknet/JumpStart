@@ -693,7 +693,9 @@ public class JumpStartOptions
         /// <para>
         /// <strong>When to Leave Disabled:</strong>
         /// - Blazor Server apps accessing the database directly via repositories
-        /// - Client applications that only consume Forms APIs (enable RegisterFormsApiClient instead)
+        /// - Client applications that only consume Forms APIs (enable <see cref="AutoDiscoverApiClients"/>
+        ///   instead - <c>IFormsApiClient</c> is already decorated with <c>[ApiClientFor&lt;...&gt;]</c>
+        ///   and will be discovered and registered automatically)
         /// </para>
         /// </remarks>
         /// <example>
@@ -707,44 +709,4 @@ public class JumpStartOptions
         /// </code>
         /// </example>
         public bool RegisterFormsController { get; set; } = false;
-
-        /// <summary>
-        /// Gets or sets whether to register the Forms API client.
-        /// </summary>
-        /// <value>
-        /// <c>true</c> to register Refit-based Forms API client for calling remote Forms API;
-        /// otherwise, <c>false</c>. Default is <c>false</c>.
-        /// </value>
-        /// <remarks>
-        /// <para>
-        /// Set this to <c>true</c> in Blazor Server apps that need to call a separate Forms API
-        /// instead of accessing the database directly via repositories.
-        /// </para>
-        /// <para>
-        /// <strong>Prerequisites:</strong>
-        /// Ensure <see cref="ApiBaseUrl"/> is configured to point to the Forms API.
-        /// </para>
-        /// <para>
-        /// <strong>When to Enable:</strong>
-        /// - Blazor Server apps calling a separate Forms API
-        /// - Client applications in a microservices architecture
-        /// </para>
-        /// <para>
-        /// <strong>When to Leave Disabled:</strong>
-        /// - Projects using repositories directly (with DbContext)
-        /// - API projects (enable RegisterFormsController instead)
-        /// </para>
-        /// </remarks>
-        /// <example>
-        /// <code>
-        /// // Blazor Server calling Forms API
-        /// builder.Services.AddJumpStart(options =>
-        /// {
-        ///     options.ApiBaseUrl = "https://localhost:7030";
-        ///     options.RegisterFormsApiClient = true;
-        ///     options.RegisterUserContext&lt;BlazorUserContext&gt;();
-        /// });
-        /// </code>
-        /// </example>
-        public bool RegisterFormsApiClient { get; set; } = false;
     }

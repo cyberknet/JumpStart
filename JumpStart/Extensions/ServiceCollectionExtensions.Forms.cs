@@ -16,12 +16,10 @@ using System;
 using System.Linq;
 using JumpStart;
 using JumpStart.Forms;
-using JumpStart.Forms.Clients;
 using JumpStart.Forms.Controllers;
 using JumpStart.Forms.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Refit;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -30,66 +28,37 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static partial class JumpStartServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers Forms module services based on options configuration.
+    /// Registers Forms module services.
     /// </summary>
     /// <param name="services">The service collection to add Forms services to.</param>
-    /// <param name="options">The JumpStart options containing Forms configuration.</param>
     /// <remarks>
     /// <para>
-    /// This method is called automatically by AddJumpStart when Forms-related options are configured.
+    /// This method is called automatically by AddJumpStart when RegisterFormsController is enabled.
     /// It handles registration of:
     /// - Forms repository (IFormRepository → FormRepository)
     /// - QuestionType repository (IQuestionTypeRepository → QuestionTypeRepository)
-    /// - Forms API controllers (if RegisterFormsController = true)
-    /// - Forms API client (if RegisterFormsApiClient = true)
+    /// - Forms API controllers (FormsController, QuestionTypesController)
     /// </para>
     /// <para>
-    /// <strong>Registration Logic:</strong>
-    /// - Repository: Explicitly registered (no assembly scanning needed)
-    /// - Controller: Only registered if explicitly enabled via RegisterFormsController
-    /// - API Client: Only registered if explicitly enabled via RegisterFormsApiClient
-    /// </para>
-    /// <para>
-    /// The repository is always registered when Forms features are enabled, as both
-    /// the controller (if used) and direct Blazor access require it.
+    /// The Forms API client (<c>IFormsApiClient</c>) is not registered here. It is decorated with
+    /// <c>[ApiClientFor&lt;...&gt;]</c> and is discovered and registered automatically by
+    /// <c>RegisterApiClients</c> when <see cref="JumpStartOptions.AutoDiscoverApiClients"/> is enabled.
     /// </para>
     /// </remarks>
-    private static void RegisterFormsServices(IServiceCollection services, JumpStartOptions options)
+    private static void RegisterFormsServices(IServiceCollection services)
     {
-        // Register Forms controller if requested (for API projects)
-        if (options.RegisterFormsController)
-        {
-            // Register the Forms repository - needed by the controller
-            services.TryAddScoped<IFormRepository, FormRepository>();
+        // Register the Forms repository - needed by the controller
+        services.TryAddScoped<IFormRepository, FormRepository>();
 
-            // Register the QuestionType repository - needed by QuestionTypesController and,
-            // via constructor injection, by FormRepository itself (to validate a question's
-            // QuestionTypeId without duplicating QuestionType CRUD logic).
-            services.TryAddScoped<IQuestionTypeRepository, QuestionTypeRepository>();
+        // Register the QuestionType repository - needed by QuestionTypesController and,
+        // via constructor injection, by FormRepository itself (to validate a question's
+        // QuestionTypeId without duplicating QuestionType CRUD logic).
+        services.TryAddScoped<IQuestionTypeRepository, QuestionTypeRepository>();
 
-            // Add JumpStart assembly as an application part so FormsController and
-            // QuestionTypesController can be discovered
-            // AddControllers() is idempotent, safe to call even if already registered
-            services.AddControllers()
-                .AddApplicationPart(typeof(FormsController).Assembly);
-        }
-
-        // Api Client registration is handled separately, and is not needed here.
-
-        //// Register Forms API client if requested (for Blazor/client projects)
-        //if (options.RegisterFormsApiClient)
-        //{
-        //    // Validate that ApiBaseUrl is configured
-        //    if (string.IsNullOrWhiteSpace(options.ApiBaseUrl))
-        //    {
-        //        throw new InvalidOperationException(
-        //            "ApiBaseUrl must be configured when RegisterFormsApiClient is enabled. " +
-        //            "Set options.ApiBaseUrl in your AddJumpStart configuration.");
-        //    }
-
-        //    // Register Refit client for Forms API
-        //    services.AddRefitClient<IFormsApiClient>()
-        //        .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.ApiBaseUrl));
-        //}
+        // Add JumpStart assembly as an application part so FormsController and
+        // QuestionTypesController can be discovered
+        // AddControllers() is idempotent, safe to call even if already registered
+        services.AddControllers()
+            .AddApplicationPart(typeof(FormsController).Assembly);
     }
 }

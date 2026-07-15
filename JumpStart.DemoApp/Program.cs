@@ -90,7 +90,6 @@ builder.Services.AddJumpStart(options =>
     options.ApiBaseUrl = apiBaseUrl;
     options.AutoDiscoverApiClients = true;
     options.AutoDiscoverRepositories = false;
-    options.RegisterFormsApiClient = true;
 });
 
 //// Register API clients with JWT authentication handler

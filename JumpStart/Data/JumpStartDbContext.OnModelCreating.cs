@@ -15,6 +15,7 @@
 using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using JumpStart.Data.Auditing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -68,6 +69,7 @@ public abstract partial class JumpStartDbContext
         List<IMutableEntityType> entityTypes = modelBuilder.Model.GetEntityTypes().ToList();
         ApplyGlobalSoftDeleteFilter(modelBuilder, entityTypes);
         ApplyTenantForeignKeyConfiguration(modelBuilder, entityTypes);
+        ApplyGlobalTenantFilter(modelBuilder, entityTypes);
     }
 
     /// <summary>
@@ -133,5 +135,49 @@ public abstract partial class JumpStartDbContext
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
             }
         }
+    }
+
+    private static readonly MethodInfo SetTenantQueryFilterMethod =
+        typeof(JumpStartDbContext).GetMethod(nameof(SetTenantQueryFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+    /// <summary>
+    /// Applies a global query filter for multi-tenant data isolation to all entities implementing
+    /// <see cref="MultiTenant.ITenantScoped"/>. See ADR-010.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder.</param>
+    /// <param name="entityTypes">The list of entity types to inspect for registering.</param>
+    /// <remarks>
+    /// <para>
+    /// Excludes rows where <c>TenantId</c> does not match <see cref="CurrentTenantId"/>, for every
+    /// entity implementing <see cref="MultiTenant.ITenantScoped"/>. If <see cref="CurrentTenantId"/>
+    /// is null (single-tenant applications, or system-wide operations with no tenant context),
+    /// this filter is a no-op and all rows are visible.
+    /// </para>
+    /// <para>
+    /// Unlike <see cref="ApplyGlobalSoftDeleteFilter"/>, this filter depends on per-instance state
+    /// (<see cref="CurrentTenantId"/>), so it cannot be built with a manually-constructed expression
+    /// tree closing over a captured context instance - that would incorrectly bake in whichever
+    /// instance happened to trigger the (cached, once-per-type) model build. Instead, a compiler-
+    /// generated lambda inside the generic <see cref="SetTenantQueryFilter{TEntity}"/> helper is
+    /// used, invoked once per matching entity type via reflection - EF Core recognizes this shape
+    /// and re-evaluates <c>CurrentTenantId</c> against the actual current instance at query time.
+    /// </para>
+    /// </remarks>
+    private void ApplyGlobalTenantFilter(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes)
+    {
+        var tenantScopedType = typeof(MultiTenant.ITenantScoped);
+        foreach (var entityType in entityTypes)
+        {
+            if (!tenantScopedType.IsAssignableFrom(entityType.ClrType))
+                continue;
+
+            SetTenantQueryFilterMethod.MakeGenericMethod(entityType.ClrType).Invoke(this, [modelBuilder]);
+        }
+    }
+
+    private void SetTenantQueryFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, MultiTenant.ITenantScoped
+    {
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e => CurrentTenantId == null || e.TenantId == CurrentTenantId);
     }
 }

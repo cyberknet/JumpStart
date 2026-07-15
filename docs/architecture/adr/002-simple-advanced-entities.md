@@ -1,10 +1,18 @@
 # ADR-002: Simple vs Advanced Entities
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-009: Guid-Only Entities](009-guid-only-entities.md)
 
 **Date:** 2025-01-15
 
 **Decision Makers:** JumpStart Core Team
+
+> **⚠️ Superseded (2026-01-25):** The "unified but extensible" system described below — where
+> `Entity`/`AuditableEntity`/`NamedEntity` default to `Guid` keys but a generic `Entity<TKey>`
+> layer remains available for custom key types — was removed entirely in commit `6c2da55`.
+> JumpStart entities are now Guid-only, full stop. See
+> [ADR-009: Guid-Only Entities](009-guid-only-entities.md) for the current decision. The
+> "Implementation Details" section below (showing `Entity<TKey>`, `IEntity<TKey>`) no longer
+> reflects the codebase and is retained here only for historical context.
 
 ## Context
 

@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -117,10 +117,14 @@ public abstract class ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, T
     /// </exception>
     /// <example>
     /// <code>
-    /// public class ProductsController : AdvancedApiControllerBase&lt;...&gt;
+    /// public class ProductsController : ApiControllerBase&lt;Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository&gt;
     /// {
-    ///     public ProductsController(IProductRepository repository, IMapper mapper)
-    ///         : base(repository, mapper)
+    ///     public ProductsController(
+    ///         IProductRepository repository,
+    ///         IMapper mapper,
+    ///         ILogger&lt;ProductsController&gt; logger,
+    ///         ICorrelationContextAccessor correlationContext)
+    ///         : base(repository, mapper, logger, correlationContext)
     ///     {
     ///     }
     /// }

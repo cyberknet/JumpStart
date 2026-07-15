@@ -28,9 +28,11 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static partial class JumpStartServiceCollectionExtensions
 {
     /// <summary>
-    /// Discovers and registers API client implementations from specified assemblies.
-    /// Scans for classes implementing IApiClient or IAdvancedApiClient interfaces.
-    /// Registers the concrete class and all API client-related interfaces it implements.
+    /// Discovers and registers Refit API client interfaces from specified assemblies.
+    /// Scans for interfaces derived from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>
+    /// that are decorated with <see cref="JumpStart.Api.Controllers.ApiClientForAttribute{TController, TEntity, TDto, TCreateDto, TUpdateDto, TRepository}"/>,
+    /// derives each one's base address from its target controller's <c>[Route]</c>, and registers a
+    /// Refit client for it.
     /// </summary>
     /// <param name="services">The service collection to add API clients to.</param>
     /// <param name="options">The JumpStart options containing assembly list and lifetime settings.</param>
@@ -97,7 +99,8 @@ public static partial class JumpStartServiceCollectionExtensions
 
     /// <summary>
     /// Determines if a type is a recognized JumpStart API client interface.
-    /// Checks for IApiClient{TDto, TCreateDto, TUpdateDto} or IAdvancedApiClient{TDto, TCreateDto, TUpdateDto}.
+    /// Checks for <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/> - the
+    /// framework's only API client base interface (entities are Guid-only).
     /// </summary>
     /// <param name="type">The type to check.</param>
     /// <returns><c>true</c> if the type is an API client interface; otherwise, <c>false</c>.</returns>
@@ -114,7 +117,7 @@ public static partial class JumpStartServiceCollectionExtensions
         IsCustomInterface(type, IsApiClientInterface);
 
     /// <summary>
-    /// Registers a Refit-based API client for a Simple entity with Guid identifier.
+    /// Registers a Refit-based API client for a Guid-keyed entity.
     /// </summary>
     /// <typeparam name="TInterface">
     /// The API client interface type that inherits from <see cref="JumpStart.Api.Clients.IApiClient{TDto, TCreateDto, TUpdateDto}"/>.

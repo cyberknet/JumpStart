@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -37,9 +37,8 @@ namespace JumpStart.Api.DTOs;
 /// All JumpStart DTOs implement this interface either directly or through derived interfaces:
 /// - <see cref="JumpStart.Api.DTOs.ICreateDto"/> - For create (POST) operations (no Id, no audit fields)
 /// - <see cref="JumpStart.Api.DTOs.IUpdateDto"/> - For update (PUT) operations (includes Id)
-/// - <see cref="JumpStart.Api.DTOs.Advanced.EntityDto"/> - For read operations (includes Id)
-/// - <see cref="JumpStart.Api.DTOs.SimpleEntityDto"/> - For read operations with Guid identifiers
-/// - <see cref="JumpStart.Api.DTOs.Advanced.AuditableEntityDto"/> - For entities with audit tracking
+/// - <see cref="JumpStart.Api.DTOs.EntityDto"/> - For read operations (includes Id)
+/// - <see cref="JumpStart.Api.DTOs.AuditableEntityDto"/> - For entities with audit tracking
 /// </para>
 /// <para>
 /// <strong>Design Pattern:</strong>

@@ -37,8 +37,9 @@ namespace JumpStart.Repositories;
 /// </para>
 /// <para>
 /// <strong>Soft Delete Support:</strong>
-/// When entities implement <see cref="Data.Auditing.IDeletable"/>, the repository:
-/// - Automatically excludes soft-deleted entities from GetAll operations
+/// When entities implement <see cref="Data.Auditing.IDeletable"/>:
+/// - A global EF Core query filter (configured once by <c>JumpStartDbContext</c>) automatically
+///   excludes soft-deleted entities from every query, including GetByIdAsync and GetAllAsync
 /// - Performs soft deletes (sets DeletedOn timestamp) instead of hard deletes in DeleteAsync
 /// - Preserves data for audit trails and recovery scenarios
 /// </para>
@@ -176,11 +177,11 @@ public interface IRepository<TEntity> where TEntity : class, IEntity
     /// </para>
     /// <para>
     /// <strong>Soft Delete Behavior:</strong>
-    /// If the entity implements <see cref="Data.Auditing.IDeletable"/> and has been soft-deleted (DeletedOn is set),
-    /// implementations may choose to either:
-    /// - Return null (treating soft-deleted entities as not found)
-    /// - Return the entity (allowing access to soft-deleted data)
-    /// The recommended behavior is to return null for soft-deleted entities in most scenarios.
+    /// If the entity implements <see cref="Data.Auditing.IDeletable"/> and has been soft-deleted
+    /// (DeletedOn is set), this returns null - <c>JumpStartDbContext</c>'s global EF Core query filter
+    /// excludes soft-deleted rows from every query against the entity's <c>DbSet</c>, including this
+    /// lookup by ID. There is currently no built-in way to retrieve a soft-deleted entity by ID; a
+    /// custom repository method using <c>.IgnoreQueryFilters()</c> is required.
     /// </para>
     /// </remarks>
     /// <example>

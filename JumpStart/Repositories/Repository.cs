@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -155,17 +155,17 @@ namespace JumpStart.Repositories;
 ///     
 ///     public async Task&lt;IEnumerable&lt;Order&gt;&gt; GetRecentOrdersAsync(int count = 10)
 ///     {
-///         var query = ApplySoftDeleteFilter(_dbSet);
-///         return await query
+///         // Soft-deleted rows are already excluded by JumpStartDbContext's global EF Core
+///         // query filter - no extra filtering needed here.
+///         return await _dbSet
 ///             .OrderByDescending(o => o.CreatedOn)
 ///             .Take(count)
 ///             .ToListAsync();
 ///     }
-///     
+///
 ///     public async Task&lt;decimal&gt; GetTotalRevenueAsync()
 ///     {
-///         var query = ApplySoftDeleteFilter(_dbSet);
-///         return await query.SumAsync(o => o.TotalAmount);
+///         return await _dbSet.SumAsync(o => o.TotalAmount);
 ///     }
 /// }
 /// 
@@ -273,44 +273,20 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
         _userContext = userContext;
     }
 
-    /// <summary>
-    /// Applies a filter to exclude soft-deleted entities if the entity type implements <see cref="Data.Auditing.IDeletable"/>.
-    /// </summary>
-    /// <param name="query">The queryable to apply the soft delete filter to.</param>
-    /// <returns>
-    /// The filtered queryable with soft-deleted entities excluded if the entity implements IDeletable;
-    /// otherwise, the original queryable unchanged.
-    /// </returns>
-    /// <remarks>
-    /// <para>
-    /// This method checks if the entity type implements <see cref="Data.Auditing.IDeletable"/> and, if so,
-    /// adds a filter to exclude entities where DeletedOn is not null. This ensures soft-deleted
-    /// entities are automatically hidden from query results.
-    /// </para>
-    /// <para>
-    /// This method is virtual and can be overridden in derived classes to customize the soft delete
-    /// filtering behavior or add additional global filters.
-    /// </para>
-    /// </remarks>
-    protected virtual IQueryable<TEntity> ApplySoftDeleteFilter(IQueryable<TEntity> query)
-    {
-        if (typeof(IDeletable).IsAssignableFrom(typeof(TEntity)))
-        {
-            // Use a generic constraint helper method
-            return query.Where(e => EF.Property<DateTimeOffset?>(e, nameof(IDeletable.DeletedOn)) == null);
-        }
-        return query;
-    }
-
     /// <inheritdoc />
     /// <remarks>
     /// <para>
-    /// This implementation uses Entity Framework's FindAsync method for optimal performance.
     /// The method returns null if no entity with the specified ID is found.
     /// </para>
     /// <para>
-    /// <strong>Note:</strong> This method does NOT apply soft delete filtering. Soft-deleted entities
-    /// can be retrieved by ID. Use GetAllAsync if you need soft delete filtering.
+    /// <strong>Soft Delete Behavior:</strong> This method does not apply any soft-delete filtering of
+    /// its own, but soft-deleted entities are still excluded - <c>JumpStartDbContext</c>'s global EF
+    /// Core query filter (<c>WHERE DeletedOn IS NULL</c>, configured once in <c>OnModelCreating</c> for
+    /// every <see cref="Data.Auditing.IDeletable"/> entity) applies automatically to this query too,
+    /// like every other query against the entity's <c>DbSet</c>. There is currently no built-in way to
+    /// retrieve a soft-deleted entity by ID; a custom repository method using
+    /// <c>.IgnoreQueryFilters()</c> is required, following the same approach documented for listing
+    /// soft-deleted entities, but filtering by Id instead.
     /// </para>
     /// </remarks>
     public virtual async Task<TEntity?> GetByIdAsync(Guid id, Func<IQueryable<TEntity>, IQueryable<TEntity>>? includes)
@@ -326,7 +302,9 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
     /// <inheritdoc />
     /// <remarks>
     /// <para>
-    /// This method automatically applies soft delete filtering, excluding any entities marked as deleted.
+    /// Soft-deleted entities are excluded automatically by <c>JumpStartDbContext</c>'s global EF Core
+    /// query filter (configured once in <c>OnModelCreating</c> for every <see cref="Data.Auditing.IDeletable"/>
+    /// entity) - this method applies no soft-delete filtering of its own.
     /// </para>
     /// <para>
     /// <strong>Performance Warning:</strong> This method loads ALL entities into memory. For large datasets,
@@ -335,15 +313,16 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
     /// </remarks>
     public virtual async Task<IEnumerable<TEntity>> GetAllAsync()
     {
-        IQueryable<TEntity> query = _dbSet;
-        query = ApplySoftDeleteFilter(query);
-        return await query.ToListAsync();
+        return await _dbSet.ToListAsync();
     }
 
     /// <inheritdoc />
     /// <remarks>
     /// <para>
-    /// This method provides efficient pagination with sorting and automatic soft delete filtering.
+    /// This method provides efficient pagination with sorting. Soft-deleted entities are excluded
+    /// automatically by <c>JumpStartDbContext</c>'s global EF Core query filter (configured once in
+    /// <c>OnModelCreating</c> for every <see cref="Data.Auditing.IDeletable"/> entity) - this method
+    /// applies no soft-delete filtering of its own.
     /// Use this overload for retrieving large datasets in user interfaces or APIs.
     /// </para>
     /// <para>
@@ -360,9 +339,6 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
             throw new ArgumentNullException(nameof(options));
 
         IQueryable<TEntity> query = _dbSet;
-
-        // Apply soft delete filter
-        query = ApplySoftDeleteFilter(query);
 
         // Apply sorting
         if (options.SortBy != null)

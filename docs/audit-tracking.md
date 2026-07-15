@@ -347,14 +347,18 @@ await repository.DeleteAsync(product.Id);
 
 ### Querying Including Deleted
 
-This is the one gap: `IRepository<TEntity>` has no built-in way to include soft-deleted rows, so a
-custom repository method is the way to reach them (bypassing the base class's automatic filter,
-not the global EF Core query filter, which requires `IgnoreQueryFilters()`):
+This is the one gap: `IRepository<TEntity>` has no built-in way to include soft-deleted rows,
+because the global EF Core query filter described above applies to *every* query against an
+`IDeletable` entity's `DbSet` - including `GetByIdAsync`, not just `GetAllAsync`. There is
+currently no way to retrieve a specific soft-deleted entity by ID through the standard repository
+methods; a custom repository method that calls `.IgnoreQueryFilters()` is the way to reach
+soft-deleted rows, whether you need a list or a single entity:
 
 ```csharp
 public interface IProductRepository : IRepository<Product>
 {
     Task<IList<Product>> GetDeletedProductsAsync();
+    Task<Product?> GetDeletedProductByIdAsync(Guid id);
 }
 
 public class ProductRepository : Repository<Product>, IProductRepository
@@ -369,8 +373,21 @@ public class ProductRepository : Repository<Product>, IProductRepository
             .Where(p => p.DeletedOn != null)
             .ToListAsync();
     }
+
+    public async Task<Product?> GetDeletedProductByIdAsync(Guid id)
+    {
+        return await _context.Set<Product>()
+            .IgnoreQueryFilters() // bypass the global soft-delete filter
+            .FirstOrDefaultAsync(p => p.Id == id && p.DeletedOn != null);
+    }
 }
 ```
+
+> **Note:** `.IgnoreQueryFilters()` removes *all* global query filters configured on the entity,
+> not just the soft-delete one. If an entity is ever both `IDeletable` and `ITenantScoped`,
+> bypassing one to reach deleted rows would also bypass tenant isolation - scope any such method
+> carefully (e.g. re-add an explicit `TenantId` check) rather than assuming only the soft-delete
+> filter is being lifted.
 
 ## Displaying Audit Information
 

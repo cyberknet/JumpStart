@@ -1,10 +1,23 @@
 # ADR-005: Refit for API Clients
 
-**Status:** Accepted
+**Status:** Accepted (Decision section code samples corrected - see note)
 
 **Date:** 2025-01-15
 
 **Decision Makers:** JumpStart Core Team
+
+> **⚠️ Correction (2026-01-25):** The choice of Refit itself, and the rationale in Context/
+> Consequences/Alternatives, still holds. But sections 1-4 under Decision originally described a
+> "Simple vs Advanced" dual client/controller hierarchy (`ISimpleApiClient`,
+> `IAdvancedApiClient<TDto,TCreateDto,TUpdateDto,TKey>`, `SimpleApiControllerBase`,
+> `SimpleApiClientExtensions.AddSimpleApiClient`) that was removed along with custom key-type
+> support - see [ADR-009: Guid-Only Entities](009-guid-only-entities.md). The current system has
+> a single `IApiClient<TDto,TCreateDto,TUpdateDto>` (Guid-only), a single
+> `ApiControllerBase<TEntity,TDto,TCreateDto,TUpdateDto,TRepository>` (see
+> [API Development](../../api-development.md)), and registration via
+> `AddApiClient<TInterface>(baseAddress)` or attribute-based auto-discovery
+> (`[ApiClientFor<TController>]` + `AutoDiscoverApiClients`). The sections below have been updated
+> to match.
 
 ## Context
 
@@ -42,17 +55,15 @@ We will use **Refit** as the primary HTTP client library with JumpStart-specific
 
 Define strongly-typed interfaces decorated with Refit attributes:
 
-**Simple Entity API Client:**
 ```csharp
-public interface IProductApiClient : ISimpleApiClient<ProductDto, CreateProductDto, UpdateProductDto>
+public interface IProductApiClient : IApiClient<ProductDto, CreateProductDto, UpdateProductDto>
 {
-    // Base CRUD operations inherited from ISimpleApiClient
+    // Base CRUD operations inherited from IApiClient<TDto, TCreateDto, TUpdateDto>
     // - Task<ProductDto?> GetByIdAsync(Guid id)
-    // - Task<IEnumerable<ProductDto>> GetAllAsync()
-    // - Task<PagedResult<ProductDto>> GetPagedAsync(QueryOptions<ProductDto> options)
+    // - Task<PagedResult<ProductDto>> GetAllAsync(QueryOptions? options = null)
     // - Task<ProductDto> CreateAsync(CreateProductDto dto)
     // - Task<ProductDto> UpdateAsync(Guid id, UpdateProductDto dto)
-    // - Task DeleteAsync(Guid id)
+    // - Task<bool> DeleteAsync(Guid id)
 
     // Custom endpoints specific to products
     [Get("/featured")]
@@ -66,171 +77,97 @@ public interface IProductApiClient : ISimpleApiClient<ProductDto, CreateProductD
 }
 ```
 
-**Advanced Entity API Client (Custom Key Types):**
-```csharp
-public interface ILegacyOrderApiClient : IAdvancedApiClient<OrderDto, CreateOrderDto, UpdateOrderDto, int>
-{
-    // Base CRUD with int key type
-    
-    [Get("/customer/{customerId}")]
-    Task<IEnumerable<OrderDto>> GetByCustomerAsync(int customerId);
-}
-```
+There is only one client base interface today - entities are Guid-only (see
+[ADR-009](009-guid-only-entities.md)), so there is no separate "advanced/custom key type" client
+interface.
 
-### 2. Base API Client Interfaces
+### 2. Base API Client Interface
 
-JumpStart provides base interfaces for standard CRUD operations:
+JumpStart provides a single base interface for standard CRUD operations
+(`JumpStart.Api.Clients.IApiClient<TDto, TCreateDto, TUpdateDto>`):
 
 ```csharp
-public interface ISimpleApiClient<TDto, TCreateDto, TUpdateDto>
-    : IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, Guid>
-    where TDto : SimpleEntityDto
+public interface IApiClient<TDto, TCreateDto, TUpdateDto>
+    where TDto : EntityDto
     where TCreateDto : ICreateDto
-    where TUpdateDto : IUpdateDto<Guid>
-{
-}
-
-public interface IAdvancedApiClient<TDto, TCreateDto, TUpdateDto, TKey>
-    where TDto : EntityDto<TKey>
-    where TCreateDto : ICreateDto
-    where TUpdateDto : IUpdateDto<TKey>
-    where TKey : struct
+    where TUpdateDto : IUpdateDto
 {
     [Get("/{id}")]
-    Task<TDto?> GetByIdAsync(TKey id);
+    Task<TDto?> GetByIdAsync(Guid id);
 
     [Get("")]
-    Task<IEnumerable<TDto>> GetAllAsync();
-
-    [Post("/paged")]
-    Task<PagedResult<TDto>> GetPagedAsync([Body] QueryOptions options);
+    Task<PagedResult<TDto>> GetAllAsync([Query] QueryOptions? options = null);
 
     [Post("")]
-    Task<TDto> CreateAsync([Body] TCreateDto dto);
+    Task<TDto> CreateAsync([Body] TCreateDto createDto);
 
     [Put("/{id}")]
-    Task<TDto> UpdateAsync(TKey id, [Body] TUpdateDto dto);
+    Task<TDto> UpdateAsync(Guid id, [Body] TUpdateDto updateDto);
 
     [Delete("/{id}")]
-    Task DeleteAsync(TKey id);
+    Task<bool> DeleteAsync(Guid id);
 }
 ```
+
+Pagination and sorting are folded into the single `GetAllAsync` call via
+`JumpStart.Api.Clients.QueryOptions` (`PageNumber`, `PageSize`, `SortBy`, `SortDescending`), rather
+than a separate `GetPagedAsync` endpoint.
 
 ### 3. JumpStart Extension Methods
 
-Simplified registration with automatic JWT authentication:
+Two registration paths exist today:
+
+- **Manual:** `AddApiClient<TInterface>(baseAddress)` - explicit base URL per client.
+- **Automatic:** decorate the client interface with `[ApiClientFor<TController>]` and enable
+  `AutoDiscoverApiClients` in `JumpStartOptions` - the framework derives the route from the
+  controller's `[Route]` attribute and registers the Refit client for you.
 
 ```csharp
-public static class SimpleApiClientExtensions
-{
-    public static IHttpClientBuilder AddSimpleApiClient<TClient>(
-        this IServiceCollection services,
-        string baseUrl)
-        where TClient : class
-    {
-        return services.AddRefitClient<TClient>()
-            .ConfigureHttpClient(c => c.BaseAddress = new Uri(baseUrl));
-    }
-}
-
-// Usage in Program.cs
-builder.Services.AddSimpleApiClient<IProductApiClient>("https://api.example.com/api/products")
+// Manual registration
+builder.Services.AddApiClient<IProductApiClient>("https://api.example.com/api/products")
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
-```
 
-### 4. Automatic API Controller Base
-
-Controllers that expose Refit-compatible endpoints:
-
-```csharp
-[ApiController]
-[Route("api/[controller]")]
-public abstract class SimpleApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto>
-    : ControllerBase
-    where TEntity : class, ISimpleEntity
-    where TDto : SimpleEntityDto
-    where TCreateDto : ICreateDto
-    where TUpdateDto : IUpdateDto<Guid>
+// Automatic registration
+builder.Services.AddJumpStart(options =>
 {
-    protected readonly ISimpleRepository<TEntity> _repository;
-    protected readonly IMapper _mapper;
-
-    [HttpGet("{id}")]
-    public virtual async Task<ActionResult<TDto>> GetByIdAsync(Guid id)
-    {
-        var entity = await _repository.GetByIdAsync(id);
-        if (entity == null) return NotFound();
-        return Ok(_mapper.Map<TDto>(entity));
-    }
-
-    [HttpGet]
-    public virtual async Task<ActionResult<IEnumerable<TDto>>> GetAllAsync()
-    {
-        var entities = await _repository.GetAllAsync();
-        return Ok(_mapper.Map<IEnumerable<TDto>>(entities));
-    }
-
-    [HttpPost("paged")]
-    public virtual async Task<ActionResult<PagedResult<TDto>>> GetPagedAsync(
-        [FromBody] QueryOptions options)
-    {
-        var result = await _repository.GetPagedAsync(options);
-        return Ok(new PagedResult<TDto>
-        {
-            Items = _mapper.Map<IEnumerable<TDto>>(result.Items),
-            TotalCount = result.TotalCount,
-            PageNumber = result.PageNumber,
-            PageSize = result.PageSize
-        });
-    }
-
-    [HttpPost]
-    public virtual async Task<ActionResult<TDto>> CreateAsync([FromBody] TCreateDto dto)
-    {
-        var entity = _mapper.Map<TEntity>(dto);
-        var created = await _repository.AddAsync(entity);
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = created.Id }, 
-            _mapper.Map<TDto>(created));
-    }
-
-    [HttpPut("{id}")]
-    public virtual async Task<ActionResult<TDto>> UpdateAsync(Guid id, [FromBody] TUpdateDto dto)
-    {
-        var entity = await _repository.GetByIdAsync(id);
-        if (entity == null) return NotFound();
-        
-        _mapper.Map(dto, entity);
-        var updated = await _repository.UpdateAsync(entity);
-        return Ok(_mapper.Map<TDto>(updated));
-    }
-
-    [HttpDelete("{id}")]
-    public virtual async Task<IActionResult> DeleteAsync(Guid id)
-    {
-        var success = await _repository.DeleteAsync(id);
-        if (!success) return NotFound();
-        return NoContent();
-    }
-}
+    options.AutoDiscoverApiClients = true;
+    options.ApiBaseUrl = "https://api.example.com";
+    options.ScanAssembly(typeof(IProductApiClient).Assembly);
+});
 ```
+
+### 4. API Controller Base
+
+Refit-compatible endpoints are exposed by the framework's single
+`ApiControllerBase<TEntity, TDto, TCreateDto, TUpdateDto, TRepository>` (in
+`JumpStart.Api.Controllers`) - there is no separate `SimpleApiControllerBase`. It already provides
+`GetById`, `GetAll` (paged/sorted), `Create`, `Update`, and `Delete` with AutoMapper, structured
+logging, and correlation IDs built in. See [API Development](../../api-development.md) for the
+full constructor signature and examples; there's no need to hand-roll it as shown in earlier
+drafts of this ADR.
 
 ### 5. Complete Example
 
 **API Controller:**
 ```csharp
 [Authorize]
-public class ProductsController : SimpleApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto>
+[Route("api/[controller]")]
+public class ProductsController : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
 {
-    public ProductsController(ISimpleRepository<Product> repository, IMapper mapper)
-        : base(repository, mapper)
+    public ProductsController(
+        IProductRepository repository,
+        IMapper mapper,
+        ILogger<ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>> logger,
+        ICorrelationContextAccessor correlationContext)
+        : base(repository, mapper, logger, correlationContext)
     {
     }
 
     [HttpGet("featured")]
-    public async Task<ActionResult<IEnumerable<ProductDto>>> GetFeaturedAsync()
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetFeatured()
     {
         // Custom endpoint implementation
-        var products = await ((IProductRepository)_repository).GetFeaturedAsync();
+        var products = await _repository.GetFeaturedAsync();
         return Ok(_mapper.Map<IEnumerable<ProductDto>>(products));
     }
 }
@@ -419,7 +356,7 @@ public async Task<IEnumerable<ProductDto>> LoadProductsAsync()
 ### Retry Policies with Polly
 
 ```csharp
-builder.Services.AddSimpleApiClient<IProductApiClient>("https://api.example.com/api/products")
+builder.Services.AddApiClient<IProductApiClient>("https://api.example.com/api/products")
     .AddHttpMessageHandler<JwtAuthenticationHandler>()
     .AddTransientHttpErrorPolicy(policy => 
         policy.WaitAndRetryAsync(3, retryAttempt => 
@@ -448,7 +385,7 @@ public class LoggingHandler : DelegatingHandler
 }
 
 // Register
-builder.Services.AddSimpleApiClient<IProductApiClient>(baseUrl)
+builder.Services.AddApiClient<IProductApiClient>(baseUrl)
     .AddHttpMessageHandler<LoggingHandler>()
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 ```
@@ -463,10 +400,13 @@ public class ProductServiceTests
     {
         // Arrange
         var mockApi = new Mock<IProductApiClient>();
-        mockApi.Setup(x => x.GetAllAsync())
-            .ReturnsAsync(new[] 
-            { 
-                new ProductDto { Id = Guid.NewGuid(), Name = "Product 1" } 
+        mockApi.Setup(x => x.GetAllAsync(It.IsAny<QueryOptions?>()))
+            .ReturnsAsync(new PagedResult<ProductDto>
+            {
+                Items = new[] { new ProductDto { Id = Guid.NewGuid(), Name = "Product 1" } },
+                TotalCount = 1,
+                PageNumber = 1,
+                PageSize = 1
             });
 
         var service = new ProductService(mockApi.Object);
@@ -475,8 +415,8 @@ public class ProductServiceTests
         var result = await service.GetAllProductsAsync();
 
         // Assert
-        Assert.Single(result);
-        mockApi.Verify(x => x.GetAllAsync(), Times.Once);
+        Assert.Single(result.Items);
+        mockApi.Verify(x => x.GetAllAsync(It.IsAny<QueryOptions?>()), Times.Once);
     }
 }
 ```
@@ -513,4 +453,4 @@ public class ProductServiceTests
 
 - [How-To: Create API Clients](../../how-to/api-clients.md)
 - [How-To: Test API Clients](../../how-to/test-api-clients.md)
-- [API Reference: ISimpleApiClient](../../api/clients/isimpleapiclient.md)
+- [API Reference: IApiClient](../../api/clients/iapiclient.md)

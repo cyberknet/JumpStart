@@ -64,7 +64,7 @@ namespace JumpStart.Forms.Repositories;
 /// }
 /// </code>
 /// </example>
-public class FormRepository(DbContext context, IUserContext? userContext)
+public class FormRepository(DbContext context, IUserContext? userContext, IQuestionTypeRepository questionTypeRepository)
     : Repository<Form>(context, userContext), IFormRepository
 {
     /// <summary>
@@ -158,66 +158,6 @@ public class FormRepository(DbContext context, IUserContext? userContext)
         return await _context.Set<FormResponse>()
             .Where(fr => fr.FormId == formId && fr.IsComplete && fr.DeletedOn == null)
             .CountAsync();
-    }
-
-    /// <summary>
-    /// Gets a question type by its code.
-    /// </summary>
-    public async Task<QuestionType?> GetQuestionTypeByCodeAsync(string code)
-    {
-        return await _context.Set<QuestionType>()
-            .FirstOrDefaultAsync(qt => qt.Code == code);
-    }
-
-    /// <summary>
-    /// Gets all available question types, ordered by display order.
-    /// </summary>
-    public async Task<IList<QuestionType>> GetAllQuestionTypesAsync()
-    {
-        return await _context.Set<QuestionType>()
-            .OrderBy(qt => qt.DisplayOrder)
-            .ToListAsync();
-    }
-
-    /// <summary>
-    /// Gets a question type by its ID.
-    /// </summary>
-    public async Task<QuestionType?> GetQuestionTypeByIdAsync(Guid id)
-    {
-        return await _context.Set<QuestionType>()
-            .FirstOrDefaultAsync(qt => qt.Id == id);
-    }
-
-    /// <summary>
-    /// Creates a new question type.
-    /// </summary>
-    public async Task<QuestionType> CreateQuestionTypeAsync(QuestionType questionType)
-    {
-        await _context.Set<QuestionType>().AddAsync(questionType);
-        await _context.SaveChangesAsync();
-        return questionType;
-    }
-
-    /// <summary>
-    /// Updates an existing question type.
-    /// </summary>
-    public async Task UpdateQuestionTypeAsync(QuestionType questionType)
-    {
-        _context.Set<QuestionType>().Update(questionType);
-        await _context.SaveChangesAsync();
-    }
-
-    /// <summary>
-    /// Deletes a question type.
-    /// </summary>
-    public async Task DeleteQuestionTypeAsync(Guid id)
-    {
-        var questionType = await GetQuestionTypeByIdAsync(id);
-        if (questionType != null)
-        {
-            _context.Set<QuestionType>().Remove(questionType);
-            await _context.SaveChangesAsync();
-        }
     }
 
     /// <summary>
@@ -345,7 +285,7 @@ public class FormRepository(DbContext context, IUserContext? userContext)
             else
             {
                 // Add new question - verify question type exists
-                var questionTypeExists = await GetQuestionTypeByIdAsync(questionDto.QuestionTypeId);
+                var questionTypeExists = await questionTypeRepository.GetByIdAsync(questionDto.QuestionTypeId, null);
                 if (questionTypeExists == null)
                 {
                     throw new InvalidOperationException($"Question type {questionDto.QuestionTypeId} not found");

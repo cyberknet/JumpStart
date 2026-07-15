@@ -249,8 +249,8 @@ else
         try
         {
             // Load question types
-            var types = await FormsClient.GetQuestionTypesAsync();
-            questionTypes = types.ToList();
+            var typesResult = await FormsClient.GetQuestionTypesAsync();
+            questionTypes = typesResult.Items.ToList();
 
             if (IsEditMode && FormId.HasValue)
             {

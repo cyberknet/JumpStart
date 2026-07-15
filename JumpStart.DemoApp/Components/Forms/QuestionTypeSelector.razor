@@ -63,8 +63,8 @@
     {
         try
         {
-            var types = await FormsClient.GetQuestionTypesAsync();
-            questionTypes = types.OrderBy(t => t.DisplayOrder).ToList();
+            var result = await FormsClient.GetQuestionTypesAsync();
+            questionTypes = result.Items.OrderBy(t => t.DisplayOrder).ToList();
         }
         catch (Exception ex)
         {

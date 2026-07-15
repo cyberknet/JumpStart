@@ -39,7 +39,8 @@ public static partial class JumpStartServiceCollectionExtensions
     /// This method is called automatically by AddJumpStart when Forms-related options are configured.
     /// It handles registration of:
     /// - Forms repository (IFormRepository → FormRepository)
-    /// - Forms API controller (if RegisterFormsController = true)
+    /// - QuestionType repository (IQuestionTypeRepository → QuestionTypeRepository)
+    /// - Forms API controllers (if RegisterFormsController = true)
     /// - Forms API client (if RegisterFormsApiClient = true)
     /// </para>
     /// <para>
@@ -61,7 +62,13 @@ public static partial class JumpStartServiceCollectionExtensions
             // Register the Forms repository - needed by the controller
             services.TryAddScoped<IFormRepository, FormRepository>();
 
-            // Add JumpStart assembly as an application part so FormsController can be discovered
+            // Register the QuestionType repository - needed by QuestionTypesController and,
+            // via constructor injection, by FormRepository itself (to validate a question's
+            // QuestionTypeId without duplicating QuestionType CRUD logic).
+            services.TryAddScoped<IQuestionTypeRepository, QuestionTypeRepository>();
+
+            // Add JumpStart assembly as an application part so FormsController and
+            // QuestionTypesController can be discovered
             // AddControllers() is idempotent, safe to call even if already registered
             services.AddControllers()
                 .AddApplicationPart(typeof(FormsController).Assembly);

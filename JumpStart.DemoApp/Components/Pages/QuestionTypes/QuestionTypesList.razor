@@ -149,7 +149,8 @@ else if (questionTypes != null)
         errorMessage = null;
         try
         {
-            questionTypes = await FormsClient.GetQuestionTypesAsync();
+            var result = await FormsClient.GetQuestionTypesAsync();
+            questionTypes = result.Items;
         }
         catch (Exception ex)
         {

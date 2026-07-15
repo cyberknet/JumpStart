@@ -18,6 +18,7 @@ using JumpStart.Api.DTOs;
 using JumpStart.Forms.Controllers;
 using JumpStart.Forms.DTOs;
 using JumpStart.Forms.Repositories;
+using JumpStart.Repositories;
 using Refit;
 using System;
 using System.Collections.Generic;
@@ -128,26 +129,33 @@ public interface IFormsApiClient : IApiClient<FormDto, CreateFormDto, UpdateForm
     Task<FormStatisticsDto> GetFormStatisticsAsync(Guid id);
 
     /// <summary>
-    /// Gets all available question types.
+    /// Gets a paged collection of question types.
     /// </summary>
-    /// <returns>A list of all question types ordered by display order.</returns>
-    [Get("/question-types")]
-    Task<IEnumerable<QuestionTypeDto>> GetQuestionTypesAsync();
+    /// <param name="options">Optional paging/sorting parameters. If null, all question types are returned.</param>
+    /// <returns>A paged result of question types.</returns>
+    /// <remarks>
+    /// Question types are served by <c>QuestionTypesController</c>, a separate controller and
+    /// repository from Forms itself, mounted at <c>api/forms/questiontypes</c>. This client can
+    /// reach it because that route shares the <c>api/forms</c> base address this client is
+    /// registered under - it does not mean the action lives on <c>FormsController</c>.
+    /// </remarks>
+    [Get("/questiontypes")]
+    Task<PagedResult<QuestionTypeDto>> GetQuestionTypesAsync([Query] QueryOptions? options = null);
 
     /// <summary>
     /// Gets a specific question type by ID.
     /// </summary>
     /// <param name="id">The unique identifier of the question type.</param>
-    /// <returns>The question type details.</returns>
-    [Get("/question-types/{id}")]
-    Task<QuestionTypeDto> GetQuestionTypeByIdAsync(Guid id);
+    /// <returns>The question type details, or null if not found.</returns>
+    [Get("/questiontypes/{id}")]
+    Task<QuestionTypeDto?> GetQuestionTypeByIdAsync(Guid id);
 
     /// <summary>
     /// Creates a new question type.
     /// </summary>
     /// <param name="createDto">The question type creation data.</param>
     /// <returns>The created question type with its assigned ID.</returns>
-    [Post("/question-types")]
+    [Post("/questiontypes")]
     Task<QuestionTypeDto> CreateQuestionTypeAsync([Body] CreateQuestionTypeDto createDto);
 
     /// <summary>
@@ -155,17 +163,17 @@ public interface IFormsApiClient : IApiClient<FormDto, CreateFormDto, UpdateForm
     /// </summary>
     /// <param name="id">The unique identifier of the question type to update.</param>
     /// <param name="updateDto">The updated question type data.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    [Put("/question-types/{id}")]
-    Task UpdateQuestionTypeAsync(Guid id, [Body] UpdateQuestionTypeDto updateDto);
+    /// <returns>The updated question type.</returns>
+    [Put("/questiontypes/{id}")]
+    Task<QuestionTypeDto> UpdateQuestionTypeAsync(Guid id, [Body] UpdateQuestionTypeDto updateDto);
 
     /// <summary>
     /// Deletes a question type.
     /// </summary>
     /// <param name="id">The unique identifier of the question type to delete.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    [Delete("/question-types/{id}")]
-    Task DeleteQuestionTypeAsync(Guid id);
+    /// <returns>True if deleted; false if the question type was not found.</returns>
+    [Delete("/questiontypes/{id}")]
+    Task<bool> DeleteQuestionTypeAsync(Guid id);
 
     /// <summary>
     /// Submits a response to a form.

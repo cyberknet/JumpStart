@@ -27,7 +27,7 @@ using Microsoft.Extensions.Logging;
 namespace JumpStart.Forms.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/forms/[controller]")]
 public class QuestionTypesController : ApiControllerBase<
     QuestionType,
     QuestionTypeDto,

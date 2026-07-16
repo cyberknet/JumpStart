@@ -13,6 +13,7 @@
  */
 
 using JumpStart.Authorization.Repositories;
+using JumpStart.MultiTenant.Repositories;
 using JumpStart.Services.Authentication;
 using JumpStart.Services.Authentication.Controllers;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -32,12 +33,15 @@ public static partial class JumpStartServiceCollectionExtensions
     /// It handles registration of:
     /// - IJwtTokenService / JwtTokenService (if not already registered)
     /// - IRoleRepository / RoleRepository (if not already registered - permission resolution)
+    /// - IUserTenantRepository / UserTenantRepository (if not already registered - server-side
+    ///   tenant membership validation, see ADR-015)
     /// - TokenController
     /// </remarks>
     private static void RegisterTokenExchangeServices(IServiceCollection services)
     {
         services.TryAddScoped<IJwtTokenService, JwtTokenService>();
         services.TryAddScoped<IRoleRepository, RoleRepository>();
+        services.TryAddScoped<IUserTenantRepository, UserTenantRepository>();
 
         // Add JumpStart assembly as an application part so TokenController can be discovered
         // AddControllers() is idempotent, safe to call even if already registered

@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using JumpStart.DemoApp.Data
+@using JumpStart.DemoApp.Services
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
@@ -14,6 +15,7 @@
 @inject ILogger<Register> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject DemoNewUserBootstrapper DemoBootstrapper
 
 <PageTitle>Register</PageTitle>
 
@@ -86,6 +88,11 @@
         }
 
         Logger.LogInformation("User created a new account with password.");
+
+        // Demo-only: grant the new user full access immediately, rather than waiting for them to
+        // stumble into whichever API call happens to trigger a bootstrap check (see ADR-014's
+        // correction note - the earlier DelegatingHandler-based design had exactly that gap).
+        await DemoBootstrapper.EnsureAdminAsync(user.Id, Input.Email);
 
         var userId = await UserManager.GetUserIdAsync(user);
         var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);

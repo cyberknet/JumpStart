@@ -52,7 +52,7 @@ JumpStart.DemoApp/
 │   ├── ProductApiClient.cs  # IProductApiClient (manually registered)
 │   └── IDemoBootstrapApiClient.cs
 ├── Services/
-│   └── DemoBootstrapHandler.cs  # Demo-only bootstrap, not a framework concept
+│   └── DemoNewUserBootstrapper.cs  # Demo-only bootstrap, not a framework concept
 └── Program.cs
 ```
 
@@ -132,7 +132,6 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
 builder.Services.AddTransient<JwtExchangeHandler>();
-builder.Services.AddTransient<DemoBootstrapHandler>(); // demo-only, see below
 
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
 
@@ -147,14 +146,16 @@ builder.Services.AddJumpStart(options =>
     options.AutoDiscoverRepositories = false; // no local repositories - this project has none
 });
 
-// Demo-only bootstrap client (grants a first-time user a role so the demo isn't empty)
+// Demo-only bootstrap client + service - grants a first-time user a role so the demo isn't empty.
+// Called directly from Register.razor/ExternalLogin.razor right after account creation, not via a
+// message handler - see ADR-014's correction note for why.
 builder.Services.AddApiClient<IDemoBootstrapApiClient>(apiBaseUrl);
+builder.Services.AddScoped<DemoNewUserBootstrapper>();
 
 // IProductApiClient predates [ApiClientFor<...>] and is registered manually, so its handler
 // chain is wired by hand - auto-discovered clients get this automatically.
 builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
     .AddHttpMessageHandler<JwtExchangeHandler>()
-    .AddHttpMessageHandler<DemoBootstrapHandler>()
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 ```
 
@@ -311,11 +312,13 @@ builder.Services.AddDbContext<ApiDbContext>(options =>
 builder.Services.AddJumpStart(options =>
 {
     options.RegisterUserContext<ApiUserContext>();
+    options.RegisterTenantContext<JwtTenantContext>(); // reads the tenant_id JWT claim (ADR-015)
     options.AutoDiscoverRepositories = true;   // required for EnsureDbContextResolution
     options.ScanAssembly(typeof(Program).Assembly);
     options.RegisterFormsController = true;
     options.RegisterAuthorizationController = true; // Roles/UserPermissions CRUD (ADR-012)
     options.RegisterTokenController = true;         // POST /api/token/exchange (ADR-013)
+    options.RegisterTenantsController = true;       // Tenant CRUD + membership (ADR-015)
 });
 
 // 3. AutoMapper

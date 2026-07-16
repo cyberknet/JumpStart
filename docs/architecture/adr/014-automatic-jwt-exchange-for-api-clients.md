@@ -81,11 +81,51 @@ separate configuration.
 
 The demo app's "grant a brand-new user the Demo Administrator role" convenience
 (`DemoBootstrapController`/`IDemoBootstrapApiClient` from ADR-013) is not part of
-`JwtExchangeHandler` - it is not something JumpStart prescribes for every application. It becomes
+`JwtExchangeHandler` - it is not something JumpStart prescribes for every application. ~~It becomes
 its own thin `DemoBootstrapHandler`, manually slotted between `JwtExchangeHandler` and
 `JwtAuthenticationHandler` in the demo app's own manually-registered client
 (`IProductApiClient`) - auto-discovered clients registered via `RegisterApiClients` do not get it,
-since the framework has no way to know about (or opt into) demo-specific bootstrap logic.
+since the framework has no way to know about (or opt into) demo-specific bootstrap logic.~~ **See
+the correction below - this specific mechanism was replaced.**
+
+## Correction (post-acceptance): bootstrap moved to registration time, not a message handler
+
+The original `DemoBootstrapHandler` design (a `DelegatingHandler` that inspected the *first* API
+response's token for missing `Permission` claims, then triggered the grant) had two real problems,
+both found only once the demo app was finally run live end-to-end:
+
+1. **It only ever sat in `IProductApiClient`'s pipeline.** A brand-new user whose first API call
+   happened to go through any *other* client (Forms, Roles, Tenants, UserPermissions - all
+   auto-discovered, none of which had `DemoBootstrapHandler` attached) got a real but
+   permission-empty token and a 403, with the bootstrap check never given a chance to run. This was
+   called out as an accepted limitation in the original "Negative Consequences" below, but in
+   practice it meant the demo was broken for any user who didn't happen to visit Products first -
+   not an acceptable "narrow" limitation once actually exercised.
+2. **It had the exact same `AuthenticationStateProvider`-in-a-`DelegatingHandler` bug this ADR's own
+   first correction fixed in `JwtExchangeHandler`** - `DemoBootstrapHandler` also took
+   `AuthenticationStateProvider` as a direct constructor parameter, and would have thrown the same
+   "outside of DI scope" exception the moment its bootstrap-check branch actually executed.
+
+The fix: `DemoBootstrapHandler` is deleted entirely. In its place, a plain scoped service,
+`DemoNewUserBootstrapper` (`JumpStart.DemoApp/Services/DemoNewUserBootstrapper.cs`), is called
+**directly from `Register.razor` and `ExternalLogin.razor`, immediately after `UserManager.CreateAsync`
+succeeds** - the actual moment a new user is created, not an inferred signal from a token's claims:
+
+```csharp
+// Register.razor / ExternalLogin.razor, right after account creation succeeds:
+await DemoBootstrapper.EnsureAdminAsync(user.Id, Input.Email);
+```
+
+This works cleanly because both call sites are genuinely circuit-scoped Razor components -
+`DemoNewUserBootstrapper` only needs `IJwtTokenService` (a stateless JWT minter, no
+`AuthenticationStateProvider` involved at all) and `IDemoBootstrapApiClient`, both safe to inject
+and call directly. There is no message-handler pipeline involved, so there is no "which client's
+chain is this attached to" question to get wrong, and no DI-scope mismatch to work around. The call
+is deliberately best-effort (caught and logged, never thrown) so a bootstrap failure can't block
+registration itself.
+
+This also means every user, regardless of which page they visit first, is bootstrapped at the same
+moment - account creation - rather than lazily and inconsistently on first API call.
 
 ## Consequences
 
@@ -116,10 +156,11 @@ since the framework has no way to know about (or opt into) demo-specific bootstr
   (`Microsoft.AspNetCore.Components.Authorization`), which is already available to JumpStart core
   for free via its existing `Microsoft.AspNetCore.App` `FrameworkReference` - no new package
   dependency.
-- A brand-new demo user calling an auto-discovered client (Forms/Roles/UserPermissions) before ever
-  triggering the manually-wired `IProductApiClient` pipeline will get a real but
+- ~~A brand-new demo user calling an auto-discovered client (Forms/Roles/UserPermissions) before
+  ever triggering the manually-wired `IProductApiClient` pipeline will get a real but
   permission-empty token, since `DemoBootstrapHandler` only sits in that one pipeline. Accepted as
-  a narrow, demo-only limitation, not a framework concern.
+  a narrow, demo-only limitation, not a framework concern.~~ **Resolved by the correction above** -
+  bootstrap now happens once, at account creation, regardless of which client a user calls first.
 
 ## Alternatives Considered
 
@@ -142,3 +183,97 @@ since the framework has no way to know about (or opt into) demo-specific bootstr
   in this session
 - [ADR-005: Refit for API Clients](005-refit-api-clients.md) - `RegisterApiClients`'s existing
   route/base-address auto-discovery, extended here to also auto-attach handlers
+
+## Correction (post-acceptance)
+
+The constructor shown in Decision §1 and the "Neutral Consequences" claim that
+`AuthenticationStateProvider` is "already available... for free" were both wrong in a way that only
+surfaced once the demo app was actually run live for the first time (this session had no working
+LocalDB until then, so nothing here had been exercised end-to-end).
+
+**The problem:** `IHttpClientFactory` builds a client's message-handler pipeline (everything
+registered via `.AddHttpMessageHandler<T>()`) in its own DI scope, separate from the Blazor circuit
+that's calling it. Injecting `AuthenticationStateProvider` directly into `JwtExchangeHandler`'s
+constructor resolves an instance from that separate scope - one the framework's rendering pipeline
+never "activates" - and calling `GetAuthenticationStateAsync()` on it throws
+`InvalidOperationException: Do not call GetAuthenticationStateAsync outside of the DI scope for a
+Razor component`. This is a documented, known limitation of `IHttpClientFactory` combined with
+Blazor Server circuit scoping, not a JumpStart-specific mistake in isolation - but the original
+constructor signature above didn't account for it.
+
+**The fix:** `JwtExchangeHandler` now takes `CircuitServicesAccessor` instead of
+`AuthenticationStateProvider` directly, and resolves `AuthenticationStateProvider` from
+`circuitServicesAccessor.Services` inside `SendAsync`, not the constructor:
+
+```csharp
+public class JwtExchangeHandler(
+    CircuitServicesAccessor circuitServicesAccessor,
+    ITokenStore tokenStore,
+    IJwtTokenService jwtTokenService,
+    ITokenExchangeApiClient tokenExchangeClient,
+    IServiceProvider serviceProvider) : DelegatingHandler
+{
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        if (tokenStore.GetToken() == null)
+        {
+            var authStateProvider = circuitServicesAccessor.Services?.GetService<AuthenticationStateProvider>();
+            if (authStateProvider == null)
+                return await base.SendAsync(request, cancellationToken);
+            // ... mint assertion, exchange, store token, as before
+        }
+        return await base.SendAsync(request, cancellationToken);
+    }
+}
+```
+
+`CircuitServicesAccessor` (`JumpStart/Services/Authentication/CircuitServicesAccessor.cs`) is
+Microsoft's own documented solution to this exact problem - see [ASP.NET Core Blazor dependency
+injection: "Access server-side Blazor services from a different DI
+scope"](https://learn.microsoft.com/aspnet/core/blazor/fundamentals/dependency-injection#access-server-side-blazor-services-from-a-different-di-scope)
+and [ASP.NET Core server-side and Blazor Web App additional security scenarios: "Circuit activity
+handler"](https://learn.microsoft.com/aspnet/core/blazor/security/additional-scenarios#access-authenticationstateprovider-in-outgoing-request-middleware).
+It's an `AsyncLocal<IServiceProvider?>`-backed accessor, populated by
+`ServicesAccessorCircuitHandler` (a `CircuitHandler` - a genuine Blazor Server extensibility point
+that *does* run within the correct circuit scope) for the duration of each inbound circuit activity
+(a SignalR message - an event callback, a lifecycle method). Because `AsyncLocal` flows with the
+async call chain rather than with DI scope, it correctly resolves the real circuit's
+`IServiceProvider` even when read from `JwtExchangeHandler`'s differently-scoped `SendAsync`.
+
+`RegisterApiClients` registers `CircuitServicesAccessor`/`ServicesAccessorCircuitHandler`
+automatically (`EnsureCircuitServicesAccessorRegistered`) whenever `CanAttachJwtExchangeHandlers`
+succeeds - consistent with this ADR's "zero extra wiring required" positive consequence; that claim
+still holds, it just needed one more moving part than originally designed to actually be true.
+
+This correction was made alongside [ADR-015](015-multi-tenancy-in-demo-app.md)'s work, which is
+also where the recursive-construction issue documented there (`JwtExchangeHandler` resolving
+`ITenantSelectionService` lazily via `IServiceProvider`) was found and fixed - both are instances of
+the same underlying lesson: this handler runs in a DI scope with fewer guarantees than a Razor
+component's, and every dependency added to it since this ADR has needed to account for that.
+
+**A second correction, found immediately after the first:** `CircuitServicesAccessor.Services` is
+only non-null while an actual circuit activity (a SignalR message) is being handled - it is `null`
+during Blazor's *static prerender* pass, since prerendering happens before the circuit exists at
+all. The first version of this fix handled that case by silently falling through
+(`if (authStateProvider == null) return await base.SendAsync(request, cancellationToken);`),
+sending the request through with no token. For any endpoint gated by `[Authorize]`
+(essentially everything in this framework), that produces a 401 several layers downstream with no
+indication of the real cause - exactly the kind of silent-failure path this session's "never trust
+the client" discipline argues against on the *security* side, and just as unhelpful on the
+*correctness* side. `JwtExchangeHandler` now throws `InvalidOperationException` instead, naming the
+cause directly (no active circuit) and the fix (disable prerendering for the calling component).
+
+This is also a real, previously-unknown constraint the demo app's `TenantSwitcher` integration
+exposed: **every page/component that calls an auto-discovered API client from `OnInitializedAsync`
+(or another lifecycle method) must disable prerendering**, e.g.:
+
+```razor
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+```
+
+Fourteen call sites across the demo app needed this (every page under `Roles/`, `Tenants/`,
+`Forms/`, `QuestionTypes/`, plus `Products.razor` and `MainLayout.razor`'s `TenantSwitcher` usage) -
+all of them were latently broken this way since ADR-013/014 first shipped, just never exercised
+end-to-end until LocalDB finally worked in this session. This is now the exception message's
+explicit guidance, so the next occurrence surfaces immediately instead of being rediscovered from
+scratch.

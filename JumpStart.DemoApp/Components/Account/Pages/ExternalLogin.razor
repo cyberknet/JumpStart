@@ -7,6 +7,7 @@
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
 @using JumpStart.DemoApp.Data
+@using JumpStart.DemoApp.Services
 
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
@@ -15,6 +16,7 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 @inject ILogger<ExternalLogin> Logger
+@inject DemoNewUserBootstrapper DemoBootstrapper
 
 <PageTitle>Register</PageTitle>
 
@@ -158,6 +160,10 @@
             if (result.Succeeded)
             {
                 Logger.LogInformation("User created an account using {Name} provider.", externalLoginInfo.LoginProvider);
+
+                // Demo-only: grant the new user full access immediately - see Register.razor's
+                // matching call and ADR-014's correction note.
+                await DemoBootstrapper.EnsureAdminAsync(user.Id, Input.Email);
 
                 var userId = await UserManager.GetUserIdAsync(user);
                 var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);

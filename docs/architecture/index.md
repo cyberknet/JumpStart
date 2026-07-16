@@ -42,6 +42,7 @@ Documented decisions about significant architectural choices.
 - [ADR-010: Multi-Tenant Data Isolation](adr/010-multi-tenant-data-isolation.md)
 - [ADR-011: Entity-Level Authorization](adr/011-entity-authorization.md)
 - [ADR-012: Role-Based Permission Management](adr/012-role-based-permission-management.md)
+- [ADR-013: JWT Token Exchange for Permission Resolution](adr/013-jwt-token-exchange.md)
 
 ## Design Patterns
 
@@ -111,6 +112,13 @@ claims a user should have. `Role`/`RolePermission`/`UserRole` (optionally tenant
 `ITenantScopedOptional` interface - a role can be tenant-owned or global) plus a direct
 `UserPermission` grant path provide that missing piece - see
 [ADR-012](adr/012-role-based-permission-management.md).
+
+### Why a JWT Token Exchange Endpoint?
+A Blazor Server client authenticates users via Identity's cookie but has no direct
+`IRoleRepository` access to resolve `Permission` claims itself. A short-lived identity assertion
+JWT, exchanged for a real permission-bearing JWT via a `[Authorize]`-only (not `[EntityAuthorize]`)
+endpoint, closes that gap without introducing a second authentication mechanism - see
+[ADR-013](adr/013-jwt-token-exchange.md).
 
 ## Performance Considerations
 

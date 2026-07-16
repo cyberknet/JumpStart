@@ -13,6 +13,12 @@
 > `JwtAuthenticationHandler` depends only on `ITokenStore` (no `IHttpContextAccessor`). This
 > works because each user gets their own DI scope (e.g. a Blazor circuit), so the store doesn't
 > need to be keyed by user explicitly. The code samples below have been updated to match.
+>
+> **⚠️ Correction (2026-07-15):** `IJwtTokenService.GenerateToken`'s signature shown below
+> (`int userId`, `Dictionary<string, string>? additionalClaims`) is superseded by
+> [ADR-013](013-jwt-token-exchange.md): `GenerateToken(Guid userId, string username,
+> IEnumerable<Claim>? additionalClaims = null, TimeSpan? expiration = null)`. The code samples
+> below reflect the original, now-outdated signature and are kept for historical context.
 
 ## Context
 

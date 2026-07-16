@@ -16,6 +16,9 @@ using JumpStart;
 using JumpStart.Api.Clients;
 using JumpStart.Api.Controllers;
 using JumpStart.Api.DTOs;
+using JumpStart.Services.Authentication;
+using JumpStart.Services.Authentication.Clients;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Refit;
 using System;
@@ -36,6 +39,12 @@ public static partial class JumpStartServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The service collection to add API clients to.</param>
     /// <param name="options">The JumpStart options containing assembly list and lifetime settings.</param>
+    /// <remarks>
+    /// Also attaches <see cref="Services.Authentication.JwtExchangeHandler"/> and
+    /// <see cref="Services.Authentication.JwtAuthenticationHandler"/> to each registered client
+    /// when <see cref="CanAttachJwtExchangeHandlers"/> determines their prerequisites are already
+    /// registered - see ADR-013/ADR-014.
+    /// </remarks>
     private static void RegisterApiClients(IServiceCollection services, JumpStartOptions options)
     {
         var assemblies = options.Assemblies.Any()
@@ -78,10 +87,32 @@ public static partial class JumpStartServiceCollectionExtensions
 
             // register the refit client if not already registered
             if (!services.Any(sd => sd.ServiceType == apiClientInterface))
-                services.AddRefitClient(apiClientInterface)
+            {
+                var builder = services.AddRefitClient(apiClientInterface)
                     .ConfigureHttpClient(c => c.BaseAddress = new Uri(fullBaseAddress));
+
+                // Auto-attach JumpStart's prescribed JWT exchange flow (see ADR-013/ADR-014) when
+                // its prerequisites are already registered - no separate opt-in flag, the presence
+                // of these four services is the signal.
+                if (CanAttachJwtExchangeHandlers(services))
+                {
+                    builder.AddHttpMessageHandler<JwtExchangeHandler>()
+                        .AddHttpMessageHandler<JwtAuthenticationHandler>();
+                }
+            }
         }
     }
+
+    /// <summary>
+    /// Determines whether <see cref="JwtExchangeHandler"/> and <see cref="JwtAuthenticationHandler"/>
+    /// can be attached to an auto-discovered API client - i.e. whether all of
+    /// <see cref="JwtExchangeHandler"/>'s dependencies are already registered. See ADR-014.
+    /// </summary>
+    private static bool CanAttachJwtExchangeHandlers(IServiceCollection services) =>
+        services.Any(sd => sd.ServiceType == typeof(AuthenticationStateProvider)) &&
+        services.Any(sd => sd.ServiceType == typeof(ITokenStore)) &&
+        services.Any(sd => sd.ServiceType == typeof(IJwtTokenService)) &&
+        services.Any(sd => sd.ServiceType == typeof(ITokenExchangeApiClient));
 
     private static TAttribute? GetRouteAttribute<TAttribute>(Type type) where TAttribute : Attribute
     {

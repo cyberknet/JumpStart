@@ -28,9 +28,13 @@ namespace JumpStart.Data;
 /// <para>
 /// This junction table enables:
 /// - Users to belong to multiple organizations/companies
-/// - Different roles per tenant (user might be admin in one tenant, viewer in another)
 /// - Tenant-specific user settings or permissions
 /// - Audit trail of when users joined/left tenants
+/// </para>
+/// <para>
+/// Role and permission assignment is handled separately, by
+/// <see cref="Authorization.UserRole"/> and <see cref="Authorization.UserPermission"/> (see
+/// ADR-012) - this junction only records tenant membership and activation.
 /// </para>
 /// <para>
 /// <strong>Common Scenarios:</strong>
@@ -48,7 +52,6 @@ namespace JumpStart.Data;
 /// {
 ///     UserId = userId,
 ///     TenantId = tenantId,
-///     Role = "Admin",
 ///     IsActive = true
 /// };
 /// await context.UserTenants.AddAsync(userTenant);
@@ -98,26 +101,6 @@ public class UserTenant : AuditableEntity
     /// </value>
     [Required]
     public Guid TenantId { get; set; }
-    /// <summary>
-    /// Gets or sets the role of the user within this tenant.
-    /// </summary>
-    /// <value>
-    /// The user's role within the tenant (e.g., "Admin", "User", "Viewer").
-    /// Maximum length is 50 characters. Can be null for default role.
-    /// </value>
-    /// <remarks>
-    /// <para>
-    /// This allows users to have different roles in different tenants:
-    /// - Admin in Tenant A
-    /// - Viewer in Tenant B
-    /// - Editor in Tenant C
-    /// </para>
-    /// <para>
-    /// Common role values: "Admin", "User", "Viewer", "Editor", "Owner", "Guest"
-    /// </para>
-    /// </remarks>
-    [MaxLength(50)]
-    public string? Role { get; set; }
     /// <summary>
     /// Gets or sets whether this user-tenant relationship is currently active.
     /// </summary>

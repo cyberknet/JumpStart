@@ -135,7 +135,7 @@ public class MyTenant : Tenant
 
 ### UserTenant
 
-A many-to-many junction recording which users belong to which tenants, with a per-tenant role:
+A many-to-many junction recording which users belong to which tenants:
 
 ```csharp
 public class UserTenant : AuditableEntity
@@ -143,14 +143,15 @@ public class UserTenant : AuditableEntity
     public Guid UserId { get; set; }
     public Guid TenantId { get; set; }
     public Tenant Tenant { get; set; } = null!;
-    public string? Role { get; set; } // e.g. "Admin", "User", "Viewer"
     public bool IsActive { get; set; } = true;
 }
 ```
 
 `UserTenant` is what powers [tenant selection](#tenant-selection-for-multi-tenant-users) for users
 who belong to more than one tenant - it is not required if every user belongs to exactly one
-tenant via a JWT/claim.
+tenant via a JWT/claim. Role and permission assignment is a separate concern, handled by
+`Role`/`UserRole`/`UserPermission` (see [ADR-012](architecture/adr/012-role-based-permission-management.md)),
+not by this junction.
 
 ## How It Works
 

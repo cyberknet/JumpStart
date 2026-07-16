@@ -275,6 +275,20 @@ See [ADR-013: JWT Token Exchange](architecture/adr/013-jwt-token-exchange.md) an
 for the full design, and [Role-Based Permission Management](architecture/adr/012-role-based-permission-management.md)
 for how those permissions are actually assigned to users in the first place.
 
+> **⚠️ Disable prerendering on any page/component that calls an auto-discovered API client.**
+> `JwtExchangeHandler` can only identify the current user via a live Blazor Server circuit
+> (`CircuitServicesAccessor`, see ADR-014's correction note) - during static prerendering, before
+> the circuit exists, there is no way to resolve the user at all, and the handler throws
+> `InvalidOperationException` rather than silently sending an unauthenticated request. Any
+> `@page` component that calls an API client from `OnInitializedAsync` (or another lifecycle
+> method) needs:
+> ```razor
+> @rendermode @(new InteractiveServerRenderMode(prerender: false))
+> ```
+> instead of the plain `@rendermode InteractiveServer` the default templates generate. This
+> applies to every page in the demo app that talks to an API client - see ADR-014's correction
+> note for the full list.
+
 ## Testing
 
 The framework includes comprehensive tests for all authentication components:

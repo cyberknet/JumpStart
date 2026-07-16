@@ -13,10 +13,12 @@
  */
 
 using System;
+using System.Linq;
 using System.Reflection;
 using JumpStart.Services.Authentication;
 using JumpStart.Services.Authentication.Clients;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -25,7 +27,9 @@ namespace JumpStart.Tests.Extensions;
 /// <summary>
 /// Tests for <c>JumpStartServiceCollectionExtensions.CanAttachJwtExchangeHandlers</c> - the
 /// detection logic <c>RegisterApiClients</c> uses to decide whether to auto-attach
-/// <see cref="JwtExchangeHandler"/>/<see cref="JwtAuthenticationHandler"/>. See ADR-014.
+/// <see cref="JwtExchangeHandler"/>/<see cref="JwtAuthenticationHandler"/> - and
+/// <c>EnsureCircuitServicesAccessorRegistered</c>, which registers <see cref="CircuitServicesAccessor"/>/
+/// <see cref="ServicesAccessorCircuitHandler"/> alongside them. See ADR-014/ADR-013's "Correction" note.
 /// </summary>
 public class JwtExchangeAutoAttachmentTests
 {
@@ -37,6 +41,16 @@ public class JwtExchangeAutoAttachmentTests
             ?? throw new InvalidOperationException("CanAttachJwtExchangeHandlers not found - has it been renamed?");
 
         return (bool)method.Invoke(null, [services])!;
+    }
+
+    private static void InvokeEnsureCircuitServicesAccessorRegistered(IServiceCollection services)
+    {
+        var method = typeof(JumpStartServiceCollectionExtensions).GetMethod(
+            "EnsureCircuitServicesAccessorRegistered",
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("EnsureCircuitServicesAccessorRegistered not found - has it been renamed?");
+
+        method.Invoke(null, [services]);
     }
 
     [Fact]
@@ -74,5 +88,28 @@ public class JwtExchangeAutoAttachmentTests
         if (hasTokenExchangeClient) services.AddScoped<ITokenExchangeApiClient>(_ => null!);
 
         Assert.False(Invoke(services));
+    }
+
+    [Fact]
+    public void EnsureCircuitServicesAccessorRegistered_RegistersAccessorAndCircuitHandler()
+    {
+        var services = new ServiceCollection();
+
+        InvokeEnsureCircuitServicesAccessorRegistered(services);
+
+        Assert.Contains(services, sd => sd.ServiceType == typeof(CircuitServicesAccessor));
+        Assert.Contains(services, sd => sd.ServiceType == typeof(CircuitHandler) && sd.ImplementationType == typeof(ServicesAccessorCircuitHandler));
+    }
+
+    [Fact]
+    public void EnsureCircuitServicesAccessorRegistered_IsIdempotent_WhenCalledMultipleTimes()
+    {
+        var services = new ServiceCollection();
+
+        InvokeEnsureCircuitServicesAccessorRegistered(services);
+        InvokeEnsureCircuitServicesAccessorRegistered(services);
+
+        Assert.Single(services, sd => sd.ServiceType == typeof(CircuitServicesAccessor));
+        Assert.Single(services, sd => sd.ServiceType == typeof(CircuitHandler) && sd.ImplementationType == typeof(ServicesAccessorCircuitHandler));
     }
 }

@@ -17,7 +17,7 @@
 @using JumpStart.Forms.Clients
 @inject IFormsApiClient FormsClient
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>Question Types</PageTitle>
 

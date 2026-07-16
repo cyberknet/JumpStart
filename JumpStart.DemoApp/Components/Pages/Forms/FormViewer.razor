@@ -6,7 +6,7 @@
 @using JumpStart.DemoApp.Components.Forms.QuestionInputs
 @inject IFormsApiClient FormsClient
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>@(form?.Name ?? "View Form")</PageTitle>
 

@@ -21,7 +21,7 @@
 @using JumpStart.DemoApp.Models.Forms
 @inject IFormsApiClient FormsClient
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>@(IsEditMode ? "Edit Question Type" : "Create Question Type")</PageTitle>
 

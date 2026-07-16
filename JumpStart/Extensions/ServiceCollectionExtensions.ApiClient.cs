@@ -19,7 +19,9 @@ using JumpStart.Api.DTOs;
 using JumpStart.Services.Authentication;
 using JumpStart.Services.Authentication.Clients;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Refit;
 using System;
 using System.Reflection;
@@ -96,6 +98,7 @@ public static partial class JumpStartServiceCollectionExtensions
                 // of these four services is the signal.
                 if (CanAttachJwtExchangeHandlers(services))
                 {
+                    EnsureCircuitServicesAccessorRegistered(services);
                     builder.AddHttpMessageHandler<JwtExchangeHandler>()
                         .AddHttpMessageHandler<JwtAuthenticationHandler>();
                 }
@@ -113,6 +116,23 @@ public static partial class JumpStartServiceCollectionExtensions
         services.Any(sd => sd.ServiceType == typeof(ITokenStore)) &&
         services.Any(sd => sd.ServiceType == typeof(IJwtTokenService)) &&
         services.Any(sd => sd.ServiceType == typeof(ITokenExchangeApiClient));
+
+    /// <summary>
+    /// Registers <see cref="CircuitServicesAccessor"/> and <see cref="ServicesAccessorCircuitHandler"/>
+    /// if not already present - required by <see cref="JwtExchangeHandler"/> to reach the current
+    /// circuit's <see cref="AuthenticationStateProvider"/> from a message handler that
+    /// <see cref="System.Net.Http.IHttpClientFactory"/> constructs in a separate DI scope. See
+    /// ADR-013's "Correction" note.
+    /// </summary>
+    private static void EnsureCircuitServicesAccessorRegistered(IServiceCollection services)
+    {
+        services.TryAddScoped<CircuitServicesAccessor>();
+
+        if (!services.Any(sd => sd.ServiceType == typeof(CircuitHandler) && sd.ImplementationType == typeof(ServicesAccessorCircuitHandler)))
+        {
+            services.AddScoped<CircuitHandler, ServicesAccessorCircuitHandler>();
+        }
+    }
 
     private static TAttribute? GetRouteAttribute<TAttribute>(Type type) where TAttribute : Attribute
     {

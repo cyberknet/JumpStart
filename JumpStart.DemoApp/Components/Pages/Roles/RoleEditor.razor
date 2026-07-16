@@ -19,7 +19,7 @@
 @using JumpStart.Authorization.Clients
 @inject IRolesApiClient RolesClient
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>@(IsEditMode ? "Edit Role" : "Create Role")</PageTitle>
 

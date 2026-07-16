@@ -17,7 +17,7 @@
 @using JumpStart.Authorization.Clients
 @inject IUserPermissionsApiClient UserPermissionsClient
 @inject NavigationManager Navigation
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>Direct User Permissions</PageTitle>
 

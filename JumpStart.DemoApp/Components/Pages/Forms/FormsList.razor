@@ -5,7 +5,7 @@
 @inject IFormsApiClient FormsClient
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 
 <PageTitle>Forms</PageTitle>
 

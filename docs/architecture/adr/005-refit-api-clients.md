@@ -144,6 +144,13 @@ builder.Services.AddJumpStart(options =>
 });
 ```
 
+> **Automatic registration also attaches JWT handling for you**, as of
+> [ADR-014](014-automatic-jwt-exchange-for-api-clients.md): if `AuthenticationStateProvider`,
+> `ITokenStore`, `IJwtTokenService`, and `ITokenExchangeApiClient` are all registered before
+> `AddJumpStart` runs, every automatically-registered client gets `JwtExchangeHandler` and
+> `JwtAuthenticationHandler` attached with no `.AddHttpMessageHandler<...>()` calls needed - unlike
+> the manual registration path above, which still requires them explicitly.
+
 ### 4. API Controller Base
 
 Refit-compatible endpoints are exposed by the framework's single

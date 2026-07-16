@@ -14,16 +14,19 @@ The JumpStart framework now includes a separate Web API project (`JumpStart.Demo
    - Exposes RESTful endpoints
    - Validates JWT tokens from requests
    - Uses `ApiUserContext` for audit tracking
+   - `TokenController`'s `POST /api/token/exchange` resolves and issues permission-bearing tokens
+     (ADR-013)
 
 2. **JumpStart** - Core library with authentication services
    - `IJwtTokenService` / `JwtTokenService` - Generates JWT tokens
    - `ITokenStore` / `TokenStore` - Stores tokens for the current user session
    - `JwtAuthenticationHandler` - HTTP handler that adds JWT tokens to API requests
+   - `JwtExchangeHandler` - HTTP handler that ensures a real, permission-resolved token exists
+     before a request goes out, auto-attached to auto-discovered API clients (ADR-014)
 
 3. **JumpStart.DemoApp** - Blazor Server application
    - Uses cookie-based authentication for user login
-   - Generates JWT tokens for API calls
-   - Includes authentication handler in API client pipeline
+   - `JwtExchangeHandler` obtains permission-resolved JWTs for API calls automatically
 
 ## Configuration
 
@@ -89,12 +92,7 @@ public class AuthenticationService
         var user = await ValidateCredentialsAsync(username, password);
         
         // 2. Generate JWT token
-        // NOTE: IJwtTokenService.GenerateToken takes an `int userId`, which doesn't line up
-        // with the rest of JumpStart's Guid-only identity model (ASP.NET Core Identity's
-        // default IdentityUser also uses a string Id, not int or Guid). You'll need a mapping
-        // step here (e.g. a numeric external ID) until this is reconciled - see the framework
-        // issue tracker.
-        var token = _jwtTokenService.GenerateToken(user.NumericId, user.UserName);
+        var token = _jwtTokenService.GenerateToken(user.Id, user.UserName);
         
         // 3. Store token for API calls
         _tokenStore.SetToken(token);
@@ -108,6 +106,12 @@ public class AuthenticationService
     }
 }
 ```
+
+This token carries no `Permission` claims, so every JumpStart-generated endpoint will return `403`
+(see [Entity Authorization](entity-authorization.md)) until you add them. If your Blazor app is
+calling a separate JumpStart API project, don't hand-roll that step - see
+[JwtExchangeHandler](#jwtexchangehandler-recommended-for-a-separate-api-project) below, which
+resolves and attaches real permissions automatically.
 
 ### 2. Making Authenticated API Calls
 
@@ -221,6 +225,14 @@ builder.Services.AddCors(options =>
 // User Context
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContext, ApiUserContext>();
+
+// Enables the token-exchange endpoint (POST /api/token/exchange) and role/permission
+// administration - see ADR-012/ADR-013 and JwtExchangeHandler below.
+builder.Services.AddJumpStart(options =>
+{
+    options.RegisterAuthorizationController = true;
+    options.RegisterTokenController = true;
+});
 ```
 
 ### JumpStart.DemoApp (Program.cs)
@@ -230,11 +242,38 @@ builder.Services.AddScoped<IUserContext, ApiUserContext>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
+builder.Services.AddTransient<JwtExchangeHandler>();
 
-// API Client with JWT Handler
+// Register this BEFORE AddJumpStart so RegisterApiClients (via AutoDiscoverApiClients) can see
+// it's already present and auto-attach JwtExchangeHandler/JwtAuthenticationHandler to every
+// [ApiClientFor<...>]-decorated client - see ADR-014.
+builder.Services.AddApiClient<ITokenExchangeApiClient>(apiBaseUrl);
+
+builder.Services.AddJumpStart(options =>
+{
+    options.ApiBaseUrl = apiBaseUrl;
+    options.AutoDiscoverApiClients = true; // auto-attaches the handlers below for you
+});
+
+// IProductApiClient predates [ApiClientFor<...>] and is registered manually, so it needs the
+// chain wired up by hand - auto-discovered clients don't.
 builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
+    .AddHttpMessageHandler<JwtExchangeHandler>()
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 ```
+
+#### JwtExchangeHandler (recommended for a separate API project)
+
+When a Blazor Server app calls a separate JumpStart API, it has no direct database access to
+resolve `Permission` claims itself - and it can't ask the API to resolve them either, since the
+token it would use to authenticate that call is exactly what it's trying to produce.
+`JwtExchangeHandler` solves this: it mints a short-lived, claim-free identity assertion JWT from
+the current Blazor user, exchanges it via the API's `POST /api/token/exchange` endpoint for a
+real, permission-resolved JWT, and stores it - all automatically, for every auto-discovered client.
+See [ADR-013: JWT Token Exchange](architecture/adr/013-jwt-token-exchange.md) and
+[ADR-014: Automatic JWT Exchange for Auto-Discovered API Clients](architecture/adr/014-automatic-jwt-exchange-for-api-clients.md)
+for the full design, and [Role-Based Permission Management](architecture/adr/012-role-based-permission-management.md)
+for how those permissions are actually assigned to users in the first place.
 
 ## Testing
 
@@ -243,6 +282,9 @@ The framework includes comprehensive tests for all authentication components:
 - **JwtTokenServiceTests** - Token generation and validation
 - **TokenStoreTests** - Token storage and retrieval
 - **JwtAuthenticationHandlerTests** - HTTP handler functionality
+- **JwtExchangeHandlerTests** - Assertion minting, exchange, and store behavior
+- **TokenControllerTests** - Permission resolution and identity validation for the exchange endpoint
+- **JwtExchangeAutoAttachmentTests** - Auto-attachment detection logic in `RegisterApiClients`
 
 Run tests with:
 ```bash

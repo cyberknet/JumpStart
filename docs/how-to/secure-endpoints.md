@@ -139,45 +139,12 @@ public class ProductsController : ApiControllerBase<Product, ProductDto, CreateP
 
 ### 1. Configure Roles in JWT Token
 
-When generating tokens, include role claims. The built-in `IJwtTokenService.GenerateToken` takes
-an `int userId` and only a flat `Dictionary<string, string>` of extra claims (one value per key),
-so it can't add *multiple* role claims on its own. This example shows a standalone token-generation
-helper (it intentionally does not implement `IJwtTokenService`, since that interface's `int`-based
-signature doesn't fit a role list):
+`IJwtTokenService.GenerateToken` takes `IEnumerable<Claim>` (not a flat dictionary), so it can add
+as many role claims as a user actually has - no standalone helper class needed:
 
 ```csharp
-public class RoleAwareJwtTokenService
-{
-    public string GenerateToken(Guid userId, string username, IList<string> roles)
-    {
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-            new Claim(ClaimTypes.Name, username),
-            new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
-
-        // Add role claims
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: _issuer,
-            audience: _audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(_expirationMinutes),
-            signingCredentials: credentials
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
-}
+var claims = userRoles.Select(role => new Claim(ClaimTypes.Role, role));
+var token = jwtTokenService.GenerateToken(userId, username, claims);
 ```
 
 ### 2. Require Specific Roles

@@ -10,6 +10,15 @@
     <File Path="docs/architecture/index.md" />
   </Folder>
   <Folder Name="/Documentation/architecture/adr/">
+    <File Path="docs/architecture/adr/001-repository-pattern.md" />
+    <File Path="docs/architecture/adr/002-simple-advanced-entities.md" />
+    <File Path="docs/architecture/adr/003-audit-tracking.md" />
+    <File Path="docs/architecture/adr/004-jwt-authentication.md" />
+    <File Path="docs/architecture/adr/005-refit-api-clients.md" />
+    <File Path="docs/architecture/adr/009-guid-only-entities.md" />
+    <File Path="docs/architecture/adr/010-multi-tenant-data-isolation.md" />
+    <File Path="docs/architecture/adr/011-entity-authorization.md" />
+    <File Path="docs/architecture/adr/012-role-based-permission-management.md" />
     <File Path="docs/architecture/adr/index.md" />
   </Folder>
   <Folder Name="/Documentation/architecture/api/">

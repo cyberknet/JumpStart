@@ -248,6 +248,12 @@ public static partial class JumpStartServiceCollectionExtensions
             RegisterTokenExchangeServices(services);
         }
 
+        // Register Tenant/UserTenant administration module services if configured
+        if (options.RegisterTenantsController)
+        {
+            RegisterMultiTenantServices(services);
+        }
+
         services.AddCorrelate();
 
         // Register Authorization handlers and policy provider

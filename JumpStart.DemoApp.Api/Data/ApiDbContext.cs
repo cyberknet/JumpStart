@@ -1,5 +1,6 @@
 ﻿using JumpStart.Data;
 using JumpStart.DemoApp.Data;
+using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace JumpStart.DemoApp.Api.Data;
@@ -12,8 +13,11 @@ namespace JumpStart.DemoApp.Api.Data;
 /// This context is separate from ApplicationDbContext which handles Identity in the Blazor app.
 /// By inheriting from <see cref="JumpStartDbContext"/>, framework-required data like QuestionTypes
 /// for the Forms module is automatically included in migrations and seeded.
+/// Forwards the optional <see cref="ITenantContext"/> to the base class to enable multi-tenant
+/// data isolation (see ADR-010/ADR-015) - registered as <c>JwtTenantContext</c> in <c>Program.cs</c>.
 /// </remarks>
-public class ApiDbContext(DbContextOptions<ApiDbContext> options) : JumpStartDbContext(options)
+public class ApiDbContext(DbContextOptions<ApiDbContext> options, ITenantContext? tenantContext = null)
+    : JumpStartDbContext(options, tenantContext)
 {
     /// <summary>
     /// Gets or sets the Products DbSet.

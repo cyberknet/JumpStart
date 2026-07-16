@@ -779,4 +779,42 @@ public class JumpStartOptions
         /// </code>
         /// </example>
         public bool RegisterTokenController { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets whether to register the Tenants API controller.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to register <c>TenantsController</c>, exposing RESTful tenant
+        /// administration and membership-management endpoints; otherwise, <c>false</c>.
+        /// Default is <c>false</c>.
+        /// </value>
+        /// <remarks>
+        /// <para>
+        /// Set this to <c>true</c> in API projects that need to administer tenants and user-tenant
+        /// membership (see ADR-015). Also registers <c>ITenantRepository</c>/<c>TenantRepository</c>
+        /// and <c>IUserTenantRepository</c>/<c>UserTenantRepository</c> if not already registered.
+        /// </para>
+        /// <para>
+        /// <strong>When to Enable:</strong>
+        /// - API projects that need to expose tenant administration and membership management
+        /// </para>
+        /// <para>
+        /// <strong>When to Leave Disabled:</strong>
+        /// - Blazor Server apps accessing the database directly via repositories
+        /// - Client applications that only consume this API (enable <see cref="AutoDiscoverApiClients"/>
+        ///   instead - <c>ITenantsApiClient</c> is already decorated with <c>[ApiClientFor&lt;...&gt;]</c>
+        ///   and will be discovered and registered automatically)
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// // API project - expose tenant administration endpoints
+        /// builder.Services.AddJumpStart(options =>
+        /// {
+        ///     options.RegisterTenantsController = true;
+        ///     options.RegisterUserContext&lt;ApiUserContext&gt;();
+        /// });
+        /// </code>
+        /// </example>
+        public bool RegisterTenantsController { get; set; } = false;
     }

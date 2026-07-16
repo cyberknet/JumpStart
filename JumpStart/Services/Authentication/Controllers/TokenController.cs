@@ -13,10 +13,12 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using JumpStart.Authorization.Repositories;
+using JumpStart.MultiTenant.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,6 +42,12 @@ namespace JumpStart.Services.Authentication.Controllers;
 /// not it carries <c>Permission</c> claims. This works with no new authorization carve-out because
 /// <c>[EntityAuthorize]</c> is never applied here in the first place.
 /// </para>
+/// <para>
+/// <strong>Tenant validation (see ADR-015):</strong> if the incoming assertion carries an optional
+/// <c>tenant_id</c> claim, it is independently verified against <see cref="IUserTenantRepository.HasAccessAsync"/>
+/// before the real token is issued - a client asserting a tenant it doesn't belong to is rejected
+/// outright (403), never silently dropped. No claim present means no tenant context, unchanged.
+/// </para>
 /// </remarks>
 [ApiController]
 [Route("api/token")]
@@ -47,11 +55,16 @@ public class TokenController : ControllerBase
 {
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IRoleRepository _roleRepository;
+    private readonly IUserTenantRepository _userTenantRepository;
 
-    public TokenController(IJwtTokenService jwtTokenService, IRoleRepository roleRepository)
+    public TokenController(
+        IJwtTokenService jwtTokenService,
+        IRoleRepository roleRepository,
+        IUserTenantRepository userTenantRepository)
     {
         _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
         _roleRepository = roleRepository ?? throw new ArgumentNullException(nameof(roleRepository));
+        _userTenantRepository = userTenantRepository ?? throw new ArgumentNullException(nameof(userTenantRepository));
     }
 
     /// <summary>
@@ -68,7 +81,19 @@ public class TokenController : ControllerBase
 
         var username = User.Identity?.Name ?? userIdClaim;
         var permissions = await _roleRepository.GetPermissionClaimsForUserAsync(userId);
-        var claims = permissions.Select(p => new Claim("Permission", p));
+        var claims = new List<Claim>(permissions.Select(p => new Claim("Permission", p)));
+
+        var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
+        if (!string.IsNullOrEmpty(tenantIdClaim))
+        {
+            if (!Guid.TryParse(tenantIdClaim, out var tenantId)
+                || !await _userTenantRepository.HasAccessAsync(userId, tenantId))
+            {
+                return Forbid();
+            }
+
+            claims.Add(new Claim("tenant_id", tenantId.ToString()));
+        }
 
         var token = _jwtTokenService.GenerateToken(userId, username!, claims);
         return Ok(new TokenResponseDto { Token = token });

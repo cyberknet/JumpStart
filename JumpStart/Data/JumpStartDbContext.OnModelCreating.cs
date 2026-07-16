@@ -99,9 +99,12 @@ public abstract partial class JumpStartDbContext
             var hasForeignKeyAttr = navProp?.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.Schema.ForeignKeyAttribute), true).Length > 0;
             if (!hasForeignKeyAttr)
             {
-                // Configure the foreign key via Fluent API
+                // Configure the foreign key via Fluent API. The "Tenant" navigation name must be
+                // passed explicitly - otherwise this creates a second, anonymous relationship
+                // alongside the one EF Core already inferred by convention (Tenant nav + TenantId
+                // scalar), resulting in a duplicate shadow FK property (e.g. "TenantId1").
                 modelBuilder.Entity(entityType.ClrType)
-                    .HasOne(typeof(Data.Tenant))
+                    .HasOne(typeof(Data.Tenant), "Tenant")
                     .WithMany()
                     .HasForeignKey("TenantId");
             }

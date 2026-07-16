@@ -327,6 +327,50 @@ Then in a Blazor component:
 > of this, switching tenants requires a new `DbContext` - typically a page reload, as shown above -
 > not just updating `ITenantSelectionService`'s in-memory state.
 
+### Tenant Selection Without a Shared DbContext
+
+`BlazorTenantSelectionService` requires the Blazor app to have its own `IDbContextFactory<JumpStartDbContext>`
+- not an option for the properly-separated topology where the Blazor app talks to a separate API
+project entirely through generated clients (see [ADR-014](architecture/adr/014-automatic-jwt-exchange-for-api-clients.md)
+and [samples.md](samples.md)). `ApiTenantSelectionService` is the API-client-based counterpart, used
+by the demo app end-to-end:
+
+```csharp
+builder.Services.AddScoped<ITenantSelectionService, ApiTenantSelectionService>();
+```
+
+It calls `ITenantsApiClient.GetMineAsync()` (a self-service endpoint scoped to the caller by their
+bearer token - see below) instead of querying the database directly. `SetCurrentTenantAsync` doesn't
+call any "select tenant" endpoint; it clears `ITokenStore` so the next API call re-triggers
+`JwtExchangeHandler`, which mints a fresh identity assertion carrying the newly selected tenant.
+
+**How the tenant claim reaches the API, safely:** `JwtExchangeHandler` takes an optional
+`ITenantSelectionService?` constructor parameter - when registered, it adds a `tenant_id` claim
+(from `GetCurrentTenantIdAsync()`) to the short-lived identity assertion before exchanging it.
+Critically, this claim is never trusted blindly: `TokenController.Exchange` independently
+re-verifies membership server-side via `IUserTenantRepository.HasAccessAsync` before stamping a
+matching `tenant_id` claim onto the real token, and rejects the exchange outright (`403 Forbidden`)
+if the claimed tenant doesn't check out. A client asserting access to a tenant it doesn't belong to
+is a hard failure, not a silently-dropped claim - tenancy is a hard isolation boundary, not a
+convenience feature. See [ADR-015](architecture/adr/015-multi-tenancy-in-demo-app.md) for the full
+design and the confused-deputy risk this avoids.
+
+On the API side, this trusted `tenant_id` claim is read by `JwtTenantContext : ITenantContext`
+(mirroring `ApiUserContext`'s relationship to `ClaimTypes.NameIdentifier`):
+
+```csharp
+builder.Services.AddJumpStart(options =>
+{
+    options.RegisterTenantContext<JwtTenantContext>();
+    options.RegisterTenantsController = true; // Tenant CRUD + self-service "mine" + membership management
+});
+```
+
+`TenantsController` exposes standard CRUD for `Tenant` (real administration, `[EntityAuthorize]`-gated)
+plus `GET /api/tenants/mine` - deliberately gated by plain `[Authorize]`, not `[EntityAuthorize]`,
+since a user asking "what tenants am I in" is not administering the `Tenant` entity and shouldn't
+need a `Tenant.List` permission just to discover their own memberships.
+
 ## Best Practices
 
 ### Do's ✅
@@ -384,6 +428,8 @@ sees.
 - **[ADR-010: Multi-Tenant Data Isolation](architecture/adr/010-multi-tenant-data-isolation.md)** - Full design rationale
 - **[ADR-012: Role-Based Permission Management](architecture/adr/012-role-based-permission-management.md)** -
   `ITenantScopedOptional` and the roles/permissions system built on it
+- **[ADR-015: Wiring Multi-Tenancy Into the Demo App](architecture/adr/015-multi-tenancy-in-demo-app.md)** -
+  `ApiTenantSelectionService`, server-side tenant validation, and the demo app's full end-to-end wiring
 - **[Entity Authorization](entity-authorization.md)** - Another automatic, always-on concern to be
   aware of alongside multi-tenancy
 - **[Audit Tracking](audit-tracking.md)** - The soft-delete global query filter this design mirrors

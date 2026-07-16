@@ -1,0 +1,191 @@
+@* Copyright ©2026 Scott Blomfield *@
+@*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>.
+ *@
+
+@page "/tenants/new"
+@page "/tenants/edit/{Id:guid}"
+@using System.ComponentModel.DataAnnotations
+@using JumpStart.MultiTenant.DTOs
+@using JumpStart.MultiTenant.Clients
+@inject ITenantsApiClient TenantsClient
+@inject NavigationManager Navigation
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+<PageTitle>@(IsEditMode ? "Edit Tenant" : "Create Tenant")</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@(IsEditMode ? "Edit Tenant" : "Create Tenant")</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <EditForm Model="@model" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                    <InputText id="name" class="form-control" @bind-Value="model.Name" />
+                    <ValidationMessage For="@(() => model.Name)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="contactEmail" class="form-label">Contact Email</label>
+                    <InputText id="contactEmail" class="form-control" @bind-Value="model.ContactEmail" />
+                    <ValidationMessage For="@(() => model.ContactEmail)" />
+                </div>
+
+                <div class="mb-3 form-check">
+                    <InputCheckbox id="isActive" class="form-check-input" @bind-Value="model.IsActive" />
+                    <label for="isActive" class="form-check-label">Active</label>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @if (saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        <i class="bi bi-check-circle"></i> Save
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private bool loading = true;
+    private bool saving = false;
+    private string? errorMessage;
+    private TenantEditModel model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode && Id.HasValue)
+        {
+            await LoadTenant();
+        }
+        else
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadTenant()
+    {
+        loading = true;
+        errorMessage = null;
+
+        try
+        {
+            var tenant = await TenantsClient.GetByIdAsync(Id!.Value);
+            if (tenant != null)
+            {
+                model = new TenantEditModel
+                {
+                    Name = tenant.Name,
+                    ContactEmail = tenant.ContactEmail,
+                    IsActive = tenant.IsActive
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load tenant: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task Save()
+    {
+        saving = true;
+        errorMessage = null;
+
+        try
+        {
+            if (IsEditMode && Id.HasValue)
+            {
+                var updateDto = new UpdateTenantDto
+                {
+                    Id = Id.Value,
+                    Name = model.Name,
+                    ContactEmail = model.ContactEmail,
+                    IsActive = model.IsActive
+                };
+
+                await TenantsClient.UpdateAsync(Id.Value, updateDto);
+            }
+            else
+            {
+                var createDto = new CreateTenantDto
+                {
+                    Name = model.Name,
+                    ContactEmail = model.ContactEmail,
+                    IsActive = model.IsActive
+                };
+
+                await TenantsClient.CreateAsync(createDto);
+            }
+
+            Navigation.NavigateTo("/tenants");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to save tenant: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void Cancel() => Navigation.NavigateTo("/tenants");
+
+    private class TenantEditModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Must be a valid email address")]
+        [StringLength(255, ErrorMessage = "Contact email cannot exceed 255 characters")]
+        public string? ContactEmail { get; set; }
+
+        public bool IsActive { get; set; } = true;
+    }
+}

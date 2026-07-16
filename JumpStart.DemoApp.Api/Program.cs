@@ -40,11 +40,13 @@ builder.Services.AddDbContext<ApiDbContext>(options =>
 builder.Services.AddJumpStart(options =>
 {
     options.RegisterUserContext<ApiUserContext>();
+    options.RegisterTenantContext<JwtTenantContext>();
     options.AutoDiscoverRepositories = true; // ? Required for EnsureDbContextResolution
     options.ScanAssembly(typeof(Program).Assembly);
     options.RegisterFormsController = true;
     options.RegisterAuthorizationController = true;
     options.RegisterTokenController = true;
+    options.RegisterTenantsController = true;
 });
 
 // ============================================
@@ -126,19 +128,23 @@ builder.Services.AddControllers()
 var app = builder.Build();
 
 // ============================================
-// 10. CORRELATION
+// APPLY PENDING MIGRATIONS
 // ============================================
-builder.Services.AddCorrelate(options =>
+// Demo-app convenience: automatically brings the database up to date on startup so the app "just
+// runs" against a fresh LocalDB instance with no manual `dotnet ef database update` step. Not a
+// recommended pattern for production services with multiple scaled-out instances (concurrent
+// migration application), but appropriate for a reference/demo app.
+using (var migrationScope = app.Services.CreateScope())
 {
-
-});
+    migrationScope.ServiceProvider.GetRequiredService<ApiDbContext>().Database.Migrate();
+}
 
 // ============================================
 // MIDDLEWARE PIPELINE
 // ============================================
 
 // ============================================
-// 11. API DOCUMENTATION (development only)
+// 10. API DOCUMENTATION (development only)
 // ============================================
 if (app.Environment.IsDevelopment())
 {
@@ -150,7 +156,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // ============================================
-// 12. CORRELATION
+// 11. CORRELATION
 // ============================================
 app.UseCorrelate();
 

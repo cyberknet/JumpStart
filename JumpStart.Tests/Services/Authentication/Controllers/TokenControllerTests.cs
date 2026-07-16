@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using JumpStart.Authorization.Repositories;
+using JumpStart.MultiTenant.Repositories;
 using JumpStart.Services.Authentication;
 using JumpStart.Services.Authentication.Controllers;
 using Microsoft.AspNetCore.Http;
@@ -27,20 +28,22 @@ using Xunit;
 namespace JumpStart.Tests.Services.Authentication.Controllers;
 
 /// <summary>
-/// Tests for <see cref="TokenController.Exchange"/>: permission resolution and identity validation.
-/// See ADR-013.
+/// Tests for <see cref="TokenController.Exchange"/>: permission resolution, identity validation,
+/// and server-side tenant membership validation (see ADR-013/ADR-015).
 /// </summary>
 public class TokenControllerTests
 {
     private readonly Mock<IJwtTokenService> _mockJwtTokenService;
     private readonly Mock<IRoleRepository> _mockRoleRepository;
+    private readonly Mock<IUserTenantRepository> _mockUserTenantRepository;
     private readonly TokenController _controller;
 
     public TokenControllerTests()
     {
         _mockJwtTokenService = new Mock<IJwtTokenService>();
         _mockRoleRepository = new Mock<IRoleRepository>();
-        _controller = new TokenController(_mockJwtTokenService.Object, _mockRoleRepository.Object);
+        _mockUserTenantRepository = new Mock<IUserTenantRepository>();
+        _controller = new TokenController(_mockJwtTokenService.Object, _mockRoleRepository.Object, _mockUserTenantRepository.Object);
     }
 
     private void SetUser(ClaimsPrincipal principal)
@@ -163,5 +166,84 @@ public class TokenControllerTests
         Assert.IsType<OkObjectResult>(result.Result);
         Assert.NotNull(capturedClaims);
         Assert.Empty(capturedClaims!);
+    }
+
+    [Fact]
+    public async Task Exchange_ReturnsRealTokenWithTenantClaim_WhenTenantMembershipValid()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var tenantId = Guid.NewGuid();
+        var claims = new List<Claim>(BuildPrincipal(userId).Claims) { new("tenant_id", tenantId.ToString()) };
+        SetUser(new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")));
+
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+            .ReturnsAsync(new List<string>());
+        _mockUserTenantRepository.Setup(r => r.HasAccessAsync(userId, tenantId))
+            .ReturnsAsync(true);
+
+        IEnumerable<Claim>? capturedClaims = null;
+        _mockJwtTokenService
+            .Setup(s => s.GenerateToken(userId, "testuser", It.IsAny<IEnumerable<Claim>>(), null))
+            .Callback<Guid, string, IEnumerable<Claim>?, TimeSpan?>((_, _, c, _) => capturedClaims = c)
+            .Returns("real-token");
+
+        // Act
+        var result = await _controller.Exchange();
+
+        // Assert
+        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.NotNull(capturedClaims);
+        Assert.Contains(capturedClaims!, c => c.Type == "tenant_id" && c.Value == tenantId.ToString());
+    }
+
+    [Fact]
+    public async Task Exchange_ReturnsForbidden_WhenClaimedTenantIsNotAMembership()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var tenantId = Guid.NewGuid();
+        var claims = new List<Claim>(BuildPrincipal(userId).Claims) { new("tenant_id", tenantId.ToString()) };
+        SetUser(new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")));
+
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+            .ReturnsAsync(new List<string>());
+        _mockUserTenantRepository.Setup(r => r.HasAccessAsync(userId, tenantId))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _controller.Exchange();
+
+        // Assert
+        Assert.IsType<ForbidResult>(result.Result);
+        _mockJwtTokenService.Verify(
+            s => s.GenerateToken(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<IEnumerable<Claim>>(), It.IsAny<TimeSpan?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Exchange_ReturnsNoTenantClaim_WhenNoTenantIdClaimPresent()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        SetUser(BuildPrincipal(userId));
+
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+            .ReturnsAsync(new List<string>());
+
+        IEnumerable<Claim>? capturedClaims = null;
+        _mockJwtTokenService
+            .Setup(s => s.GenerateToken(userId, "testuser", It.IsAny<IEnumerable<Claim>>(), null))
+            .Callback<Guid, string, IEnumerable<Claim>?, TimeSpan?>((_, _, c, _) => capturedClaims = c)
+            .Returns("real-token");
+
+        // Act
+        var result = await _controller.Exchange();
+
+        // Assert
+        Assert.IsType<OkObjectResult>(result.Result);
+        Assert.NotNull(capturedClaims);
+        Assert.DoesNotContain(capturedClaims!, c => c.Type == "tenant_id");
+        _mockUserTenantRepository.Verify(r => r.HasAccessAsync(It.IsAny<Guid>(), It.IsAny<Guid>()), Times.Never);
     }
 }

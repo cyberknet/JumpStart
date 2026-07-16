@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -52,7 +52,7 @@ public class JwtTokenServiceTests
         // Arrange
         var configuration = CreateConfiguration();
         var service = new JwtTokenService(configuration);
-        var userId = 123;
+        var userId = Guid.NewGuid();
         var username = "testuser";
 
         // Act
@@ -78,12 +78,12 @@ public class JwtTokenServiceTests
         // Arrange
         var configuration = CreateConfiguration();
         var service = new JwtTokenService(configuration);
-        var userId = 456;
+        var userId = Guid.NewGuid();
         var username = "adminuser";
-        var additionalClaims = new Dictionary<string, string>
+        var additionalClaims = new[]
         {
-            ["role"] = "Admin",
-            ["email"] = "admin@example.com"
+            new Claim("role", "Admin"),
+            new Claim("email", "admin@example.com")
         };
 
         // Act
@@ -98,6 +98,51 @@ public class JwtTokenServiceTests
     }
 
     [Fact]
+    public void GenerateToken_ReturnsValidToken_WithMultipleClaimsOfSameType()
+    {
+        // Arrange
+        var configuration = CreateConfiguration();
+        var service = new JwtTokenService(configuration);
+        var additionalClaims = new[]
+        {
+            new Claim("Permission", "Product.Get"),
+            new Claim("Permission", "Product.List")
+        };
+
+        // Act
+        var token = service.GenerateToken(Guid.NewGuid(), "user", additionalClaims);
+
+        // Assert
+        var handler = new JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(token);
+
+        var permissionClaims = jwtToken.Claims.Where(c => c.Type == "Permission").Select(c => c.Value).ToList();
+        Assert.Equal(2, permissionClaims.Count);
+        Assert.Contains("Product.Get", permissionClaims);
+        Assert.Contains("Product.List", permissionClaims);
+    }
+
+    [Fact]
+    public void GenerateToken_UsesExplicitExpiration_WhenProvided()
+    {
+        // Arrange
+        var configuration = CreateConfiguration();
+        var service = new JwtTokenService(configuration);
+        var beforeGeneration = DateTime.UtcNow;
+
+        // Act
+        var token = service.GenerateToken(Guid.NewGuid(), "user", expiration: TimeSpan.FromMinutes(2));
+
+        // Assert
+        var handler = new JwtSecurityTokenHandler();
+        var jwtToken = handler.ReadJwtToken(token);
+
+        var expectedExpiration = beforeGeneration.AddMinutes(2);
+        Assert.True(jwtToken.ValidTo <= beforeGeneration.AddMinutes(5));
+        Assert.True(jwtToken.ValidTo >= expectedExpiration.AddSeconds(-5));
+    }
+
+    [Fact]
     public void GenerateToken_TokenExpiresAtCorrectTime()
     {
         // Arrange
@@ -106,7 +151,7 @@ public class JwtTokenServiceTests
         var beforeGeneration = DateTime.UtcNow;
 
         // Act
-        var token = service.GenerateToken(1, "user");
+        var token = service.GenerateToken(Guid.NewGuid(), "user");
         var afterGeneration = DateTime.UtcNow;
 
         // Assert
@@ -139,7 +184,7 @@ public class JwtTokenServiceTests
         var service = new JwtTokenService(configuration);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => service.GenerateToken(1, "user"));
+        Assert.Throws<InvalidOperationException>(() => service.GenerateToken(Guid.NewGuid(), "user"));
     }
 
     [Fact]
@@ -160,7 +205,7 @@ public class JwtTokenServiceTests
         var service = new JwtTokenService(configuration);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => service.GenerateToken(1, "user"));
+        Assert.Throws<InvalidOperationException>(() => service.GenerateToken(Guid.NewGuid(), "user"));
     }
 
     [Fact]
@@ -181,7 +226,7 @@ public class JwtTokenServiceTests
         var service = new JwtTokenService(configuration);
 
         // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => service.GenerateToken(1, "user"));
+        Assert.Throws<InvalidOperationException>(() => service.GenerateToken(Guid.NewGuid(), "user"));
     }
 
     [Fact]
@@ -203,7 +248,7 @@ public class JwtTokenServiceTests
         var beforeGeneration = DateTime.UtcNow;
 
         // Act
-        var token = service.GenerateToken(1, "user");
+        var token = service.GenerateToken(Guid.NewGuid(), "user");
 
         // Assert
         var handler = new JwtSecurityTokenHandler();
@@ -221,7 +266,7 @@ public class JwtTokenServiceTests
         var service = new JwtTokenService(configuration);
 
         // Act
-        var token = service.GenerateToken(1, "user");
+        var token = service.GenerateToken(Guid.NewGuid(), "user");
 
         // Assert
         var handler = new JwtSecurityTokenHandler();
@@ -238,10 +283,11 @@ public class JwtTokenServiceTests
         // Arrange
         var configuration = CreateConfiguration();
         var service = new JwtTokenService(configuration);
+        var userId = Guid.NewGuid();
 
         // Act
-        var token1 = service.GenerateToken(1, "user");
-        var token2 = service.GenerateToken(1, "user");
+        var token1 = service.GenerateToken(userId, "user");
+        var token2 = service.GenerateToken(userId, "user");
 
         // Assert
         Assert.NotEqual(token1, token2);

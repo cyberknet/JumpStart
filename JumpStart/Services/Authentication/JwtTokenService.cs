@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright Â©2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -9,7 +9,7 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along with this program. If not,
- *  see <https://www.gnu.org/licenses/>. 
+ *  see <https://www.gnu.org/licenses/>.
  */
 
 using System.IdentityModel.Tokens.Jwt;
@@ -39,7 +39,7 @@ namespace JumpStart.Services.Authentication;
 ///   }
 /// }
 /// </code>
-/// 
+///
 /// Registration in Program.cs:
 /// <code>
 /// builder.Services.AddScoped&lt;IJwtTokenService, JwtTokenService&gt;();
@@ -60,7 +60,7 @@ public class JwtTokenService : IJwtTokenService
     }
 
     /// <inheritdoc />
-    public string GenerateToken(int userId, string username, Dictionary<string, string>? additionalClaims = null)
+    public string GenerateToken(Guid userId, string username, IEnumerable<Claim>? additionalClaims = null, TimeSpan? expiration = null)
     {
         var secretKey = _configuration["JwtSettings:SecretKey"]
             ?? throw new InvalidOperationException("JWT SecretKey is not configured");
@@ -81,10 +81,7 @@ public class JwtTokenService : IJwtTokenService
         // Add any additional claims
         if (additionalClaims != null)
         {
-            foreach (var claim in additionalClaims)
-            {
-                claims.Add(new Claim(claim.Key, claim.Value));
-            }
+            claims.AddRange(additionalClaims);
         }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
@@ -94,7 +91,7 @@ public class JwtTokenService : IJwtTokenService
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
+            expires: DateTime.UtcNow.Add(expiration ?? TimeSpan.FromMinutes(expirationMinutes)),
             signingCredentials: credentials
         );
 

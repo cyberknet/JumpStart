@@ -102,6 +102,7 @@ public class FormsController : ApiControllerBase<
     /// </remarks>
     /// <response code="200">Returns the list of active forms.</response>
     [HttpGet("active")]
+    [EntityAuthorize(action: "List")] // reuses the "Form.List" permission
     [ProducesResponseType(typeof(IEnumerable<FormDto>), 200)]
     public async Task<ActionResult<IEnumerable<FormDto>>> GetActiveForms()
     {
@@ -324,6 +325,7 @@ public class FormsController : ApiControllerBase<
     /// <response code="200">Returns the form statistics.</response>
     /// <response code="404">The form was not found.</response>
     [HttpGet("{id:guid}/statistics")]
+    [EntityAuthorize(action: "Get")] // reuses the "Form.Get" permission
     [ProducesResponseType(typeof(FormStatisticsDto), 200)]
     [ProducesResponseType(404)]
     public async Task<ActionResult<FormStatisticsDto>> GetFormStatistics(Guid id)
@@ -389,6 +391,7 @@ public class FormsController : ApiControllerBase<
     /// <response code="400">Validation failed - see the response body for details.</response>
     /// <response code="404">The form was not found.</response>
     [HttpPost("{formId:guid}/responses")]
+    [EntityAuthorize(action: "SubmitResponse")] // distinct from "Form.Create" - submitting a response is a different capability than authoring forms
     [ProducesResponseType(typeof(FormResponseDto), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -500,6 +503,7 @@ public class FormsController : ApiControllerBase<
     /// <response code="200">Returns the form response.</response>
     /// <response code="404">The response was not found.</response>
     [HttpGet("{formId:guid}/responses/{responseId:guid}")]
+    [EntityAuthorize(action: "GetResponse")] // distinct from "Form.Get" - viewing respondent data is a different capability than viewing form structure
     [ProducesResponseType(typeof(FormResponseDto), 200)]
     [ProducesResponseType(404)]
     public async Task<ActionResult<FormResponseDto>> GetFormResponseById(Guid formId, Guid responseId)
@@ -539,6 +543,7 @@ public class FormsController : ApiControllerBase<
     /// <response code="200">Returns the number of responses deleted.</response>
     /// <response code="404">The form was not found.</response>
     [HttpDelete("{formId:guid}/responses")]
+    [EntityAuthorize(action: "DeleteResponses")] // distinct from "Form.Delete" - purging responses is a different capability than deleting the form itself
     [ProducesResponseType(typeof(int), 200)]
     [ProducesResponseType(404)]
     public async Task<ActionResult<int>> DeleteAllFormResponses(Guid formId)

@@ -242,6 +242,12 @@ public static partial class JumpStartServiceCollectionExtensions
             RegisterAuthorizationServices(services);
         }
 
+        // Register JWT token-exchange module services if configured
+        if (options.RegisterTokenController)
+        {
+            RegisterTokenExchangeServices(services);
+        }
+
         services.AddCorrelate();
 
         // Register Authorization handlers and policy provider

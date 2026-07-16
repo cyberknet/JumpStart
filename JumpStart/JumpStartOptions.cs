@@ -746,4 +746,37 @@ public class JumpStartOptions
         /// </code>
         /// </example>
         public bool RegisterAuthorizationController { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets whether to register the JWT token-exchange endpoint.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to register <c>TokenController</c>'s <c>POST /api/token/exchange</c>
+        /// endpoint; otherwise, <c>false</c>. Default is <c>false</c>.
+        /// </value>
+        /// <remarks>
+        /// <para>
+        /// Set this to <c>true</c> in API projects that need to let a client exchange a short-lived
+        /// identity assertion JWT for a real, permission-resolved JWT (see ADR-013) - typically a
+        /// Blazor Server app that authenticates users itself but has no direct
+        /// <c>IRoleRepository</c> access to resolve <c>Permission</c> claims.
+        /// </para>
+        /// <para>
+        /// Also registers <c>IJwtTokenService</c>/<c>JwtTokenService</c> and
+        /// <c>IRoleRepository</c>/<c>RoleRepository</c> if not already registered - enabling this
+        /// does not require <see cref="RegisterAuthorizationController"/> to also be enabled, so an
+        /// application can expose token exchange without exposing the Roles/UserPermissions CRUD
+        /// API publicly.
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// // API project - expose the token-exchange endpoint
+        /// builder.Services.AddJumpStart(options =>
+        /// {
+        ///     options.RegisterTokenController = true;
+        /// });
+        /// </code>
+        /// </example>
+        public bool RegisterTokenController { get; set; } = false;
     }

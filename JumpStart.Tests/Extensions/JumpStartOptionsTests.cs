@@ -312,7 +312,7 @@ public class JumpStartOptionsTests
                 .ToArray();
 
             // Assert
-            Assert.Equal(8, publicProperties.Length); // 8 properties (added RegisterFormsController, RegisterAuthorizationController, AutoDiscoverApiClients, ApiClientLifetime, ApiBaseUrl)
+            Assert.Equal(9, publicProperties.Length); // 9 properties (added RegisterFormsController, RegisterAuthorizationController, RegisterTokenController, AutoDiscoverApiClients, ApiClientLifetime, ApiBaseUrl)
             Assert.Equal(8, publicMethods.Length); // 8 methods (added RegisterTenantContext)
         }
 

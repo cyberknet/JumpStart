@@ -70,20 +70,24 @@ public abstract partial class JumpStartDbContext
         ApplyGlobalSoftDeleteFilter(modelBuilder, entityTypes);
         ApplyTenantForeignKeyConfiguration(modelBuilder, entityTypes);
         ApplyGlobalTenantFilter(modelBuilder, entityTypes);
+        ApplyGlobalTenantOptionalFilter(modelBuilder, entityTypes);
     }
 
     /// <summary>
-    /// Ensures all entities implementing ITenantScoped have a Tenant navigation property with a foreign key to TenantId.
-    /// If a [ForeignKey] attribute is not present, configures the relationship via Fluent API.
+    /// Ensures all entities implementing ITenantScoped or ITenantScopedOptional have a Tenant
+    /// navigation property with a foreign key to TenantId. If a [ForeignKey] attribute is not
+    /// present, configures the relationship via Fluent API.
     /// </summary>
     /// <param name="modelBuilder">The model builder.</param>
     /// <param name="entityTypes">The list of entity types to inspect for registering.</param>
     private void ApplyTenantForeignKeyConfiguration(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes)
     {
         var tenantScopedType = typeof(MultiTenant.ITenantScoped);
+        var tenantScopedOptionalType = typeof(MultiTenant.ITenantScopedOptional);
         foreach (var entityType in entityTypes)
         {
-            if (!tenantScopedType.IsAssignableFrom(entityType.ClrType))
+            if (!tenantScopedType.IsAssignableFrom(entityType.ClrType)
+                && !tenantScopedOptionalType.IsAssignableFrom(entityType.ClrType))
                 continue;
 
             var nav = entityType.FindNavigation("Tenant");
@@ -179,5 +183,43 @@ public abstract partial class JumpStartDbContext
         where TEntity : class, MultiTenant.ITenantScoped
     {
         modelBuilder.Entity<TEntity>().HasQueryFilter(e => CurrentTenantId == null || e.TenantId == CurrentTenantId);
+    }
+
+    private static readonly MethodInfo SetTenantOptionalQueryFilterMethod =
+        typeof(JumpStartDbContext).GetMethod(nameof(SetTenantOptionalQueryFilter), BindingFlags.NonPublic | BindingFlags.Instance)!;
+
+    /// <summary>
+    /// Applies a global query filter for multi-tenant data isolation to all entities implementing
+    /// <see cref="MultiTenant.ITenantScopedOptional"/>. See ADR-012.
+    /// </summary>
+    /// <param name="modelBuilder">The model builder.</param>
+    /// <param name="entityTypes">The list of entity types to inspect for registering.</param>
+    /// <remarks>
+    /// <para>
+    /// Unlike <see cref="ApplyGlobalTenantFilter"/>, a row is excluded only when it belongs to a
+    /// tenant other than the current one - a row with <c>TenantId == null</c> (global) is always
+    /// visible, in addition to rows matching <see cref="CurrentTenantId"/>. If
+    /// <see cref="CurrentTenantId"/> itself is null (single-tenant applications, or system-wide
+    /// operations), this filter is a no-op and all rows are visible, exactly as
+    /// <see cref="ApplyGlobalTenantFilter"/> already behaves for <see cref="MultiTenant.ITenantScoped"/>.
+    /// </para>
+    /// </remarks>
+    private void ApplyGlobalTenantOptionalFilter(ModelBuilder modelBuilder, List<IMutableEntityType> entityTypes)
+    {
+        var tenantScopedOptionalType = typeof(MultiTenant.ITenantScopedOptional);
+        foreach (var entityType in entityTypes)
+        {
+            if (!tenantScopedOptionalType.IsAssignableFrom(entityType.ClrType))
+                continue;
+
+            SetTenantOptionalQueryFilterMethod.MakeGenericMethod(entityType.ClrType).Invoke(this, [modelBuilder]);
+        }
+    }
+
+    private void SetTenantOptionalQueryFilter<TEntity>(ModelBuilder modelBuilder)
+        where TEntity : class, MultiTenant.ITenantScopedOptional
+    {
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
+            CurrentTenantId == null || e.TenantId == null || e.TenantId == CurrentTenantId);
     }
 }

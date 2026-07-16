@@ -75,32 +75,34 @@ authenticated request missing the right `Permission` claim gets `403`.
 
 ## Quick Start
 
-### 1. Issue Permission Claims When You Create the User's Identity
+### 1. Decide Where Permissions Come From
+
+`Permission` claims have to come from somewhere - JumpStart doesn't invent them for you.
+[ADR-012](architecture/adr/012-role-based-permission-management.md) provides a real
+permission-administration model for this: define `Role`s, grant `Permission` claims to those roles
+(`RolePermission`), assign users to roles (`UserRole`), or grant a permission directly to a user as
+a one-off (`UserPermission`). `IRoleRepository.GetPermissionClaimsForUserAsync(userId)` resolves the
+full, de-duplicated set of claims a user should have.
+
+### 2. Issue Permission Claims When You Create the User's Identity
 
 **JWT (Web API):**
 
+`IJwtTokenService.GenerateToken` takes `IEnumerable<Claim>` (not a flat dictionary), so it can add
+as many `Permission` claims as the user actually has:
+
 ```csharp
+var permissions = await roleRepository.GetPermissionClaimsForUserAsync(user.Id);
 var token = _jwtTokenService.GenerateToken(
-    user.NumericId,
+    user.Id,
     user.UserName,
-    additionalClaims: new Dictionary<string, string>
-    {
-        ["Permission"] = "Product.Get" // only one value per key - see note below
-    });
+    additionalClaims: permissions.Select(p => new Claim("Permission", p)));
 ```
 
-`IJwtTokenService.GenerateToken`'s `additionalClaims` is a flat `Dictionary<string, string>` - one
-value per key - so it cannot add multiple `Permission` claims on its own. For more than one
-permission, build the `ClaimsIdentity` directly instead (see [How-To: Secure
-Endpoints](how-to/secure-endpoints.md) for the pattern):
-
-```csharp
-var identity = new ClaimsIdentity(authenticationType);
-foreach (var permission in new[] { "Product.Get", "Product.List", "Product.Create" })
-{
-    identity.AddClaim(new Claim("Permission", permission));
-}
-```
+If your client (e.g. a Blazor Server app) has no direct `IRoleRepository` access - it's a separate
+project from the API and has no `JumpStartDbContext` - see
+[ADR-013](architecture/adr/013-jwt-token-exchange.md)'s token-exchange endpoint, which resolves
+permissions server-side and returns a real, permission-bearing JWT.
 
 **Cookie Authentication (Blazor Server / Identity):**
 
@@ -115,7 +117,7 @@ var identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
 await signInManager.Context.SignInAsync(IdentityConstants.ApplicationScheme, new ClaimsPrincipal(identity));
 ```
 
-### 2. Verify
+### 3. Verify
 
 Call an endpoint without the claim first to confirm you get `403`, then add the claim and confirm
 it succeeds - it's easy to assume authorization is "just working" because authentication succeeded.
@@ -193,6 +195,12 @@ custom actions don't need to specify the entity name themselves.
 ## Next Steps
 
 - **[ADR-011: Entity-Level Authorization](architecture/adr/011-entity-authorization.md)** - Full design rationale
+- **[ADR-012: Role-Based Permission Management](architecture/adr/012-role-based-permission-management.md)** -
+  Where `Permission` claims actually come from: roles, role permissions, user-role assignment, and
+  direct user-permission grants
+- **[ADR-013: JWT Token Exchange for Permission Resolution](architecture/adr/013-jwt-token-exchange.md)** -
+  How a client with no direct `IRoleRepository` access (e.g. Blazor Server) obtains a real,
+  permission-resolved JWT
 - **[Multi-Tenancy](multi-tenancy.md)** - Another automatic, always-on data-access concern to be
   aware of alongside entity authorization
 - **[Authentication & Security](authentication.md)** - JWT and cookie authentication setup

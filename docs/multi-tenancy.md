@@ -199,6 +199,31 @@ global filter becomes a no-op - every entity is visible regardless of `TenantId`
 correct behavior for system-wide operations (background jobs, admin tooling) that need to see
 across all tenants: have that specific `ITenantContext` implementation return `null`.
 
+### Optional Tenancy: ITenantScopedOptional
+
+`ITenantScoped`'s `TenantId` is required - every row must belong to exactly one tenant. Some
+entities need the opposite flexibility: a row that's either tenant-owned *or* global, decided per
+row rather than fixed for the whole entity type (e.g. a tenant-specific "Billing Manager" role next
+to a platform-wide "System Administrator" role). `ITenantScopedOptional` is a separate, weaker
+interface for exactly this case:
+
+```csharp
+public interface ITenantScopedOptional
+{
+    Guid? TenantId { get; set; }
+    Tenant? Tenant { get; set; }
+}
+```
+
+- `TenantId == null` means the row is global - always visible, in addition to rows matching the
+  current tenant.
+- Unlike `ITenantScoped`, `Repository<TEntity>.AddAsync` does **not** auto-populate `TenantId` for
+  these entities - the caller must set it explicitly (a real tenant ID, or `null` for global).
+  Auto-defaulting to the current tenant would silently remove the "can be global" choice.
+- `Role`, `UserRole`, and `UserPermission` (see
+  [ADR-012: Role-Based Permission Management](architecture/adr/012-role-based-permission-management.md))
+  are the framework's first real production entities using this interface.
+
 ## Tenant Context Implementations
 
 ### JWT Claim (Single Tenant Per User)
@@ -357,6 +382,10 @@ sees.
 ## Next Steps
 
 - **[ADR-010: Multi-Tenant Data Isolation](architecture/adr/010-multi-tenant-data-isolation.md)** - Full design rationale
+- **[ADR-012: Role-Based Permission Management](architecture/adr/012-role-based-permission-management.md)** -
+  `ITenantScopedOptional` and the roles/permissions system built on it
+- **[Entity Authorization](entity-authorization.md)** - Another automatic, always-on concern to be
+  aware of alongside multi-tenancy
 - **[Audit Tracking](audit-tracking.md)** - The soft-delete global query filter this design mirrors
 - **[Core Concepts](core-concepts.md)** - Understand entity and repository patterns
 

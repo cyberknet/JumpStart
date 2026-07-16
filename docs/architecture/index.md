@@ -43,6 +43,7 @@ Documented decisions about significant architectural choices.
 - [ADR-011: Entity-Level Authorization](adr/011-entity-authorization.md)
 - [ADR-012: Role-Based Permission Management](adr/012-role-based-permission-management.md)
 - [ADR-013: JWT Token Exchange for Permission Resolution](adr/013-jwt-token-exchange.md)
+- [ADR-014: Automatic JWT Exchange for Auto-Discovered API Clients](adr/014-automatic-jwt-exchange-for-api-clients.md)
 
 ## Design Patterns
 
@@ -119,6 +120,12 @@ A Blazor Server client authenticates users via Identity's cookie but has no dire
 JWT, exchanged for a real permission-bearing JWT via a `[Authorize]`-only (not `[EntityAuthorize]`)
 endpoint, closes that gap without introducing a second authentication mechanism - see
 [ADR-013](adr/013-jwt-token-exchange.md).
+
+### Why Auto-Attach JWT Exchange Instead of an Extension Interface?
+JumpStart is opinionated, not maximally flexible - it already prescribes the Blazor-Server-to-API
+token flow (ADR-013), so `RegisterApiClients` auto-attaches a concrete `JwtExchangeHandler` (not a
+consumer-implemented interface) whenever that flow's prerequisites are registered. See
+[ADR-014](adr/014-automatic-jwt-exchange-for-api-clients.md).
 
 ## Performance Considerations
 

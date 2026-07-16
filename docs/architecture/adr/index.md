@@ -76,6 +76,7 @@ What other options were considered?
 - [ADR-011: Entity-Level Authorization](011-entity-authorization.md) - Mandatory per-entity, per-action permission claims on every ApiControllerBase action
 - [ADR-012: Role-Based Permission Management](012-role-based-permission-management.md) - Optionally tenant-scoped roles, role permissions, user-role assignment, and direct user-permission grants
 - [ADR-013: JWT Token Exchange for Permission Resolution](013-jwt-token-exchange.md) - Two-token exchange letting a Blazor client obtain a permission-resolved JWT without direct repository access
+- [ADR-014: Automatic JWT Exchange for Auto-Discovered API Clients](014-automatic-jwt-exchange-for-api-clients.md) - RegisterApiClients auto-attaches the ADR-013 exchange flow when its prerequisites are registered
 
 ### Superseded Records
 

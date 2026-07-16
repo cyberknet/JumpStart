@@ -74,6 +74,7 @@ What other options were considered?
 - [ADR-009: Guid-Only Entities](009-guid-only-entities.md) - Removal of custom key type support; entities are Guid-only
 - [ADR-010: Multi-Tenant Data Isolation](010-multi-tenant-data-isolation.md) - Global query filter-based tenant isolation, mirroring soft delete
 - [ADR-011: Entity-Level Authorization](011-entity-authorization.md) - Mandatory per-entity, per-action permission claims on every ApiControllerBase action
+- [ADR-012: Role-Based Permission Management](012-role-based-permission-management.md) - Optionally tenant-scoped roles, role permissions, user-role assignment, and direct user-permission grants
 
 ### Superseded Records
 

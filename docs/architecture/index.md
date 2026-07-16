@@ -41,6 +41,7 @@ Documented decisions about significant architectural choices.
 - [ADR-009: Guid-Only Entities](adr/009-guid-only-entities.md)
 - [ADR-010: Multi-Tenant Data Isolation](adr/010-multi-tenant-data-isolation.md)
 - [ADR-011: Entity-Level Authorization](adr/011-entity-authorization.md)
+- [ADR-012: Role-Based Permission Management](adr/012-role-based-permission-management.md)
 
 ## Design Patterns
 
@@ -103,6 +104,13 @@ Every `ApiControllerBase` action requires a matching `Permission` claim (`"{Enti
 by default, with no opt-out - see [ADR-011](adr/011-entity-authorization.md). This guarantees no
 CRUD endpoint ships unprotected, at the cost of requiring every application to design a permission
 strategy before any endpoint will respond successfully.
+
+### Why Role-Based Permission Management?
+ADR-011 defines how `Permission` claims are checked, but not how an application decides which
+claims a user should have. `Role`/`RolePermission`/`UserRole` (optionally tenant-scoped, via the new
+`ITenantScopedOptional` interface - a role can be tenant-owned or global) plus a direct
+`UserPermission` grant path provide that missing piece - see
+[ADR-012](adr/012-role-based-permission-management.md).
 
 ## Performance Considerations
 

@@ -19,6 +19,7 @@ using JumpStart.DemoApp.Components;
 using JumpStart.DemoApp.Components.Account;
 using JumpStart.DemoApp.Data;
 using JumpStart.DemoApp.Services;
+using JumpStart.Services;
 using JumpStart.Services.Authentication;
 using JumpStart.Services.Authentication.Clients;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -77,18 +78,19 @@ builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
 builder.Services.AddTransient<JwtExchangeHandler>();
-// Demo-only: grants a first-time user the "Demo Administrator" role - see ADR-012's bootstrapping
-// note. Not a framework concept; kept separate from JwtExchangeHandler on purpose (ADR-014).
-builder.Services.AddTransient<DemoBootstrapHandler>();
+// API-client-based tenant selection (see ADR-015) - JwtExchangeHandler picks this up automatically
+// (resolved lazily via IServiceProvider, not constructor injection - see its remarks) to add a
+// tenant_id claim to the identity assertion. ITenantsApiClient itself is auto-discovered below
+// (AutoDiscoverApiClients).
+builder.Services.AddScoped<ITenantSelectionService, ApiTenantSelectionService>();
 
 // Get the API base URL from configuration
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
 
-// Token-exchange and demo-bootstrap clients pass their bearer token explicitly per call (see
-// JwtExchangeHandler/DemoBootstrapHandler) - they must not go through JwtAuthenticationHandler,
-// which would attach whatever's currently in ITokenStore (nothing, the first time).
-// Registered before AddJumpStart so RegisterApiClients' auto-attachment check (ADR-014) sees
-// ITokenExchangeApiClient as already present.
+// Token-exchange client passes its bearer token explicitly per call (see JwtExchangeHandler) -
+// it must not go through JwtAuthenticationHandler, which would attach whatever's currently in
+// ITokenStore (nothing, the first time). Registered before AddJumpStart so RegisterApiClients'
+// auto-attachment check (ADR-014) sees ITokenExchangeApiClient as already present.
 builder.Services.AddApiClient<ITokenExchangeApiClient>(apiBaseUrl);
 
 // ============================================
@@ -101,20 +103,34 @@ builder.Services.AddJumpStart(options =>
     options.AutoDiscoverRepositories = false;
 });
 
-// Demo-only bootstrap client - not part of RegisterApiClients' auto-attachment detection.
+// Demo-only: grants a brand-new user the "Demo Administrator" role, called directly from
+// Register.razor/ExternalLogin.razor right after account creation - see DemoNewUserBootstrapper's
+// remarks and ADR-014's correction note for why this replaced an earlier DelegatingHandler-based
+// design. Not part of RegisterApiClients' auto-attachment detection.
 builder.Services.AddApiClient<IDemoBootstrapApiClient>(apiBaseUrl);
+builder.Services.AddScoped<DemoNewUserBootstrapper>();
 
 // IProductApiClient predates [ApiClientFor<...>] and is registered manually, so it doesn't
 // benefit from RegisterApiClients' auto-attachment (ADR-014) - the chain must be wired by hand.
 // Handler order (first added = outermost, runs first): JwtExchangeHandler ensures a real token
-// exists; DemoBootstrapHandler grants a first-time user permissions if that token has none;
-// JwtAuthenticationHandler attaches whatever's now in ITokenStore.
+// exists; JwtAuthenticationHandler attaches whatever's now in ITokenStore.
 builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
     .AddHttpMessageHandler<JwtExchangeHandler>()
-    .AddHttpMessageHandler<DemoBootstrapHandler>()
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 
 var app = builder.Build();
+
+// ============================================
+// APPLY PENDING MIGRATIONS (Identity only)
+// ============================================
+// Demo-app convenience: automatically brings the Identity schema up to date on startup so the app
+// "just runs" against a fresh LocalDB instance with no manual `dotnet ef database update` step. Not
+// a recommended pattern for production services with multiple scaled-out instances (concurrent
+// migration application), but appropriate for a reference/demo app.
+using (var migrationScope = app.Services.CreateScope())
+{
+    migrationScope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.Migrate();
+}
 
 // ============================================
 // MIDDLEWARE PIPELINE
@@ -133,15 +149,20 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Authentication & Authorization must run before UseAntiforgery, so HttpContext.User is already
+// populated when antiforgery validates the token's embedded claims - otherwise every check compares
+// against the wrong (unauthenticated) principal, causing AntiforgeryValidationException on every
+// request, not just with stale cookies. See
+// https://learn.microsoft.com/en-us/aspnet/core/security/anti-request-forgery#antiforgery-middleware-order.
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 // Map Blazor components
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-// Authentication & Authorization
-app.UseAuthentication();
-app.UseAuthorization();
 
 // Add additional endpoints required by the Identity /Account Razor components
 app.MapAdditionalIdentityEndpoints();

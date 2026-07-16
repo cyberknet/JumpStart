@@ -1,0 +1,209 @@
+@* Copyright ©2026 Scott Blomfield *@
+@*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>.
+ *@
+
+@page "/user-permissions"
+@using JumpStart.Authorization.DTOs
+@using JumpStart.Authorization.Clients
+@inject IUserPermissionsApiClient UserPermissionsClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Direct User Permissions</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Direct User Permissions</h1>
+    <a class="btn btn-outline-secondary" href="/roles">
+        <i class="bi bi-arrow-left"></i> Back to Roles
+    </a>
+</div>
+
+<div class="alert alert-secondary">
+    <i class="bi bi-info-circle"></i> Grants a permission directly to a user, bypassing roles
+    entirely. Prefer <a href="/roles">Roles</a> for anything beyond a one-off grant - see ADR-012.
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+<div class="card mb-4">
+    <div class="card-header">Grant a Permission</div>
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">User ID</label>
+                <input class="form-control" placeholder="User GUID" @bind="newUserIdText" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Permission</label>
+                <input class="form-control" placeholder="e.g. Invoice.Get" @bind="newPermission" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tenant ID</label>
+                <input class="form-control" placeholder="Blank = global" @bind="newTenantIdText" />
+            </div>
+            <div class="col-md-1">
+                <button class="btn btn-primary w-100" @onclick="Grant">
+                    <i class="bi bi-plus-circle"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (loading)
+{
+    <p><em>Loading direct grants...</em></p>
+}
+else if (grants != null)
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>Permission</th>
+                    <th>Scope</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var grant in grants)
+                {
+                    <tr>
+                        <td><code>@grant.UserId</code></td>
+                        <td><code>@grant.Permission</code></td>
+                        <td>
+                            @if (grant.TenantId.HasValue)
+                            {
+                                <span class="badge bg-info">@grant.TenantId</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Global</span>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => Revoke(grant)">
+                                <i class="bi bi-trash"></i> Revoke
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (!grants.Any())
+    {
+        <div class="alert alert-info">No direct grants yet.</div>
+    }
+}
+
+@code {
+    private IEnumerable<UserPermissionDto>? grants;
+    private bool loading = true;
+    private string? errorMessage;
+    private string newUserIdText = string.Empty;
+    private string newPermission = string.Empty;
+    private string newTenantIdText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        errorMessage = null;
+        try
+        {
+            var result = await UserPermissionsClient.GetAllAsync();
+            grants = result.Items;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load direct grants: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task Grant()
+    {
+        if (!Guid.TryParse(newUserIdText, out var userId))
+        {
+            errorMessage = "User ID must be a valid GUID.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(newPermission))
+        {
+            errorMessage = "Permission is required.";
+            return;
+        }
+
+        Guid? tenantId = null;
+        if (!string.IsNullOrWhiteSpace(newTenantIdText))
+        {
+            if (!Guid.TryParse(newTenantIdText, out var parsedTenantId))
+            {
+                errorMessage = "Tenant ID must be a valid GUID, or left blank for a global grant.";
+                return;
+            }
+            tenantId = parsedTenantId;
+        }
+
+        errorMessage = null;
+        try
+        {
+            await UserPermissionsClient.CreateAsync(new CreateUserPermissionDto
+            {
+                UserId = userId,
+                Permission = newPermission,
+                TenantId = tenantId
+            });
+
+            newUserIdText = string.Empty;
+            newPermission = string.Empty;
+            newTenantIdText = string.Empty;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to grant permission: {ex.Message}";
+        }
+    }
+
+    private async Task Revoke(UserPermissionDto grant)
+    {
+        errorMessage = null;
+        try
+        {
+            await UserPermissionsClient.DeleteAsync(grant.Id);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to revoke grant: {ex.Message}";
+        }
+    }
+}

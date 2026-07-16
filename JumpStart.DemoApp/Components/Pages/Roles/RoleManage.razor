@@ -1,0 +1,235 @@
+@* Copyright ©2026 Scott Blomfield *@
+@*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>.
+ *@
+
+@page "/roles/{Id:guid}/manage"
+@using JumpStart.Authorization.DTOs
+@using JumpStart.Authorization.Clients
+@inject IRolesApiClient RolesClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Manage Role</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Manage Role@(role != null ? $": {role.Name}" : "")</h1>
+    <a class="btn btn-outline-secondary" href="/roles">
+        <i class="bi bi-arrow-left"></i> Back to Roles
+    </a>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else if (role == null)
+{
+    <div class="alert alert-warning">Role not found.</div>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">Permission Grants</div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input class="form-control" placeholder="e.g. Product.Get" @bind="newPermission" />
+                        <button class="btn btn-primary" @onclick="GrantPermission" disabled="@string.IsNullOrWhiteSpace(newPermission)">
+                            <i class="bi bi-plus-circle"></i> Grant
+                        </button>
+                    </div>
+
+                    @if (permissions == null || !permissions.Any())
+                    {
+                        <div class="alert alert-info">No permissions granted yet.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-group">
+                            @foreach (var permission in permissions.OrderBy(p => p))
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <code>@permission</code>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RevokePermission(permission)">
+                                        <i class="bi bi-x-circle"></i> Revoke
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">User Assignments</div>
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input class="form-control" placeholder="User GUID" @bind="newUserIdText" />
+                        <input class="form-control" placeholder="Tenant GUID (blank = global)" @bind="newAssignmentTenantIdText" />
+                        <button class="btn btn-primary" @onclick="AssignUser" disabled="@string.IsNullOrWhiteSpace(newUserIdText)">
+                            <i class="bi bi-person-plus"></i> Assign
+                        </button>
+                    </div>
+
+                    @if (assignedUsers == null || !assignedUsers.Any())
+                    {
+                        <div class="alert alert-info">No users assigned to this role yet.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-group">
+                            @foreach (var userId in assignedUsers)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <code>@userId</code>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => UnassignUser(userId)">
+                                        <i class="bi bi-person-dash"></i> Unassign
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private RoleDto? role;
+    private IEnumerable<string>? permissions;
+    private IEnumerable<Guid>? assignedUsers;
+    private bool loading = true;
+    private string? errorMessage;
+    private string newPermission = string.Empty;
+    private string newUserIdText = string.Empty;
+    private string newAssignmentTenantIdText = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        errorMessage = null;
+
+        try
+        {
+            role = await RolesClient.GetByIdAsync(Id);
+            permissions = await RolesClient.GetPermissionsAsync(Id);
+            assignedUsers = await RolesClient.GetUsersAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load role details: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task GrantPermission()
+    {
+        if (string.IsNullOrWhiteSpace(newPermission)) return;
+
+        errorMessage = null;
+        try
+        {
+            await RolesClient.GrantPermissionAsync(Id, new GrantPermissionDto { Permission = newPermission });
+            newPermission = string.Empty;
+            permissions = await RolesClient.GetPermissionsAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to grant permission: {ex.Message}";
+        }
+    }
+
+    private async Task RevokePermission(string permission)
+    {
+        errorMessage = null;
+        try
+        {
+            await RolesClient.RevokePermissionAsync(Id, permission);
+            permissions = await RolesClient.GetPermissionsAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to revoke permission: {ex.Message}";
+        }
+    }
+
+    private async Task AssignUser()
+    {
+        if (!Guid.TryParse(newUserIdText, out var userId))
+        {
+            errorMessage = "User ID must be a valid GUID.";
+            return;
+        }
+
+        Guid? tenantId = null;
+        if (!string.IsNullOrWhiteSpace(newAssignmentTenantIdText))
+        {
+            if (!Guid.TryParse(newAssignmentTenantIdText, out var parsedTenantId))
+            {
+                errorMessage = "Tenant ID must be a valid GUID, or left blank for a global assignment.";
+                return;
+            }
+            tenantId = parsedTenantId;
+        }
+
+        errorMessage = null;
+        try
+        {
+            await RolesClient.AssignUserAsync(Id, userId, tenantId);
+            newUserIdText = string.Empty;
+            newAssignmentTenantIdText = string.Empty;
+            assignedUsers = await RolesClient.GetUsersAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to assign user: {ex.Message}";
+        }
+    }
+
+    private async Task UnassignUser(Guid userId)
+    {
+        errorMessage = null;
+        try
+        {
+            await RolesClient.UnassignUserAsync(Id, userId);
+            assignedUsers = await RolesClient.GetUsersAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to unassign user: {ex.Message}";
+        }
+    }
+}

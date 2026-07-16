@@ -1,0 +1,206 @@
+@* Copyright ©2026 Scott Blomfield *@
+@*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>.
+ *@
+
+@page "/roles/new"
+@page "/roles/edit/{Id:guid}"
+@using System.ComponentModel.DataAnnotations
+@using JumpStart.Authorization.DTOs
+@using JumpStart.Authorization.Clients
+@inject IRolesApiClient RolesClient
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>@(IsEditMode ? "Edit Role" : "Create Role")</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>@(IsEditMode ? "Edit Role" : "Create Role")</h1>
+</div>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @errorMessage
+        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+    </div>
+}
+
+@if (loading)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="card">
+        <div class="card-body">
+            <EditForm Model="@model" OnValidSubmit="Save">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                    <InputText id="name" class="form-control" @bind-Value="model.Name" />
+                    <ValidationMessage For="@(() => model.Name)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <InputTextArea id="description" class="form-control" rows="3" @bind-Value="model.Description" />
+                    <ValidationMessage For="@(() => model.Description)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="tenantId" class="form-label">Tenant ID</label>
+                    <input id="tenantId" class="form-control" @bind="model.TenantIdText" placeholder="Leave blank for a global role" />
+                    <div class="form-text">
+                        Leave blank to create a <strong>global</strong> role, visible and assignable
+                        regardless of the current tenant. Enter a tenant's GUID to make this role
+                        owned by that tenant only.
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary" disabled="@saving">
+                        @if (saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        <i class="bi bi-check-circle"></i> Save
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="Cancel">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
+    private bool loading = true;
+    private bool saving = false;
+    private string? errorMessage;
+    private RoleEditModel model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (IsEditMode && Id.HasValue)
+        {
+            await LoadRole();
+        }
+        else
+        {
+            loading = false;
+        }
+    }
+
+    private async Task LoadRole()
+    {
+        loading = true;
+        errorMessage = null;
+
+        try
+        {
+            var role = await RolesClient.GetByIdAsync(Id!.Value);
+            if (role != null)
+            {
+                model = new RoleEditModel
+                {
+                    Name = role.Name,
+                    Description = role.Description,
+                    TenantIdText = role.TenantId?.ToString() ?? string.Empty
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load role: {ex.Message}";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task Save()
+    {
+        saving = true;
+        errorMessage = null;
+
+        try
+        {
+            Guid? tenantId = null;
+            if (!string.IsNullOrWhiteSpace(model.TenantIdText))
+            {
+                if (!Guid.TryParse(model.TenantIdText, out var parsed))
+                {
+                    errorMessage = "Tenant ID must be a valid GUID, or left blank for a global role.";
+                    return;
+                }
+                tenantId = parsed;
+            }
+
+            if (IsEditMode && Id.HasValue)
+            {
+                var updateDto = new UpdateRoleDto
+                {
+                    Id = Id.Value,
+                    Name = model.Name,
+                    Description = model.Description,
+                    TenantId = tenantId
+                };
+
+                await RolesClient.UpdateAsync(Id.Value, updateDto);
+            }
+            else
+            {
+                var createDto = new CreateRoleDto
+                {
+                    Name = model.Name,
+                    Description = model.Description,
+                    TenantId = tenantId
+                };
+
+                await RolesClient.CreateAsync(createDto);
+            }
+
+            Navigation.NavigateTo("/roles");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to save role: {ex.Message}";
+        }
+        finally
+        {
+            saving = false;
+        }
+    }
+
+    private void Cancel() => Navigation.NavigateTo("/roles");
+
+    private class RoleEditModel
+    {
+        [Required(ErrorMessage = "Name is required")]
+        [StringLength(100, ErrorMessage = "Name cannot exceed 100 characters")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+        public string? Description { get; set; }
+
+        public string TenantIdText { get; set; } = string.Empty;
+    }
+}

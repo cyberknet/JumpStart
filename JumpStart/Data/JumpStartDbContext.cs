@@ -12,6 +12,7 @@
  *  see <https://www.gnu.org/licenses/>. 
  */
 
+using JumpStart.Authorization;
 using JumpStart.Data.Configuration.Forms;
 using JumpStart.Forms;
 using JumpStart.Repositories;
@@ -186,4 +187,24 @@ public abstract partial class JumpStartDbContext : DbContext
     /// Gets or sets the UserTenants DbSet.
     /// </summary>
     public DbSet<UserTenant> UserTenants { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the Roles DbSet.
+    /// </summary>
+    public DbSet<Role> Roles { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the RolePermissions DbSet.
+    /// </summary>
+    public DbSet<RolePermission> RolePermissions { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the UserRoles DbSet.
+    /// </summary>
+    public DbSet<UserRole> UserRoles { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the UserPermissions DbSet.
+    /// </summary>
+    public DbSet<UserPermission> UserPermissions { get; set; } = null!;
 }

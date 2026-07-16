@@ -76,16 +76,24 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
-// Issues the Permission claims every ApiControllerBase action requires (see ADR-011) -
-// without this, every API call below would return 403.
-builder.Services.AddTransient<DemoTokenProvisioningHandler>();
+builder.Services.AddTransient<JwtExchangeHandler>();
+// Demo-only: grants a first-time user the "Demo Administrator" role - see ADR-012's bootstrapping
+// note. Not a framework concept; kept separate from JwtExchangeHandler on purpose (ADR-014).
+builder.Services.AddTransient<DemoBootstrapHandler>();
+
+// Get the API base URL from configuration
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
+
+// Token-exchange and demo-bootstrap clients pass their bearer token explicitly per call (see
+// JwtExchangeHandler/DemoBootstrapHandler) - they must not go through JwtAuthenticationHandler,
+// which would attach whatever's currently in ITokenStore (nothing, the first time).
+// Registered before AddJumpStart so RegisterApiClients' auto-attachment check (ADR-014) sees
+// ITokenExchangeApiClient as already present.
+builder.Services.AddApiClient<ITokenExchangeApiClient>(apiBaseUrl);
 
 // ============================================
 // 5. API CLIENT REGISTRATION
 // ============================================
-
-// Get the API base URL from configuration
-var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
 builder.Services.AddJumpStart(options =>
 {
     options.ApiBaseUrl = apiBaseUrl;
@@ -93,17 +101,17 @@ builder.Services.AddJumpStart(options =>
     options.AutoDiscoverRepositories = false;
 });
 
-// Token-exchange and demo-bootstrap clients pass their bearer token explicitly per call (see
-// DemoTokenProvisioningHandler) - they must not go through JwtAuthenticationHandler, which would
-// attach whatever's currently in ITokenStore (nothing, the first time).
-builder.Services.AddApiClient<ITokenExchangeApiClient>(apiBaseUrl);
+// Demo-only bootstrap client - not part of RegisterApiClients' auto-attachment detection.
 builder.Services.AddApiClient<IDemoBootstrapApiClient>(apiBaseUrl);
 
-//// Register API clients with JWT authentication handler
-// DemoTokenProvisioningHandler must run before JwtAuthenticationHandler (outermost handler
-// added first) so a token exists in ITokenStore before JwtAuthenticationHandler tries to attach it.
+// IProductApiClient predates [ApiClientFor<...>] and is registered manually, so it doesn't
+// benefit from RegisterApiClients' auto-attachment (ADR-014) - the chain must be wired by hand.
+// Handler order (first added = outermost, runs first): JwtExchangeHandler ensures a real token
+// exists; DemoBootstrapHandler grants a first-time user permissions if that token has none;
+// JwtAuthenticationHandler attaches whatever's now in ITokenStore.
 builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
-    .AddHttpMessageHandler<DemoTokenProvisioningHandler>()
+    .AddHttpMessageHandler<JwtExchangeHandler>()
+    .AddHttpMessageHandler<DemoBootstrapHandler>()
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 
 var app = builder.Build();

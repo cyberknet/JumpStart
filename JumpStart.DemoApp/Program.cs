@@ -20,6 +20,7 @@ using JumpStart.DemoApp.Components.Account;
 using JumpStart.DemoApp.Data;
 using JumpStart.DemoApp.Services;
 using JumpStart.Services.Authentication;
+using JumpStart.Services.Authentication.Clients;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -91,6 +92,12 @@ builder.Services.AddJumpStart(options =>
     options.AutoDiscoverApiClients = true;
     options.AutoDiscoverRepositories = false;
 });
+
+// Token-exchange and demo-bootstrap clients pass their bearer token explicitly per call (see
+// DemoTokenProvisioningHandler) - they must not go through JwtAuthenticationHandler, which would
+// attach whatever's currently in ITokenStore (nothing, the first time).
+builder.Services.AddApiClient<ITokenExchangeApiClient>(apiBaseUrl);
+builder.Services.AddApiClient<IDemoBootstrapApiClient>(apiBaseUrl);
 
 //// Register API clients with JWT authentication handler
 // DemoTokenProvisioningHandler must run before JwtAuthenticationHandler (outermost handler

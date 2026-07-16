@@ -1,25 +1,46 @@
+// Copyright ©2026 Scott Blomfield
+/*
+ *  This program is free software: you can redistribute it and/or modify it under the terms of the
+ *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+ *  even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ *  General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along with this program. If not,
+ *  see <https://www.gnu.org/licenses/>.
+ */
+
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
 using System.Security.Claims;
-using System.Text;
+using JumpStart.DemoApp.Clients;
 using JumpStart.Services.Authentication;
+using JumpStart.Services.Authentication.Clients;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.IdentityModel.Tokens;
 
 namespace JumpStart.DemoApp.Services;
 
 /// <summary>
-/// Ensures a signed-in user's <see cref="ITokenStore"/> holds a JWT with the demo's
-/// <c>Permission</c> claims before any request reaches <see cref="JwtAuthenticationHandler"/>.
+/// Ensures a signed-in user's <see cref="ITokenStore"/> holds a real, permission-resolved JWT
+/// before any request reaches <see cref="JwtAuthenticationHandler"/>. See ADR-013.
 /// </summary>
 /// <remarks>
 /// <para>
-/// JumpStart's <c>ApiControllerBase</c> actions all require a <c>Permission</c> claim of the form
-/// <c>"{EntityName}.{Action}"</c> (see ADR-011) - without one, every API call the Blazor app makes
-/// returns 403. <see cref="IJwtTokenService.GenerateToken"/>'s <c>additionalClaims</c> parameter is
-/// a flat <c>Dictionary&lt;string, string&gt;</c> (one value per key), so it can't add the several
-/// distinct <c>Permission</c> claims this demo needs on its own - this handler builds the token
-/// directly instead, using the same signing configuration <see cref="JwtTokenService"/> reads from
-/// <c>JwtSettings</c>.
+/// JumpStart's <c>ApiControllerBase</c> actions all require a <c>Permission</c> claim (see
+/// ADR-011) - without one, every API call the Blazor app makes returns 403. This handler mints a
+/// short-lived identity assertion token (no <c>Permission</c> claims) from the Blazor app's own
+/// authenticated user (Identity's cookie), then exchanges it for a real token via
+/// <see cref="ITokenExchangeApiClient"/> - see ADR-013 for why a two-token exchange is needed
+/// instead of resolving permissions in-process (this project has no <c>JumpStartDbContext</c>, so
+/// no direct <c>IRoleRepository</c> access).
+/// </para>
+/// <para>
+/// If the exchanged token carries zero <c>Permission</c> claims (a brand-new demo user - see
+/// ADR-012's bootstrapping gap), this handler also calls the demo-only
+/// <see cref="IDemoBootstrapApiClient"/> to grant a "Demo Administrator" role, then re-exchanges
+/// for an updated token. This bootstrap step is demo convenience, not a framework feature.
 /// </para>
 /// <para>
 /// Registered as the outermost handler in the Refit client pipeline (before
@@ -30,10 +51,11 @@ namespace JumpStart.DemoApp.Services;
 public class DemoTokenProvisioningHandler(
     AuthenticationStateProvider authStateProvider,
     ITokenStore tokenStore,
-    IConfiguration configuration) : DelegatingHandler
+    IJwtTokenService jwtTokenService,
+    ITokenExchangeApiClient tokenExchangeClient,
+    IDemoBootstrapApiClient demoBootstrapClient) : DelegatingHandler
 {
-    private static readonly string[] DemoEntities = ["Product", "Form", "QuestionType"];
-    private static readonly string[] DemoActions = ["Get", "List", "Create", "Update", "Delete"];
+    private static readonly TimeSpan AssertionTokenLifetime = TimeSpan.FromMinutes(2);
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -47,53 +69,38 @@ public class DemoTokenProvisioningHandler(
                 var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var username = user.Identity.Name ?? userIdClaim ?? "demo-user";
 
-                tokenStore.SetToken(GenerateDemoToken(userIdClaim, username));
+                if (Guid.TryParse(userIdClaim, out var userId))
+                {
+                    var realToken = await ExchangeForRealTokenAsync(userId, username);
+
+                    if (!HasPermissionClaims(realToken))
+                    {
+                        var assertionToken = MintAssertionToken(userId, username);
+                        await demoBootstrapClient.EnsureAdminAsync($"Bearer {assertionToken}");
+                        realToken = await ExchangeForRealTokenAsync(userId, username);
+                    }
+
+                    tokenStore.SetToken(realToken);
+                }
             }
         }
 
         return await base.SendAsync(request, cancellationToken);
     }
 
-    /// <summary>
-    /// Builds a JWT carrying the current user's real Guid identifier plus a full set of demo
-    /// <c>Permission</c> claims (every action, for every entity this demo app exposes).
-    /// </summary>
-    private string GenerateDemoToken(string? userIdClaim, string username)
+    private async Task<string> ExchangeForRealTokenAsync(Guid userId, string username)
     {
-        var secretKey = configuration["JwtSettings:SecretKey"]
-            ?? throw new InvalidOperationException("JWT SecretKey is not configured");
-        var issuer = configuration["JwtSettings:Issuer"]
-            ?? throw new InvalidOperationException("JWT Issuer is not configured");
-        var audience = configuration["JwtSettings:Audience"]
-            ?? throw new InvalidOperationException("JWT Audience is not configured");
-        var expirationMinutes = int.Parse(configuration["JwtSettings:ExpirationMinutes"] ?? "60");
+        var assertionToken = MintAssertionToken(userId, username);
+        var response = await tokenExchangeClient.ExchangeAsync($"Bearer {assertionToken}");
+        return response.Token;
+    }
 
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, userIdClaim ?? Guid.Empty.ToString()),
-            new(ClaimTypes.Name, username),
-            new(JwtRegisteredClaimNames.Sub, username),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
+    private string MintAssertionToken(Guid userId, string username) =>
+        jwtTokenService.GenerateToken(userId, username, expiration: AssertionTokenLifetime);
 
-        foreach (var entity in DemoEntities)
-        {
-            foreach (var action in DemoActions)
-            {
-                claims.Add(new Claim("Permission", $"{entity}.{action}"));
-            }
-        }
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
-            signingCredentials: credentials);
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
+    private static bool HasPermissionClaims(string token)
+    {
+        var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(token);
+        return jwtToken.Claims.Any(c => c.Type == "Permission");
     }
 }

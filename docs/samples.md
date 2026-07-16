@@ -9,152 +9,115 @@ JumpStart includes two reference implementations that demonstrate best practices
 1. **JumpStart.DemoApp** - Blazor Server application with ASP.NET Core Identity
 2. **JumpStart.DemoApp.Api** - Standalone RESTful API with JWT authentication
 
+Together they showcase JumpStart's intended two-project shape: the Blazor app owns **only** its
+ASP.NET Core Identity database (for login/registration) and reaches everything else JumpStart
+provides - Products, Forms, Roles/Permissions - through generated API clients talking to the
+separate API project. There is no `JumpStartDbContext`, no repository, and no direct entity access
+anywhere in the Blazor project.
+
+> There's no way today to route ASP.NET Core Identity itself through an API client - that would be
+> needed to remove the Blazor project's database dependency entirely. Out of scope for now.
+
 ## JumpStart.DemoApp
 
-A full-featured Blazor Server application demonstrating:
+A Blazor Server application demonstrating:
 
 ### Features
 
-- **ASP.NET Core Identity** - User registration, login, and account management
+- **ASP.NET Core Identity** - User registration, login, and account management (its own database -
+  the *only* database this project touches directly)
 - **Blazor Server** - Interactive UI with server-side rendering
-- **Entity Framework Core** - SQL Server database with migrations
-- **Audit Tracking** - Automatic tracking of created/modified records
-- **Repository Pattern** - Clean separation of data access
-- **AutoMapper** - Entity-DTO mapping
-- **Product Management** - Complete CRUD operations
+- **Everything else via API clients** - Products, Forms, Roles, and UserPermissions are all
+  consumed through Refit-based API clients calling `JumpStart.DemoApp.Api`
+- **Automatic JWT exchange** - `JwtExchangeHandler` obtains a real, permission-resolved token for
+  every API call with no manual login-to-token step (see
+  [ADR-013](architecture/adr/013-jwt-token-exchange.md)/[ADR-014](architecture/adr/014-automatic-jwt-exchange-for-api-clients.md))
 
 ### Project Structure
 
 ```
 JumpStart.DemoApp/
-??? Components/          # Blazor components and pages
-?   ??? Account/        # Identity UI components
-??? Controllers/        # API controllers (optional)
-??? Data/              # Entities and DbContext
-?   ??? Product.cs
-?   ??? ApplicationUser.cs
-?   ??? ApplicationDbContext.cs
-??? DTOs/              # Data transfer objects
-?   ??? ProductDto.cs
-??? Mapping/           # AutoMapper profiles
-?   ??? ProductMappingProfile.cs
-??? Repositories/      # Custom repositories
-?   ??? ProductRepository.cs
-??? Services/          # Application services
-?   ??? BlazorUserContext.cs
-??? Program.cs         # Application configuration
+├── Components/              # Blazor components and pages
+│   ├── Account/             # Identity UI components
+│   ├── Layout/
+│   └── Pages/
+│       ├── Products/
+│       ├── Forms/
+│       ├── QuestionTypes/
+│       └── Roles/           # Role/permission administration UI (ADR-012)
+├── Data/                    # Identity only - no JumpStart entities here
+│   ├── ApplicationUser.cs
+│   └── ApplicationDbContext.cs
+├── Clients/                 # Refit API client interfaces
+│   ├── ProductApiClient.cs  # IProductApiClient (manually registered)
+│   └── IDemoBootstrapApiClient.cs
+├── Services/
+│   └── DemoBootstrapHandler.cs  # Demo-only bootstrap, not a framework concept
+└── Program.cs
 ```
+
+`IFormsApiClient`, `IRolesApiClient`, and `IUserPermissionsApiClient` aren't listed above because
+they live in JumpStart core (`JumpStart.Forms.Clients`/`JumpStart.Authorization.Clients`) and are
+discovered automatically - there's no need to redeclare them in the consuming app.
 
 ### Key Files
 
-#### Entity with Audit Tracking
+#### Identity-Only DbContext
 
-**Data/Product.cs:**
-
-```csharp
-public class Product : AuditableNamedEntity
-{
-    public string Description { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public int StockQuantity { get; set; }
-    public string? ImageUrl { get; set; }
-    
-    // Navigation properties
-    public Guid? CategoryId { get; set; }
-    public Category? Category { get; set; }
-}
-```
-
-#### Repository with Custom Methods
-
-**Repositories/ProductRepository.cs:**
+**Data/ApplicationDbContext.cs:**
 
 ```csharp
-public interface IProductRepository : IRepository<Product>
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
 {
-    Task<IList<Product>> GetLowStockProductsAsync(int threshold);
-    Task<IList<Product>> GetProductsByCategoryAsync(Guid categoryId);
-}
-
-public class ProductRepository : Repository<Product>, IProductRepository
-{
-    public ProductRepository(
-        ApplicationDbContext context,
-        IUserContext? userContext)
-        : base(context, userContext)
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
     {
-    }
-
-    public async Task<IList<Product>> GetLowStockProductsAsync(int threshold)
-    {
-        return await _context.Set<Product>()
-            .Where(p => p.StockQuantity <= threshold)
-            .OrderBy(p => p.StockQuantity)
-            .ToListAsync();
-    }
-
-    public async Task<IList<Product>> GetProductsByCategoryAsync(Guid categoryId)
-    {
-        return await _context.Set<Product>()
-            .Where(p => p.CategoryId == categoryId)
-            .Include(p => p.Category)
-            .OrderBy(p => p.Name)
-            .ToListAsync();
     }
 }
 ```
 
-#### User Context for Blazor
+This is deliberately a plain `IdentityDbContext`, **not** a `JumpStartDbContext` - the Blazor
+project has no JumpStart entities of its own, so there's nothing for it to seed or configure.
 
-**Services/BlazorUserContext.cs:**
+#### API Client
+
+**Clients/ProductApiClient.cs:**
 
 ```csharp
-public class BlazorUserContext : IUserContext
+public interface IProductApiClient : IApiClient<ProductDto, CreateProductDto, UpdateProductDto>
 {
-    private readonly AuthenticationStateProvider _authenticationStateProvider;
+    [Get("/by-price-range")]
+    Task<IEnumerable<ProductDto>> GetByPriceRangeAsync([Query] decimal minPrice, [Query] decimal maxPrice);
 
-    public BlazorUserContext(AuthenticationStateProvider authenticationStateProvider)
-    {
-        _authenticationStateProvider = authenticationStateProvider;
-    }
+    [Get("/low-stock")]
+    Task<IEnumerable<ProductDto>> GetLowStockAsync([Query] int threshold = 10);
 
-    public async Task<Guid?> GetCurrentUserIdAsync()
-    {
-        var authState = await _authenticationStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (!user.Identity?.IsAuthenticated ?? true)
-            return null;
-
-        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
-        return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
-    }
+    [Get("/active")]
+    Task<IEnumerable<ProductDto>> GetActiveAsync();
 }
 ```
+
+Blazor components inject this directly (`@inject IProductApiClient ProductClient`) - there's no
+local repository or service layer wrapping it, because there's nothing local to wrap.
 
 #### Configuration
 
 **Program.cs:**
 
 ```csharp
-using JumpStart;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+// 1. Identity's own database - the only DbContext in this project
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
-// Add JumpStart with DbContext
-builder.Services.AddJumpStartWithDbContext<ApplicationDbContext>(
-    options => options.UseSqlServer(connectionString),
-    jumpStart =>
+// 2. Identity services (cookie auth, registration, login)
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+builder.Services.AddAuthentication(options =>
     {
-        jumpStart.RegisterUserContext<BlazorUserContext>();
-        jumpStart.ScanAssembly(typeof(Program).Assembly);
-    });
-
-// Add AutoMapper
-builder.Services.AddJumpStartAutoMapper(typeof(Program).Assembly);
-
-// Add Identity
+        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    })
+    .AddIdentityCookies();
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
     {
         options.SignIn.RequireConfirmedAccount = true;
@@ -163,7 +126,41 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
+
+// 3. JWT services used to call the separate API
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ITokenStore, TokenStore>();
+builder.Services.AddTransient<JwtAuthenticationHandler>();
+builder.Services.AddTransient<JwtExchangeHandler>();
+builder.Services.AddTransient<DemoBootstrapHandler>(); // demo-only, see below
+
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7030";
+
+// Registered BEFORE AddJumpStart so its auto-attachment check (ADR-014) sees it already present
+builder.Services.AddApiClient<ITokenExchangeApiClient>(apiBaseUrl);
+
+// 4. Everything else JumpStart provides - discovered automatically
+builder.Services.AddJumpStart(options =>
+{
+    options.ApiBaseUrl = apiBaseUrl;
+    options.AutoDiscoverApiClients = true;   // discovers IFormsApiClient, IRolesApiClient, ...
+    options.AutoDiscoverRepositories = false; // no local repositories - this project has none
+});
+
+// Demo-only bootstrap client (grants a first-time user a role so the demo isn't empty)
+builder.Services.AddApiClient<IDemoBootstrapApiClient>(apiBaseUrl);
+
+// IProductApiClient predates [ApiClientFor<...>] and is registered manually, so its handler
+// chain is wired by hand - auto-discovered clients get this automatically.
+builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
+    .AddHttpMessageHandler<JwtExchangeHandler>()
+    .AddHttpMessageHandler<DemoBootstrapHandler>()
+    .AddHttpMessageHandler<JwtAuthenticationHandler>();
 ```
+
+`options.AutoDiscoverRepositories = false` is the load-bearing line here - it's what keeps this
+project from silently growing a direct-database-access path as new JumpStart modules are added.
+Every JumpStart feature (Forms, Roles, UserPermissions) reaches this app only as a Refit client.
 
 ### Running the Sample
 
@@ -171,14 +168,15 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 # Navigate to project
 cd JumpStart.DemoApp
 
-# Update database
+# Update the Identity database
 dotnet ef database update
 
 # Run application
 dotnet run
 ```
 
-Navigate to `https://localhost:7001` (or configured port).
+Navigate to `https://localhost:7099` (or your configured port). `JumpStart.DemoApp.Api` must also
+be running for anything beyond registration/login to work.
 
 ## JumpStart.DemoApp.Api
 
@@ -186,44 +184,65 @@ A standalone RESTful API demonstrating:
 
 ### Features
 
-- **JWT Bearer Authentication** - Secure token-based authentication
-- **RESTful Endpoints** - Standard CRUD operations
+- **JWT Bearer Authentication** - Validates the tokens `JwtExchangeHandler`/`TokenController`
+  produce
+- **Entity Authorization** - Every `ApiControllerBase` action requires a `Permission` claim by
+  default (ADR-011) - no opt-out
+- **RESTful Endpoints** - Products, Forms, Roles, and UserPermissions, all via
+  `ApiControllerBase<TEntity, ...>`
+- **Token Exchange Endpoint** - `POST /api/token/exchange` resolves and issues real,
+  permission-bearing JWTs (ADR-013)
 - **Swagger/OpenAPI** - Interactive API documentation
-- **CORS Support** - Cross-origin resource sharing
-- **Audit Tracking** - Automatic tracking via JWT claims
-- **Validation** - Input validation and error handling
+- **CORS Support** - Restricted to the Blazor app's origin
+- **Audit Tracking** - Automatic tracking via JWT claims (`ApiUserContext`)
 
 ### Project Structure
 
 ```
 JumpStart.DemoApp.Api/
-??? Controllers/              # API controllers
-?   ??? ExampleController.cs
-??? Infrastructure/
-?   ??? Authentication/      # JWT configuration
-?       ??? JwtSettings.cs
-?       ??? ApiUserContext.cs
-??? Program.cs              # API configuration
-??? appsettings.json        # Configuration
+├── Controllers/
+│   ├── ProductsController.cs      # ApiControllerBase<Product, ...>
+│   ├── DemoBootstrapController.cs # demo-only bootstrap endpoint
+│   └── ExampleController.cs       # plain [Authorize] example, not entity-based
+├── Data/
+│   ├── Product.cs
+│   └── ApiDbContext.cs            # : JumpStartDbContext
+├── Repositories/
+│   ├── IProductRepository.cs
+│   └── ProductRepository.cs
+├── Mapping/
+│   └── ProductMappingProfile.cs
+├── Infrastructure/
+│   └── Authentication/
+│       ├── JwtSettings.cs
+│       └── ApiUserContext.cs
+└── Program.cs
 ```
+
+`RolesController`, `UserPermissionsController`, `FormsController`, `QuestionTypesController`, and
+`TokenController` aren't listed above because they're framework-provided (`JumpStart.Authorization.Controllers`/
+`JumpStart.Forms.Controllers`/`JumpStart.Services.Authentication.Controllers`) - registered by
+`AddJumpStart`, not written by this project.
 
 ### Key Files
 
-#### JWT Configuration
+#### DbContext
 
-**Infrastructure/Authentication/JwtSettings.cs:**
+**Data/ApiDbContext.cs:**
 
 ```csharp
-public class JwtSettings
+public class ApiDbContext(DbContextOptions<ApiDbContext> options) : JumpStartDbContext(options)
 {
-    public string SecretKey { get; set; } = string.Empty;
-    public string Issuer { get; set; } = string.Empty;
-    public string Audience { get; set; } = string.Empty;
-    public int ExpirationMinutes { get; set; } = 60;
+    public DbSet<Product> Products { get; set; } = null!;
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder); // required - seeds framework data (QuestionTypes, etc.)
+    }
 }
 ```
 
-#### User Context for API
+#### User Context for the API
 
 **Infrastructure/Authentication/ApiUserContext.cs:**
 
@@ -246,10 +265,35 @@ public class ApiUserContext : IUserContext
 
         var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-        if (Guid.TryParse(userIdClaim, out var userId))
-            return Task.FromResult<Guid?>(userId);
+        return Task.FromResult(Guid.TryParse(userIdClaim, out var userId) ? (Guid?)userId : null);
+    }
+}
+```
 
-        return Task.FromResult<Guid?>(null);
+#### Product Controller
+
+**Controllers/ProductsController.cs:**
+
+```csharp
+[Route("api/[controller]")]
+[ApiController]
+public class ProductsController
+    : ApiControllerBase<Product, ProductDto, CreateProductDto, UpdateProductDto, IProductRepository>
+{
+    public ProductsController(IProductRepository repository, IMapper mapper,
+        ILogger<ProductsController> logger, ICorrelationContextAccessor correlationAccessor)
+        : base(repository, mapper, logger, correlationAccessor)
+    {
+    }
+
+    // Inherits GET/GET-all/POST/PUT/DELETE, each already protected by [EntityAuthorize] (ADR-011)
+
+    [HttpGet("by-price-range")]
+    public async Task<ActionResult<IEnumerable<ProductDto>>> GetByPriceRange(
+        [FromQuery] decimal minPrice, [FromQuery] decimal maxPrice)
+    {
+        var products = await _repository.GetProductsByPriceRangeAsync(minPrice, maxPrice);
+        return Ok(_mapper.Map<List<ProductDto>>(products));
     }
 }
 ```
@@ -259,7 +303,27 @@ public class ApiUserContext : IUserContext
 **Program.cs:**
 
 ```csharp
-// JWT Authentication
+// 1. Database
+builder.Services.AddDbContext<ApiDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// 2. JumpStart framework services
+builder.Services.AddJumpStart(options =>
+{
+    options.RegisterUserContext<ApiUserContext>();
+    options.AutoDiscoverRepositories = true;   // required for EnsureDbContextResolution
+    options.ScanAssembly(typeof(Program).Assembly);
+    options.RegisterFormsController = true;
+    options.RegisterAuthorizationController = true; // Roles/UserPermissions CRUD (ADR-012)
+    options.RegisterTokenController = true;         // POST /api/token/exchange (ADR-013)
+});
+
+// 3. AutoMapper
+builder.Services.AddJumpStartAutoMapper(
+    typeof(Program).Assembly,
+    typeof(JumpStart.Forms.Form).Assembly);
+
+// 4. JWT bearer authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>()
     ?? throw new InvalidOperationException("JwtSettings configuration is missing");
 
@@ -274,29 +338,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSettings.Issuer,
             ValidAudience = jwtSettings.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
             ClockSkew = TimeSpan.Zero
         };
     });
 
 builder.Services.AddAuthorization();
 
-// CORS
+// 5. CORS - restrict to the Blazor app's origin
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorServer", policy =>
-    {
-        policy.WithOrigins(blazorServerUrl)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
-    });
+        policy.WithOrigins(blazorServerUrl).AllowAnyMethod().AllowAnyHeader().AllowCredentials());
 });
 
-// User Context
+// 6. HTTP context accessor (for IUserContext)
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IUserContext, ApiUserContext>();
+
+// 7. Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// 8. Controllers
+builder.Services.AddControllers();
 ```
 
 **appsettings.json:**
@@ -310,180 +374,79 @@ builder.Services.AddScoped<IUserContext, ApiUserContext>();
     "ExpirationMinutes": 60
   },
   "CorsSettings": {
-    "BlazorServerUrl": "https://localhost:7001"
+    "BlazorServerUrl": "https://localhost:7099"
   }
 }
 ```
 
-#### Secured Controller
-
-**Controllers/ExampleController.cs:**
-
-```csharp
-[ApiController]
-[Route("api/[controller]")]
-[Authorize] // Requires JWT authentication
-public class ExampleController : ControllerBase
-{
-    private readonly IUserContext _userContext;
-
-    public ExampleController(IUserContext userContext)
-    {
-        _userContext = userContext;
-    }
-
-    [HttpGet("current-user")]
-    public async Task<ActionResult> GetCurrentUser()
-    {
-        var userId = await _userContext.GetCurrentUserIdAsync();
-        
-        if (userId == null)
-            return Unauthorized("User not authenticated");
-
-        return Ok(new
-        {
-            UserId = userId,
-            Message = "User authenticated successfully",
-            Timestamp = DateTime.UtcNow
-        });
-    }
-
-    [HttpGet("public")]
-    [AllowAnonymous] // No authentication required
-    public IActionResult GetPublic()
-    {
-        return Ok(new
-        {
-            Message = "This is a public endpoint",
-            Timestamp = DateTime.UtcNow
-        });
-    }
-}
-```
+**Important Security Notes:**
+- The `SecretKey` must be at least 32 characters long and identical in both projects' configuration
+- In production, store the secret key securely (Azure Key Vault, environment variables, etc.)
+- Never commit production secrets to source control
 
 ### Running the Sample
 
 ```bash
-# Navigate to project
 cd JumpStart.DemoApp.Api
-
-# Run API
+dotnet ef database update
 dotnet run
 ```
 
-Navigate to `https://localhost:7030/swagger` (or configured port) for API documentation.
+Navigate to `https://localhost:7030/swagger` (or your configured port) for API documentation.
 
 ## Testing the Samples
 
-### Generate JWT Token
+Register and log in through the Blazor app, then visit any page that calls the API (Products,
+Forms, Roles). There is no manual "generate a token" step - `JwtExchangeHandler` mints a short-lived
+identity assertion from the logged-in user, exchanges it for a real token via
+`POST /api/token/exchange`, and stores it automatically on the first API call of the session (see
+[ADR-013](architecture/adr/013-jwt-token-exchange.md)). A brand-new user is bootstrapped into a
+"Demo Administrator" role the first time this happens, so the demo isn't empty on first login (demo-only, see [ADR-012](architecture/adr/012-role-based-permission-management.md)'s bootstrapping note).
 
-Use the Blazor app to authenticate, then extract the token:
-
-```csharp
-// In Blazor app
-public class AuthenticationService
-{
-    private readonly IJwtTokenService _tokenService;
-    private readonly SignInManager<ApplicationUser> _signInManager;
-
-    public async Task<string> LoginAsync(string username, string password)
-    {
-        var result = await _signInManager.PasswordSignInAsync(
-            username, password, isPersistent: false, lockoutOnFailure: false);
-
-        if (result.Succeeded)
-        {
-            var user = await _signInManager.UserManager.FindByNameAsync(username);
-            return _tokenService.GenerateToken(user.Id, user.UserName!);
-        }
-
-        throw new InvalidOperationException("Login failed");
-    }
-}
-```
-
-### Call API with Token
+To call the API directly without going through Blazor (e.g. for debugging), you still need a real
+token. Get one from `TokenController`, using any validly-signed JWT as the identity assertion:
 
 ```bash
-# Using curl
-curl -X GET "https://localhost:7030/api/example/current-user" \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+# Exchange an assertion token for a real, permission-resolved one
+curl -X POST "https://localhost:7030/api/token/exchange" \
+  -H "Authorization: Bearer YOUR_ASSERTION_TOKEN_HERE"
 
-# Using PowerShell
-$token = "YOUR_JWT_TOKEN_HERE"
-$headers = @{ Authorization = "Bearer $token" }
-Invoke-RestMethod -Uri "https://localhost:7030/api/example/current-user" -Headers $headers
+# Then call the API with the real token
+curl -X GET "https://localhost:7030/api/products" \
+  -H "Authorization: Bearer YOUR_REAL_TOKEN_HERE"
 ```
 
 ## Common Patterns Demonstrated
 
-### 1. Audit Tracking Across Applications
+### 1. Audit Tracking Only Where There's Something to Audit
 
-**Blazor App:**
-- Uses `BlazorUserContext` with cookie authentication
-- User ID extracted from `AuthenticationStateProvider`
-
-**API:**
-- Uses `ApiUserContext` with JWT authentication
-- User ID extracted from JWT claims
-
-Both store the same audit information in the database!
+`ApiUserContext` (API project) extracts the user ID from JWT claims for `Repository<TEntity>`'s
+automatic `CreatedById`/`ModifiedById` population. The Blazor project has no `IUserContext`
+implementation at all - it has no repositories and no entities of its own, so there's nothing for
+one to serve.
 
 ### 2. Separation of Concerns
 
-- **Entities** - Domain models (no UI/API logic)
-- **Repositories** - Data access only
-- **Services** - Business logic
-- **Controllers** - HTTP request handling
-- **Components** - UI presentation
+- **Entities** - Domain models (API project only)
+- **Repositories** - Data access (API project only)
+- **Controllers** - HTTP request handling, protected by entity authorization by default
+- **API Clients** - Strongly-typed Refit interfaces (Blazor project's only way to reach JumpStart data)
+- **Components** - UI presentation (Blazor project)
 
 ### 3. Dependency Injection
 
-All dependencies injected via constructor:
+All dependencies injected via constructor, including generated API clients:
 
 ```csharp
-public class ProductService
-{
-    private readonly IProductRepository _repository;
-    private readonly IMapper _mapper;
-    private readonly ILogger<ProductService> _logger;
+@inject IProductApiClient ProductClient
 
-    public ProductService(
-        IProductRepository repository,
-        IMapper mapper,
-        ILogger<ProductService> logger)
+@code {
+    private IEnumerable<ProductDto>? products;
+
+    protected override async Task OnInitializedAsync()
     {
-        _repository = repository;
-        _mapper = mapper;
-        _logger = logger;
-    }
-}
-```
-
-### 4. Configuration Management
-
-Typed configuration classes:
-
-```csharp
-public class AppSettings
-{
-    public string ApplicationName { get; set; } = string.Empty;
-    public int MaxUploadSize { get; set; }
-    public EmailSettings Email { get; set; } = new();
-}
-
-// Registration
-builder.Services.Configure<AppSettings>(
-    builder.Configuration.GetSection("AppSettings"));
-
-// Usage
-public class MyService
-{
-    private readonly AppSettings _settings;
-
-    public MyService(IOptions<AppSettings> options)
-    {
-        _settings = options.Value;
+        var result = await ProductClient.GetAllAsync();
+        products = result.Items;
     }
 }
 ```
@@ -492,24 +455,27 @@ public class MyService
 
 ### For Beginners
 
-1. Start with **JumpStart.DemoApp**
-2. Explore the `Product` entity and `ProductRepository`
-3. Look at how audit tracking works automatically
-4. Understand the Blazor components
+1. Start with **JumpStart.DemoApp.Api** - it's where the actual entities, repositories, and
+   controllers live
+2. Explore `Product`, `IProductRepository`, and `ProductsController`
+3. See how `[EntityAuthorize]` protects every CRUD action automatically
 
 ### For Intermediate
 
-1. Study **JumpStart.DemoApp.Api**
-2. Understand JWT authentication setup
-3. Explore CORS configuration
-4. See how to secure endpoints
+1. Study **JumpStart.DemoApp** - notice it has no entities, repositories, or DbContext for
+   JumpStart data at all, only `IProductApiClient`/`IFormsApiClient`/etc.
+2. Trace a request: Blazor component → API client → `JwtExchangeHandler` → API → `[EntityAuthorize]`
+3. Explore CORS and JWT bearer configuration on the API side
 
 ### For Advanced
 
-1. Compare `BlazorUserContext` vs `ApiUserContext`
-2. Study the AutoMapper profiles
-3. Examine custom repository methods
-4. Understand the service registration patterns
+1. Compare `ApiUserContext` (JWT-claim-based) with a cookie-based `IUserContext` you might write for
+   a single-project app (see [Authentication & Security](authentication.md))
+2. Study `JwtExchangeHandler`/`TokenController` (ADR-013/014) and how `RegisterApiClients`
+   auto-attaches the handler chain
+3. Study the AutoMapper profiles and custom repository methods
+4. Read [Role-Based Permission Management](architecture/adr/012-role-based-permission-management.md)
+   and try granting/revoking permissions through the Roles admin UI
 
 ## Cloning and Running
 
@@ -521,13 +487,14 @@ cd JumpStart
 # Restore packages
 dotnet restore
 
-# Run Blazor app
-cd JumpStart.DemoApp
+# Run the API first
+cd JumpStart.DemoApp.Api
 dotnet ef database update
 dotnet run
 
-# In another terminal, run API
-cd ../JumpStart.DemoApp.Api
+# In another terminal, run the Blazor app
+cd ../JumpStart.DemoApp
+dotnet ef database update
 dotnet run
 ```
 
@@ -537,6 +504,8 @@ dotnet run
 - **[Core Concepts](core-concepts.md)** - Understand the framework
 - **[API Development](api-development.md)** - Create RESTful APIs
 - **[Authentication Guide](authentication.md)** - Implement security
+- **[Role-Based Permission Management](architecture/adr/012-role-based-permission-management.md)** -
+  How Permission claims are administered
 
 ---
 

@@ -709,4 +709,41 @@ public class JumpStartOptions
         /// </code>
         /// </example>
         public bool RegisterFormsController { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets whether to register the Roles/UserPermissions API controllers.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> to register <c>RolesController</c> and <c>UserPermissionsController</c>,
+        /// exposing RESTful role/permission administration endpoints; otherwise, <c>false</c>.
+        /// Default is <c>false</c>.
+        /// </value>
+        /// <remarks>
+        /// <para>
+        /// Set this to <c>true</c> in API projects that need to administer roles, role permissions,
+        /// user-role assignments, and direct user-permission grants (see ADR-012).
+        /// </para>
+        /// <para>
+        /// <strong>When to Enable:</strong>
+        /// - API projects that need to expose role/permission administration
+        /// </para>
+        /// <para>
+        /// <strong>When to Leave Disabled:</strong>
+        /// - Blazor Server apps accessing the database directly via repositories
+        /// - Client applications that only consume these APIs (enable <see cref="AutoDiscoverApiClients"/>
+        ///   instead - the Refit clients for this module are already decorated with
+        ///   <c>[ApiClientFor&lt;...&gt;]</c> and will be discovered and registered automatically)
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// // API project - expose role/permission administration endpoints
+        /// builder.Services.AddJumpStart(options =>
+        /// {
+        ///     options.RegisterAuthorizationController = true;
+        ///     options.RegisterUserContext&lt;ApiUserContext&gt;();
+        /// });
+        /// </code>
+        /// </example>
+        public bool RegisterAuthorizationController { get; set; } = false;
     }

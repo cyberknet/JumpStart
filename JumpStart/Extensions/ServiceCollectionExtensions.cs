@@ -236,6 +236,12 @@ public static partial class JumpStartServiceCollectionExtensions
             RegisterFormsServices(services);
         }
 
+        // Register role/permission-administration module services if configured
+        if (options.RegisterAuthorizationController)
+        {
+            RegisterAuthorizationServices(services);
+        }
+
         services.AddCorrelate();
 
         // Register Authorization handlers and policy provider

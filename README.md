@@ -110,7 +110,11 @@ That's it! You now have full CRUD endpoints with audit tracking. ??
 ### Architecture
 - **[Design Philosophy](docs/architecture/index.md)** - Understand the framework's design
 - **[Architecture Decision Records](docs/architecture/adr/index.md)** - Historical design decisions
+- **[Request For Comments](docs/architecture/rfc/index.md)** - Design proposals for roadmap features, before they become an ADR
 - **[Extension Points](docs/architecture/index.md#extension-points)** - Customize the framework
+
+### Roadmap
+- **[Feature Roadmap](docs/roadmap.md)** - Candidate future features (Attachments, Notifications, Approvals, Workflows) and the proposed build order
 
 ### Reference
 - **[API Reference](docs/api/index.html)** - Complete API documentation

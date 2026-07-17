@@ -19,6 +19,9 @@
     <File Path="docs/architecture/adr/010-multi-tenant-data-isolation.md" />
     <File Path="docs/architecture/adr/011-entity-authorization.md" />
     <File Path="docs/architecture/adr/012-role-based-permission-management.md" />
+    <File Path="docs/architecture/adr/013-jwt-token-exchange.md" />
+    <File Path="docs/architecture/adr/014-automatic-jwt-exchange-for-api-clients.md" />
+    <File Path="docs/architecture/adr/015-multi-tenancy-in-demo-app.md" />
     <File Path="docs/architecture/adr/index.md" />
   </Folder>
   <Folder Name="/Documentation/architecture/api/">
@@ -29,6 +32,12 @@
     <File Path="docs/how-to/index.md" />
     <File Path="docs/how-to/pagination.md" />
     <File Path="docs/how-to/secure-endpoints.md" />
+  </Folder>
+  <Folder Name="/Documentation/architecture/rfc/">
+    <File Path="docs/architecture/rfc/001-notifications.md" />
+    <File Path="docs/architecture/rfc/002-attachments.md" />
+    <File Path="docs/architecture/rfc/003-approvals.md" />
+    <File Path="docs/architecture/rfc/index.md" />
   </Folder>
   <Folder Name="/Documentation/images/">
     <File Path="docs/images/logo.svg" />

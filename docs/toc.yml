@@ -8,6 +8,8 @@
   href: how-to/index.md
 - name: Architecture
   href: architecture/index.md
+- name: Roadmap
+  href: roadmap.md
 - name: API Reference
   href: api/index.md
 - name: Samples

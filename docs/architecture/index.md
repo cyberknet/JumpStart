@@ -31,6 +31,12 @@ Where and how you can extend JumpStart.
 - Authentication providers
 - User context implementations
 
+### [RFCs](rfc/index.md)
+Design proposals for roadmap features that are still open, before they become an ADR.
+- [RFC-001: Notifications](rfc/001-notifications.md)
+- [RFC-002: Attachments](rfc/002-attachments.md)
+- [RFC-003: Approvals](rfc/003-approvals.md)
+
 ### [Architecture Decision Records](adr/index.md)
 Documented decisions about significant architectural choices.
 - [ADR-001: Repository Pattern](adr/001-repository-pattern.md)

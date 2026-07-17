@@ -72,6 +72,13 @@ Learn from complete sample applications.
 - **JumpStart.DemoApp** - Blazor Server application with Identity
 - **JumpStart.DemoApp.Api** - RESTful API with JWT authentication
 
+### [Roadmap](roadmap.md)
+Candidate future features and the proposed order to build them in.
+- Attachments
+- Notifications
+- Approvals
+- Workflows
+
 ## ?? Quick Links
 
 - [GitHub Repository](https://github.com/cyberknet/JumpStart)

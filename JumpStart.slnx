@@ -59,6 +59,12 @@
     <File Path="docs/faq.md" />
     <File Path="docs/toc.yml" />
     <File Path="docs/troubleshooting.md" />
+    <File Path="docs/documentation.md" />
+    <File Path="docs/multi-tenant-architecture.md" />
+    <File Path="docs/entity-authorization.md" />
+    <File Path="docs/multi-tenancy.md" />
+    <File Path="docs/roadmap.md" />
+    <File Path="docs/custom-repository-filtering.md" />
     <Folder Name="how-to/">
       <File Path="docs/how-to/index.md" />
       <File Path="docs/how-to/custom-repository.md" />
@@ -75,11 +81,8 @@
   <Folder Name="/General/">
     <File Path="build-docs.cmd" />
     <File Path="build-docs.sh" />
+    <File Path="CONTRIBUTING.md" />
     <File Path="custom.css" />
-    <File Path="DEPLOYMENT_CHECKLIST.md" />
-    <File Path="DOCUMENTATION.md" />
-    <File Path="DOCUMENTATION_BUILD_STATUS.md" />
-    <File Path="GITHUB_PAGES_SETUP.md" />
     <File Path="LICENSE.txt" />
     <File Path="README.md" />
   </Folder>

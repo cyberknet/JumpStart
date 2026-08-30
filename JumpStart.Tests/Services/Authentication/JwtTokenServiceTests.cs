@@ -1,4 +1,4 @@
-// Copyright �2026 Scott Blomfield
+// Copyright ©2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -9,11 +9,11 @@
  *  General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along with this program. If not,
- *  see <https://www.gnu.org/licenses/>. 
+ *  see <https://www.gnu.org/licenses/>.
  */
 
 using JumpStart.Services.Authentication;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -24,23 +24,23 @@ namespace JumpStart.Tests.Services.Authentication;
 /// </summary>
 public class JwtTokenServiceTests
 {
-    private IConfiguration CreateConfiguration()
+    private static IOptions<JwtTokenOptions> CreateOptions(
+        string secretKey = "ThisIsAVerySecretKeyForTestingThatIsAtLeast32CharactersLong!",
+        string issuer = "TestIssuer",
+        string audience = "TestAudience",
+        int expirationMinutes = 60)
     {
-        var configData = new Dictionary<string, string?>
+        return Options.Create(new JwtTokenOptions
         {
-            ["JwtSettings:SecretKey"] = "ThisIsAVerySecretKeyForTestingThatIsAtLeast32CharactersLong!",
-            ["JwtSettings:Issuer"] = "TestIssuer",
-            ["JwtSettings:Audience"] = "TestAudience",
-            ["JwtSettings:ExpirationMinutes"] = "60"
-        };
-
-        return new ConfigurationBuilder()
-            .AddInMemoryCollection(configData)
-            .Build();
+            SecretKey = secretKey,
+            Issuer = issuer,
+            Audience = audience,
+            ExpirationMinutes = expirationMinutes
+        });
     }
 
     [Fact]
-    public void Constructor_ThrowsArgumentNullException_WhenConfigurationIsNull()
+    public void Constructor_ThrowsArgumentNullException_WhenOptionsIsNull()
     {
         // Act & Assert
         Assert.Throws<ArgumentNullException>(() => new JwtTokenService(null!));
@@ -50,8 +50,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_ReturnsValidToken_WithBasicClaims()
     {
         // Arrange
-        var configuration = CreateConfiguration();
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions());
         var userId = Guid.NewGuid();
         var username = "testuser";
 
@@ -76,8 +75,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_ReturnsValidToken_WithAdditionalClaims()
     {
         // Arrange
-        var configuration = CreateConfiguration();
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions());
         var userId = Guid.NewGuid();
         var username = "adminuser";
         var additionalClaims = new[]
@@ -101,8 +99,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_ReturnsValidToken_WithMultipleClaimsOfSameType()
     {
         // Arrange
-        var configuration = CreateConfiguration();
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions());
         var additionalClaims = new[]
         {
             new Claim("Permission", "Product.Get"),
@@ -126,8 +123,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_UsesExplicitExpiration_WhenProvided()
     {
         // Arrange
-        var configuration = CreateConfiguration();
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions());
         var beforeGeneration = DateTime.UtcNow;
 
         // Act
@@ -146,8 +142,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_TokenExpiresAtCorrectTime()
     {
         // Arrange
-        var configuration = CreateConfiguration();
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions());
         var beforeGeneration = DateTime.UtcNow;
 
         // Act
@@ -170,18 +165,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_ThrowsInvalidOperationException_WhenSecretKeyMissing()
     {
         // Arrange
-        var configData = new Dictionary<string, string?>
-        {
-            ["JwtSettings:Issuer"] = "TestIssuer",
-            ["JwtSettings:Audience"] = "TestAudience",
-            ["JwtSettings:ExpirationMinutes"] = "60"
-        };
-
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configData)
-            .Build();
-
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions(secretKey: ""));
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() => service.GenerateToken(Guid.NewGuid(), "user"));
@@ -191,18 +175,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_ThrowsInvalidOperationException_WhenIssuerMissing()
     {
         // Arrange
-        var configData = new Dictionary<string, string?>
-        {
-            ["JwtSettings:SecretKey"] = "ThisIsAVerySecretKeyForTestingThatIsAtLeast32CharactersLong!",
-            ["JwtSettings:Audience"] = "TestAudience",
-            ["JwtSettings:ExpirationMinutes"] = "60"
-        };
-
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configData)
-            .Build();
-
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions(issuer: ""));
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() => service.GenerateToken(Guid.NewGuid(), "user"));
@@ -212,18 +185,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_ThrowsInvalidOperationException_WhenAudienceMissing()
     {
         // Arrange
-        var configData = new Dictionary<string, string?>
-        {
-            ["JwtSettings:SecretKey"] = "ThisIsAVerySecretKeyForTestingThatIsAtLeast32CharactersLong!",
-            ["JwtSettings:Issuer"] = "TestIssuer",
-            ["JwtSettings:ExpirationMinutes"] = "60"
-        };
-
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configData)
-            .Build();
-
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions(audience: ""));
 
         // Act & Assert
         Assert.Throws<InvalidOperationException>(() => service.GenerateToken(Guid.NewGuid(), "user"));
@@ -232,19 +194,13 @@ public class JwtTokenServiceTests
     [Fact]
     public void GenerateToken_UsesDefaultExpiration_WhenExpirationMinutesNotConfigured()
     {
-        // Arrange
-        var configData = new Dictionary<string, string?>
+        // Arrange - JwtTokenOptions.ExpirationMinutes already defaults to 60 when not set explicitly
+        var service = new JwtTokenService(Options.Create(new JwtTokenOptions
         {
-            ["JwtSettings:SecretKey"] = "ThisIsAVerySecretKeyForTestingThatIsAtLeast32CharactersLong!",
-            ["JwtSettings:Issuer"] = "TestIssuer",
-            ["JwtSettings:Audience"] = "TestAudience"
-        };
-
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(configData)
-            .Build();
-
-        var service = new JwtTokenService(configuration);
+            SecretKey = "ThisIsAVerySecretKeyForTestingThatIsAtLeast32CharactersLong!",
+            Issuer = "TestIssuer",
+            Audience = "TestAudience"
+        }));
         var beforeGeneration = DateTime.UtcNow;
 
         // Act
@@ -262,8 +218,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_IncludesJtiClaim()
     {
         // Arrange
-        var configuration = CreateConfiguration();
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions());
 
         // Act
         var token = service.GenerateToken(Guid.NewGuid(), "user");
@@ -281,8 +236,7 @@ public class JwtTokenServiceTests
     public void GenerateToken_GeneratesUniqueTokensForSameUser()
     {
         // Arrange
-        var configuration = CreateConfiguration();
-        var service = new JwtTokenService(configuration);
+        var service = new JwtTokenService(CreateOptions());
         var userId = Guid.NewGuid();
 
         // Act

@@ -18,7 +18,8 @@ The JumpStart framework now includes a separate Web API project (`JumpStart.Demo
      (ADR-013)
 
 2. **JumpStart** - Core library with authentication services
-   - `IJwtTokenService` / `JwtTokenService` - Generates JWT tokens
+   - `IJwtTokenService` / `JwtTokenService` - Generates JWT tokens, configured via `JwtTokenOptions`
+     (see [Customizing JwtTokenOptions](#customizing-jwttokenoptions) and ADR-016)
    - `ITokenStore` / `TokenStore` - Stores tokens for the current user session
    - `JwtAuthenticationHandler` - HTTP handler that adds JWT tokens to API requests
    - `JwtExchangeHandler` - HTTP handler that ensures a real, permission-resolved token exists
@@ -67,6 +68,10 @@ The JumpStart framework now includes a separate Web API project (`JumpStart.Demo
 ```
 
 **Note:** The `JwtSettings` should match between the Blazor app and API for token validation to work correctly.
+
+This `"JwtSettings"` shape is `AddJwtTokenService()`'s *default* binding, not a hardcoded requirement -
+see [Customizing JwtTokenOptions](#customizing-jwttokenoptions) below if your app's own config
+conventions (e.g. a flat environment variable name) don't fit a nested section.
 
 ## Usage
 
@@ -239,7 +244,9 @@ builder.Services.AddJumpStart(options =>
 
 ```csharp
 // JWT Services
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+// AddJwtTokenService() registers IJwtTokenService/JwtTokenService and binds JwtTokenOptions from the
+// "JwtSettings" section shown above - see Customizing JwtTokenOptions below for anything else.
+builder.Services.AddJwtTokenService();
 builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
 builder.Services.AddTransient<JwtExchangeHandler>();
@@ -261,6 +268,36 @@ builder.Services.AddApiClient<IProductApiClient>($"{apiBaseUrl}/api/products")
     .AddHttpMessageHandler<JwtExchangeHandler>()
     .AddHttpMessageHandler<JwtAuthenticationHandler>();
 ```
+
+### Customizing JwtTokenOptions
+
+`AddJwtTokenService()` (called directly above, and internally by `AddJumpStart(options =>
+options.RegisterTokenController = true)` on the API side) binds `JwtTokenOptions` from the
+`"JwtSettings"` config section by default - the shape shown in the [Configuration](#configuration)
+section above. If your app's own configuration conventions don't fit that shape - a flat environment
+variable name your Docker Compose setup already uses, say, rather than a nested JSON section - add a
+`PostConfigure` call for just the property you want to source differently:
+
+```csharp
+builder.Services.AddJwtTokenService();
+
+// Only SecretKey comes from somewhere else - Issuer/Audience/ExpirationMinutes still come from the
+// "JwtSettings" section as before.
+builder.Services.PostConfigure<JwtTokenOptions>(options =>
+    options.SecretKey = builder.Configuration["MY_APP_JWT_SECRET"] ?? options.SecretKey);
+```
+
+This works regardless of whether the `PostConfigure` call comes before or after `AddJwtTokenService()`/
+`AddJumpStart()` in `Program.cs` - `PostConfigure` delegates always run after every `Configure`
+delegate, by design, so there's no ordering requirement to remember. See
+[ADR-016: Configurable JWT Token Options](architecture/adr/016-configurable-jwt-token-options.md) for
+the full rationale, including why `JwtTokenService` used to hardcode `"JwtSettings:SecretKey"` (and
+its three sibling keys) directly and why that was a problem for consuming apps.
+
+**Remember to update both sides.** If a separate API project also reads the secret directly for its
+own `AddJwtBearer(...)` token-validation setup (see the [API Configuration](#service-registration)
+snippet above), that read needs to point at the same source, or the two processes will sign and
+validate tokens with different keys.
 
 #### JwtExchangeHandler (recommended for a separate API project)
 

@@ -15,7 +15,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace JumpStart.Services.Authentication;
@@ -24,11 +24,18 @@ namespace JumpStart.Services.Authentication;
 /// Implementation of JWT token service that generates secure tokens for authenticated users.
 /// </summary>
 /// <remarks>
-/// This service reads JWT configuration from appsettings.json under the "JwtSettings" section.
-/// The configuration must include: SecretKey, Issuer, Audience, and ExpirationMinutes.
+/// Reads its settings from <see cref="JwtTokenOptions"/> via the standard
+/// <see cref="IOptions{TOptions}"/> pattern - see <see cref="JwtTokenOptions"/>'s remarks (and
+/// ADR-016) for how those four values actually get there, and for why this used to read
+/// <c>IConfiguration</c> directly instead.
 /// </remarks>
 /// <example>
-/// Configuration in appsettings.json:
+/// Default registration (binds <see cref="JwtTokenOptions"/> from the <c>"JwtSettings"</c> config
+/// section - see <see cref="Microsoft.Extensions.DependencyInjection.JumpStartServiceCollectionExtensions.AddJwtTokenService(Microsoft.Extensions.DependencyInjection.IServiceCollection)"/>):
+/// <code>
+/// builder.Services.AddJwtTokenService();
+/// </code>
+/// appsettings.json:
 /// <code>
 /// {
 ///   "JwtSettings": {
@@ -39,36 +46,30 @@ namespace JumpStart.Services.Authentication;
 ///   }
 /// }
 /// </code>
-///
-/// Registration in Program.cs:
-/// <code>
-/// builder.Services.AddScoped&lt;IJwtTokenService, JwtTokenService&gt;();
-/// </code>
 /// </example>
 public class JwtTokenService : IJwtTokenService
 {
-    private readonly IConfiguration _configuration;
+    private readonly JwtTokenOptions _options;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="JumpStart.Services.Authentication.JwtTokenService"/> class.
+    /// Initializes a new instance of the <see cref="JwtTokenService"/> class.
     /// </summary>
-    /// <param name="configuration">The application configuration containing JWT settings.</param>
-    /// <exception cref="ArgumentNullException">Thrown when configuration is null.</exception>
-    public JwtTokenService(IConfiguration configuration)
+    /// <param name="options">The JWT token settings.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="options"/> is null.</exception>
+    public JwtTokenService(IOptions<JwtTokenOptions> options)
     {
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
     }
 
     /// <inheritdoc />
     public string GenerateToken(Guid userId, string username, IEnumerable<Claim>? additionalClaims = null, TimeSpan? expiration = null)
     {
-        var secretKey = _configuration["JwtSettings:SecretKey"]
-            ?? throw new InvalidOperationException("JWT SecretKey is not configured");
-        var issuer = _configuration["JwtSettings:Issuer"]
-            ?? throw new InvalidOperationException("JWT Issuer is not configured");
-        var audience = _configuration["JwtSettings:Audience"]
-            ?? throw new InvalidOperationException("JWT Audience is not configured");
-        var expirationMinutes = int.Parse(_configuration["JwtSettings:ExpirationMinutes"] ?? "60");
+        if (string.IsNullOrEmpty(_options.SecretKey))
+            throw new InvalidOperationException("JWT SecretKey is not configured");
+        if (string.IsNullOrEmpty(_options.Issuer))
+            throw new InvalidOperationException("JWT Issuer is not configured");
+        if (string.IsNullOrEmpty(_options.Audience))
+            throw new InvalidOperationException("JWT Audience is not configured");
 
         var claims = new List<Claim>
         {
@@ -84,14 +85,14 @@ public class JwtTokenService : IJwtTokenService
             claims.AddRange(additionalClaims);
         }
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
+            issuer: _options.Issuer,
+            audience: _options.Audience,
             claims: claims,
-            expires: DateTime.UtcNow.Add(expiration ?? TimeSpan.FromMinutes(expirationMinutes)),
+            expires: DateTime.UtcNow.Add(expiration ?? TimeSpan.FromMinutes(_options.ExpirationMinutes)),
             signingCredentials: credentials
         );
 

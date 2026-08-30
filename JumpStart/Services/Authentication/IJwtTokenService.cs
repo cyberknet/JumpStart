@@ -52,9 +52,9 @@ public interface IJwtTokenService
     /// several <c>Permission</c> claims - see ADR-011/ADR-013).
     /// </param>
     /// <param name="expiration">
-    /// Optional expiration override. If null, uses <c>JwtSettings:ExpirationMinutes</c> from
-    /// configuration. Callers minting a short-lived, single-purpose token (see ADR-013's identity
-    /// assertion token) should pass an explicit short duration here.
+    /// Optional expiration override. If null, uses <see cref="JwtTokenOptions.ExpirationMinutes"/>.
+    /// Callers minting a short-lived, single-purpose token (see ADR-013's identity assertion token)
+    /// should pass an explicit short duration here.
     /// </param>
     /// <returns>A JWT token string.</returns>
     /// <example>

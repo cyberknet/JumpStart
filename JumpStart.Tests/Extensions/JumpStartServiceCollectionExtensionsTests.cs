@@ -282,13 +282,14 @@ public class JumpStartServiceCollectionExtensionsTests
             .ToArray();
 
         // Act & Assert
-        // 3 methods declared directly on this partial class: AddJumpStart, AddApiClient<TInterface>,
-        // AddJumpStartWithDbContext. AddJumpStartAutoMapper lives on the separate
-        // JumpStartAutoMapperExtensions class, not on JumpStartServiceCollectionExtensions.
-        Assert.Equal(3, publicMethods.Length);
+        // 4 methods declared directly on this partial class: AddJumpStart, AddApiClient<TInterface>,
+        // AddJumpStartWithDbContext, AddJwtTokenService (see ADR-016). AddJumpStartAutoMapper lives on
+        // the separate JumpStartAutoMapperExtensions class, not on JumpStartServiceCollectionExtensions.
+        Assert.Equal(4, publicMethods.Length);
         Assert.Contains(publicMethods, m => m.Name == nameof(JumpStartServiceCollectionExtensions.AddJumpStart));
         Assert.Contains(publicMethods, m => m.Name == "AddApiClient");
         Assert.Contains(publicMethods, m => m.Name == "AddJumpStartWithDbContext");
+        Assert.Contains(publicMethods, m => m.Name == "AddJwtTokenService");
     }
 
     #endregion

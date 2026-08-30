@@ -19,6 +19,13 @@
 > [ADR-013](013-jwt-token-exchange.md): `GenerateToken(Guid userId, string username,
 > IEnumerable<Claim>? additionalClaims = null, TimeSpan? expiration = null)`. The code samples
 > below reflect the original, now-outdated signature and are kept for historical context.
+>
+> **⚠️ Correction (2026-08-30):** `JwtTokenService`'s constructor shown in section 1 below
+> (`IConfiguration`, indexed with hardcoded `"JwtSettings:..."` string literals) is superseded by
+> [ADR-016](016-configurable-jwt-token-options.md): it now takes `IOptions<JwtTokenOptions>`, bound
+> by default from the same `"JwtSettings"` section shown here (existing consumers need no changes),
+> but overridable to any config source a consuming app prefers. The code sample below reflects the
+> original, now-outdated constructor and is kept for historical context.
 
 ## Context
 

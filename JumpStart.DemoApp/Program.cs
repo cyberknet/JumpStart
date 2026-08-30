@@ -74,7 +74,9 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 // ============================================
 // 4. JWT TOKEN SERVICES (for API calls)
 // ============================================
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+// Binds JwtTokenOptions from the "JwtSettings" section by default - see AddJwtTokenService's remarks
+// for how to source any of those four values from somewhere else instead (e.g. a flat env var name).
+builder.Services.AddJwtTokenService();
 builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
 builder.Services.AddTransient<JwtExchangeHandler>();

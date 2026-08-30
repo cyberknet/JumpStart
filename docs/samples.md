@@ -127,8 +127,10 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-// 3. JWT services used to call the separate API
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+// 3. JWT services used to call the separate API - AddJwtTokenService() binds JwtTokenOptions from
+// the "JwtSettings" section below by default; see authentication.md#customizing-jwttokenoptions to
+// source any of those values differently.
+builder.Services.AddJwtTokenService();
 builder.Services.AddScoped<ITokenStore, TokenStore>();
 builder.Services.AddTransient<JwtAuthenticationHandler>();
 builder.Services.AddTransient<JwtExchangeHandler>();

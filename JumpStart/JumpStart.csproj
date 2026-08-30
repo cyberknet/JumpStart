@@ -12,13 +12,18 @@
     <Company>JumpStart</Company>
     <Description>A Blazor framework providing entity base classes, repository pattern implementation, and audit tracking for rapid application development.</Description>
     <PackageTags>blazor;entity-framework;repository;audit;framework</PackageTags>
-    <PackageProjectUrl>https://github.com/yourusername/jumpstart</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/yourusername/jumpstart</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/cyberknet/JumpStart</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/cyberknet/JumpStart</RepositoryUrl>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Title>JumpStart</Title>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

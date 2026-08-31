@@ -139,9 +139,41 @@ public abstract partial class JumpStartDbContext
                 var nullConstant = Expression.Constant(null, typeof(DateTimeOffset?));
                 var body = Expression.Equal(deletedOnProperty, nullConstant);
                 var lambda = Expression.Lambda(body, parameter);
-                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
+                ApplyCombinedQueryFilter(modelBuilder, entityType, lambda);
             }
         }
+    }
+
+    /// <summary>
+    /// Sets <paramref name="filter"/> as an entity's query filter, AND-combined with whatever filter
+    /// is already set on it (if any) - <c>HasQueryFilter</c> replaces rather than combines on repeat
+    /// calls for the same entity type, so calling it plainly here would silently drop whichever filter
+    /// (soft-delete, tenant scoping) was applied first for any entity that qualifies for more than
+    /// one. This is exactly the bug that let a soft-deleted, tenant-scoped <c>RustServer</c> keep
+    /// reappearing in every query after being "deleted" - <see cref="ApplyGlobalSoftDeleteFilter"/>'s
+    /// filter was being silently overwritten by <see cref="ApplyGlobalTenantFilter"/>'s.
+    /// </summary>
+    private static void ApplyCombinedQueryFilter(ModelBuilder modelBuilder, IMutableEntityType entityType, LambdaExpression filter)
+    {
+        var existing = entityType.GetQueryFilter();
+        if (existing is null)
+        {
+            modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+            return;
+        }
+
+        var parameter = existing.Parameters[0];
+        var rebasedNewBody = new ReplaceParameterVisitor(filter.Parameters[0], parameter).Visit(filter.Body);
+        var combinedBody = Expression.AndAlso(existing.Body, rebasedNewBody);
+        var combined = Expression.Lambda(combinedBody, parameter);
+        modelBuilder.Entity(entityType.ClrType).HasQueryFilter(combined);
+    }
+
+    /// <summary>Rewrites every reference to one lambda parameter to point at another, so two
+    /// independently-built predicate bodies can be AND-combined under a single shared parameter.</summary>
+    private sealed class ReplaceParameterVisitor(ParameterExpression from, ParameterExpression to) : ExpressionVisitor
+    {
+        protected override Expression VisitParameter(ParameterExpression node) => node == from ? to : base.VisitParameter(node);
     }
 
     private static readonly MethodInfo SetTenantQueryFilterMethod =
@@ -185,7 +217,9 @@ public abstract partial class JumpStartDbContext
     private void SetTenantQueryFilter<TEntity>(ModelBuilder modelBuilder)
         where TEntity : class, MultiTenant.ITenantScoped
     {
-        modelBuilder.Entity<TEntity>().HasQueryFilter(e => CurrentTenantId == null || e.TenantId == CurrentTenantId);
+        Expression<Func<TEntity, bool>> filter = e => CurrentTenantId == null || e.TenantId == CurrentTenantId;
+        var entityType = modelBuilder.Model.FindEntityType(typeof(TEntity))!;
+        ApplyCombinedQueryFilter(modelBuilder, entityType, filter);
     }
 
     private static readonly MethodInfo SetTenantOptionalQueryFilterMethod =
@@ -222,7 +256,9 @@ public abstract partial class JumpStartDbContext
     private void SetTenantOptionalQueryFilter<TEntity>(ModelBuilder modelBuilder)
         where TEntity : class, MultiTenant.ITenantScopedOptional
     {
-        modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
-            CurrentTenantId == null || e.TenantId == null || e.TenantId == CurrentTenantId);
+        Expression<Func<TEntity, bool>> filter = e =>
+            CurrentTenantId == null || e.TenantId == null || e.TenantId == CurrentTenantId;
+        var entityType = modelBuilder.Model.FindEntityType(typeof(TEntity))!;
+        ApplyCombinedQueryFilter(modelBuilder, entityType, filter);
     }
 }

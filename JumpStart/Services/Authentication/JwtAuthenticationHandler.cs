@@ -1,4 +1,4 @@
-// Copyright ©2026 Scott Blomfield
+// Copyright ï¿½2026 Scott Blomfield
 /*
  *  This program is free software: you can redistribute it and/or modify it under the terms of the
  *  GNU General Public License as published by the Free Software Foundation, either version 3 of the
@@ -13,6 +13,7 @@
  */
 
 using System.Net.Http.Headers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace JumpStart.Services.Authentication;
 
@@ -20,9 +21,23 @@ namespace JumpStart.Services.Authentication;
 /// HTTP message handler that adds JWT bearer token authentication to outgoing API requests.
 /// </summary>
 /// <remarks>
+/// <para>
 /// This handler retrieves the JWT token from the <see cref="JumpStart.Services.Authentication.ITokenStore"/> and adds it
 /// to the Authorization header of each outgoing request. If no token is available,
 /// the request proceeds without authentication.
+/// </para>
+/// <para>
+/// <strong>Why <see cref="ITokenStore"/> is resolved via <see cref="CircuitServicesAccessor"/>, not
+/// constructor injection:</strong> see <see cref="JwtExchangeHandler"/>'s own remarks on the identical
+/// question for the full explanation - <see cref="System.Net.Http.IHttpClientFactory"/> caches each
+/// named/typed client's whole handler pipeline (this handler included) for its
+/// <c>HandlerLifetime</c>, reusing that same pipeline - and whatever it captured in its constructor -
+/// across many requests, potentially spanning more than one circuit. A constructor-injected
+/// <see cref="ITokenStore"/> here would silently attach whichever circuit's token happened to be
+/// captured when this pipeline was first built, not necessarily the circuit making the current
+/// request - a confirmed bug, not a theoretical one: it was the second of two places this same mistake
+/// had to be fixed before a tenant switch actually stuck project-wide.
+/// </para>
 /// </remarks>
 /// <example>
 /// Registration in Program.cs:
@@ -30,14 +45,14 @@ namespace JumpStart.Services.Authentication;
 /// // Register token store and handler
 /// builder.Services.AddScoped&lt;ITokenStore, TokenStore&gt;();
 /// builder.Services.AddTransient&lt;JwtAuthenticationHandler&gt;();
-/// 
+///
 /// // Add to HttpClient
 /// builder.Services.AddHttpClient("ApiClient", client =>
 /// {
 ///     client.BaseAddress = new Uri("https://api.example.com");
 /// })
 /// .AddHttpMessageHandler&lt;JwtAuthenticationHandler&gt;();
-/// 
+///
 /// // Or with Refit
 /// builder.Services.AddRefitClient&lt;IMyApiClient&gt;()
 ///     .ConfigureHttpClient(c => c.BaseAddress = new Uri("https://api.example.com"))
@@ -46,16 +61,16 @@ namespace JumpStart.Services.Authentication;
 /// </example>
 public class JwtAuthenticationHandler : DelegatingHandler
 {
-    private readonly ITokenStore _tokenStore;
+    private readonly CircuitServicesAccessor _circuitServicesAccessor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JwtAuthenticationHandler"/> class.
     /// </summary>
-    /// <param name="tokenStore">The token store containing the user's JWT token.</param>
-    /// <exception cref="ArgumentNullException">Thrown when tokenStore is null.</exception>
-    public JwtAuthenticationHandler(ITokenStore tokenStore)
+    /// <param name="circuitServicesAccessor">Reaches the current circuit's real <see cref="ITokenStore"/> - see this class's own remarks for why that's not a plain constructor-injected <see cref="ITokenStore"/>.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="circuitServicesAccessor"/> is null.</exception>
+    public JwtAuthenticationHandler(CircuitServicesAccessor circuitServicesAccessor)
     {
-        _tokenStore = tokenStore ?? throw new ArgumentNullException(nameof(tokenStore));
+        _circuitServicesAccessor = circuitServicesAccessor ?? throw new ArgumentNullException(nameof(circuitServicesAccessor));
     }
 
     /// <inheritdoc />
@@ -63,7 +78,7 @@ public class JwtAuthenticationHandler : DelegatingHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        var token = _tokenStore.GetToken();
+        var token = _circuitServicesAccessor.Services?.GetService<ITokenStore>()?.GetToken();
 
         if (!string.IsNullOrWhiteSpace(token))
         {

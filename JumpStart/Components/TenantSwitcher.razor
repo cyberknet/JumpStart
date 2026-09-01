@@ -110,10 +110,17 @@ see <https://www.gnu.org/licenses/>.
                     await OnTenantChangedCallback.InvokeAsync(tenantId);
                 }
                 
-                // Reload page to refresh all data with new tenant context
+                // Reload page to refresh all data with new tenant context. The tenant id rides along
+                // in the URL because the reload tears down this whole circuit - including whatever
+                // in-memory selection TenantSelection.SetCurrentTenantAsync just recorded - so the
+                // fresh circuit's ITenantSelectionService has no other way to know what was just
+                // chosen. See ITenantSelectionService.TenantIdQueryParameterName's remarks.
                 if (ReloadOnChange)
                 {
-                    Navigation.NavigateTo(NavigateToUrl, forceLoad: true);
+                    var separator = NavigateToUrl.Contains('?') ? '&' : '?';
+                    Navigation.NavigateTo(
+                        $"{NavigateToUrl}{separator}{ITenantSelectionService.TenantIdQueryParameterName}={tenantId}",
+                        forceLoad: true);
                 }
             }
         }

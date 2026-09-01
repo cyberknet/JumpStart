@@ -118,15 +118,19 @@ public static partial class JumpStartServiceCollectionExtensions
         services.Any(sd => sd.ServiceType == typeof(ITokenExchangeApiClient));
 
     /// <summary>
-    /// Registers <see cref="CircuitServicesAccessor"/> and <see cref="ServicesAccessorCircuitHandler"/>
-    /// if not already present - required by <see cref="JwtExchangeHandler"/> to reach the current
-    /// circuit's <see cref="AuthenticationStateProvider"/> from a message handler that
-    /// <see cref="System.Net.Http.IHttpClientFactory"/> constructs in a separate DI scope. See
-    /// ADR-013's "Correction" note.
+    /// Registers <see cref="CircuitServicesAccessor"/>, <see cref="ServicesAccessorCircuitHandler"/>,
+    /// and <see cref="CircuitTenantCache"/> if not already present - required by
+    /// <see cref="JwtExchangeHandler"/> to reach the current circuit's
+    /// <see cref="AuthenticationStateProvider"/> (and, via <see cref="CircuitTenantCache"/>, its
+    /// resolved tenant) from a message handler that <see cref="System.Net.Http.IHttpClientFactory"/>
+    /// constructs in a separate DI scope. See ADR-013's "Correction" note, and
+    /// <see cref="CircuitTenantCache"/>'s own remarks for why it - unlike the other two here - is
+    /// Singleton, not Scoped.
     /// </summary>
     private static void EnsureCircuitServicesAccessorRegistered(IServiceCollection services)
     {
         services.TryAddScoped<CircuitServicesAccessor>();
+        services.TryAddSingleton<CircuitTenantCache>();
 
         if (!services.Any(sd => sd.ServiceType == typeof(CircuitHandler) && sd.ImplementationType == typeof(ServicesAccessorCircuitHandler)))
         {

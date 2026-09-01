@@ -79,6 +79,25 @@ namespace JumpStart.Services;
 public interface ITenantSelectionService
 {
     /// <summary>
+    /// Query string parameter name used to carry a just-selected tenant across the full-page reload
+    /// that <see cref="JumpStart.Components.TenantSwitcher"/> triggers when switching tenants (its
+    /// default <c>ReloadOnChange</c> behavior).
+    /// </summary>
+    /// <remarks>
+    /// A per-circuit implementation's in-memory selection (see <see cref="SetCurrentTenantAsync"/>)
+    /// cannot survive that reload on its own - the whole Blazor Server circuit, and every Scoped
+    /// service in it, is torn down and rebuilt from scratch, so a fresh
+    /// <see cref="GetCurrentTenantIdAsync"/> call has no memory of what was just chosen. Without some
+    /// other signal, it can only fall back to "whichever tenant happens to be listed first," silently
+    /// undoing the user's choice on every switch. Implementations should check for this parameter
+    /// (via <c>NavigationManager</c>, which - unlike a cookie or JS-interop-backed storage - is
+    /// available immediately in a fresh circuit, even before the first render) before falling back to
+    /// that default, and <see cref="JumpStart.Components.TenantSwitcher"/> appends it to the reload
+    /// URL for exactly this reason.
+    /// </remarks>
+    public const string TenantIdQueryParameterName = "tenantId";
+
+    /// <summary>
     /// Occurs when the current tenant selection changes.
     /// </summary>
     /// <remarks>

@@ -20,6 +20,9 @@ using JumpStart.Data;
 using JumpStart.MultiTenant.Clients;
 using JumpStart.MultiTenant.DTOs;
 using JumpStart.Services.Authentication;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace JumpStart.Services;
 
@@ -43,34 +46,116 @@ namespace JumpStart.Services;
 /// </para>
 /// <para>
 /// <strong>Lifetime:</strong> register as Scoped (one instance per circuit), matching
-/// <see cref="BlazorTenantSelectionService"/>.
+/// <see cref="BlazorTenantSelectionService"/> - <em>but</em> the actual resolved tenant lives in
+/// <see cref="CircuitTenantCache"/> (Singleton, keyed by <see cref="CircuitServicesAccessor.CircuitId"/>),
+/// not on this instance. A page composed of components that each declare their own explicit
+/// <c>@rendermode</c> - a common pattern, and true of every page in this app - gives each of those
+/// components its own DI scope and therefore its own, independent instance of this Scoped service,
+/// even though they all share one real circuit; confirmed by direct tracing, not theoretical. Caching
+/// the resolved tenant on <em>this instance</em> - what an earlier version of this class did - meant
+/// each island resolved (and could cache a different answer) independently, and whichever island's
+/// token exchange happened to finish last decided the tenant used for every request on the page. See
+/// <see cref="CircuitServicesAccessor.Services"/>'s own remarks for the full explanation.
 /// </para>
 /// </remarks>
 public class ApiTenantSelectionService(
     ITenantsApiClient tenantsClient,
-    ITokenStore tokenStore) : ITenantSelectionService
+    ITokenStore tokenStore,
+    CircuitServicesAccessor circuitServicesAccessor,
+    CircuitTenantCache circuitTenantCache) : ITenantSelectionService
 {
-    private Guid? _currentTenantId;
     private List<Tenant>? _cachedTenants;
+    private Task<List<Tenant>>? _cachedTenantsTask;
 
     /// <inheritdoc />
     public event Action<Guid?>? TenantChanged;
 
     /// <inheritdoc />
-    public async Task<Guid?> GetCurrentTenantIdAsync()
+    public Task<Guid?> GetCurrentTenantIdAsync()
     {
-        if (_currentTenantId.HasValue)
+        var circuitId = circuitServicesAccessor.CircuitId;
+        if (circuitId == null)
         {
-            return _currentTenantId;
+            // No circuit context at all (e.g. called outside any circuit activity) - nothing to share
+            // across islands with, so just resolve directly. Confirmed circuits always populate this
+            // (see CircuitServicesAccessor.CircuitId's remarks); this is a defensive fallback, not the
+            // expected path.
+            return ResolveCurrentTenantIdAsync();
         }
 
+        // GetOrResolveAsync caches the in-flight TASK itself, not just a flag or the eventual result -
+        // see its own remarks for why that distinction is what makes every concurrent caller, across
+        // every island sharing this circuit, await the exact same resolution instead of racing past
+        // each other to independently (and sometimes wrongly) fall back to "whichever tenant is first."
+        return circuitTenantCache.GetOrResolveAsync(circuitId, ResolveCurrentTenantIdAsync);
+    }
+
+    private async Task<Guid?> ResolveCurrentTenantIdAsync()
+    {
         var tenants = await GetAvailableTenantsAsync();
-        if (tenants.Count > 0)
+
+        var requestedTenantId = await GetTenantIdFromUrlAsync();
+        if (requestedTenantId.HasValue && tenants.Any(t => t.Id == requestedTenantId.Value))
         {
-            _currentTenantId = tenants[0].Id;
+            return requestedTenantId.Value;
         }
 
-        return _currentTenantId;
+        return tenants.Count > 0 ? tenants[0].Id : null;
+    }
+
+    /// <summary>
+    /// Reads <see cref="ITenantSelectionService.TenantIdQueryParameterName"/> off the current URL, if
+    /// present - see that constant's remarks for why this is what lets a tenant switch survive the
+    /// full-page reload <see cref="Components.TenantSwitcher"/> triggers.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Resolves <see cref="NavigationManager"/> via <see cref="circuitServicesAccessor"/> rather than
+    /// taking it as a constructor parameter, for the same reason <see cref="JwtExchangeHandler"/>
+    /// resolves <c>AuthenticationStateProvider</c> that way: this method is reached both from normal
+    /// component code (where constructor injection would resolve the real circuit's
+    /// <c>RemoteNavigationManager</c> just fine) and from inside <see cref="JwtExchangeHandler.SendAsync"/>,
+    /// which runs in <see cref="System.Net.Http.IHttpClientFactory"/>'s own, separate DI scope - a
+    /// constructor-injected <see cref="NavigationManager"/> resolved there would be a distinct,
+    /// never-initialized instance, and <see cref="NavigationManager.Uri"/> throws on one of those.
+    /// <see cref="CircuitServicesAccessor"/> is immune to that scope split (see its own remarks), so
+    /// this always reaches the one real, initialized instance regardless of which scope constructed
+    /// this service.
+    /// </para>
+    /// <para>
+    /// <strong>Why this retries:</strong> on a freshly connected circuit, <see cref="NavigationManager.Uri"/>
+    /// can briefly report the request path with an empty query string before catching up to the
+    /// browser's actual current address - confirmed by direct tracing, not theoretical. This short
+    /// retry only fires in that specific shape (query string completely empty; a URL that already has
+    /// one, just not this parameter, resolves immediately - the overwhelmingly common case, and proof
+    /// the Uri has already caught up).
+    /// </para>
+    /// </remarks>
+    private async Task<Guid?> GetTenantIdFromUrlAsync()
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            var navigationManager = circuitServicesAccessor.Services?.GetService<NavigationManager>();
+            if (navigationManager != null)
+            {
+                var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
+                if (uri.Query.Length > 0)
+                {
+                    var query = QueryHelpers.ParseQuery(uri.Query);
+                    return query.TryGetValue(ITenantSelectionService.TenantIdQueryParameterName, out var values)
+                        && Guid.TryParse(values.FirstOrDefault(), out var tenantId)
+                        ? tenantId
+                        : (Guid?)null;
+                }
+            }
+
+            if (attempt < 9)
+            {
+                await Task.Delay(20);
+            }
+        }
+
+        return null;
     }
 
     /// <inheritdoc />
@@ -94,7 +179,11 @@ public class ApiTenantSelectionService(
             return false;
         }
 
-        _currentTenantId = tenantId;
+        if (circuitServicesAccessor.CircuitId is { } circuitId)
+        {
+            circuitTenantCache.SetResolved(circuitId, tenantId);
+        }
+
         tokenStore.ClearToken();
         TenantChanged?.Invoke(tenantId);
         return true;
@@ -103,20 +192,35 @@ public class ApiTenantSelectionService(
     /// <inheritdoc />
     public Task ClearCurrentTenantAsync()
     {
-        _currentTenantId = null;
+        if (circuitServicesAccessor.CircuitId is { } circuitId)
+        {
+            circuitTenantCache.Clear(circuitId);
+        }
+
         tokenStore.ClearToken();
         TenantChanged?.Invoke(null);
         return Task.CompletedTask;
     }
 
     /// <inheritdoc />
-    public async Task<List<Tenant>> GetAvailableTenantsAsync()
+    public Task<List<Tenant>> GetAvailableTenantsAsync()
     {
         if (_cachedTenants != null)
         {
-            return _cachedTenants;
+            return Task.FromResult(_cachedTenants);
         }
 
+        // Same in-flight-task-caching reasoning as GetCurrentTenantIdAsync's own remarks: concurrent
+        // callers on a fresh circuit would otherwise each kick off their own redundant GetMineAsync
+        // call before any of them has cached a result yet. Not a correctness bug the way the tenant
+        // resolution one was (every caller would still get the same, correct data eventually), but
+        // worth avoiding the duplicate round-trips the same way.
+        _cachedTenantsTask ??= FetchAvailableTenantsAsync();
+        return _cachedTenantsTask;
+    }
+
+    private async Task<List<Tenant>> FetchAvailableTenantsAsync()
+    {
         var dtos = await tenantsClient.GetMineAsync();
         _cachedTenants = dtos.Select(MapToTenant).OrderBy(t => t.Name).ToList();
         return _cachedTenants;

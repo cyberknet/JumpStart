@@ -12,6 +12,7 @@
  *  see <https://www.gnu.org/licenses/>.
  */
 
+using System.Net.Http.Headers;
 using System.Security.Claims;
 using JumpStart.Services.Authentication.Clients;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -63,17 +64,35 @@ namespace JumpStart.Services.Authentication;
 /// <see cref="ITenantSelectionService"/>, and nothing changes for them.
 /// </para>
 /// <para>
-/// <strong>Why <see cref="ITenantSelectionService"/> is resolved via <see cref="IServiceProvider"/>,
-/// not constructor injection:</strong> an API-client-based implementation (e.g.
-/// <c>ApiTenantSelectionService</c>) typically depends on an API client whose own HTTP pipeline also
-/// includes this handler. This handler is constructed while <em>that same client's</em> handler
-/// pipeline is being built (<c>DefaultHttpClientFactory.CreateHandlerEntry</c>) - taking
+/// <strong>Why <see cref="ITenantSelectionService"/> is resolved via <see cref="CircuitServicesAccessor"/>,
+/// not constructor injection:</strong> two separate reasons stack here. First, the same DI-cycle
+/// problem <see cref="AuthenticationStateProvider"/> has above: an API-client-based implementation
+/// (e.g. <c>ApiTenantSelectionService</c>) typically depends on an API client whose own HTTP pipeline
+/// also includes this handler, and this handler is constructed while <em>that same client's</em>
+/// handler pipeline is being built (<c>DefaultHttpClientFactory.CreateHandlerEntry</c>) - taking
 /// <see cref="ITenantSelectionService"/> as a constructor parameter would force resolving that API
 /// client (and therefore re-entering the construction of the very pipeline being built) before this
 /// handler even exists, a genuine dependency cycle at the DI-graph level, not just a runtime one.
 /// Resolving it lazily inside <see cref="SendAsync"/> defers that resolution until well after this
-/// handler's own construction (and the owning client's pipeline) has completed and been cached, so
-/// resolving the tenant-selection service's own API client dependency at that point is safe.
+/// handler's own construction has completed and been cached, so resolving the tenant-selection
+/// service's own API client dependency at that point is safe - so far, identical reasoning to
+/// <see cref="AuthenticationStateProvider"/>.
+/// </para>
+/// <para>
+/// Second, and less obviously: an <see cref="ITenantSelectionService"/> implementation is stateful
+/// per circuit (it caches the resolved tenant on the instance, precisely so it only has to resolve it
+/// once) - so, like <see cref="AuthenticationStateProvider"/>, it matters which <em>instance</em> gets
+/// resolved, not just that resolution succeeds without throwing. Resolving it from the plain
+/// constructor-injected <see cref="IServiceProvider"/> (the earlier version of this code did) gets an
+/// instance from <see cref="IHttpClientFactory"/>'s own separate scope - a different, independently-
+/// stated instance than the one actual components (like <c>TenantSwitcher</c>) inject and populate.
+/// Two call paths each caching their own answer independently, from two different <em>instances</em>
+/// of the same tenant-resolution logic, is a race whose loser silently sticks: whichever one runs
+/// first "wins" its own cached tenant for the rest of its own lifetime, and there is no guarantee it's
+/// the one that later calls actually needed. <see cref="CircuitServicesAccessor"/> resolves the one
+/// real circuit's own <see cref="ITenantSelectionService"/> instance regardless of which scope this
+/// handler itself was built in, the same way it does for <see cref="AuthenticationStateProvider"/> -
+/// every caller ends up sharing the one cache instead of racing separate copies of it.
 /// </para>
 /// <para>
 /// <strong>Reentrancy guard:</strong> even resolved lazily, an API-client-based
@@ -85,13 +104,44 @@ namespace JumpStart.Services.Authentication;
 /// lookup for it - that inner call only needs *a* valid token to complete, not a tenant-aware one.
 /// Once the lookup resolves, the outer call re-exchanges with the tenant claim.
 /// </para>
+/// <para>
+/// <strong>Why the reentrant call never writes to <see cref="ITokenStore"/>:</strong> on a fresh
+/// circuit, several components can each independently start a top-level call - e.g. one component
+/// listing servers while <c>TenantSwitcher</c> is loading its own tenant list - and every one of them
+/// sees no cached token yet, so every one of them becomes an "outer" call in its own right, each
+/// spawning its own reentrant nested call to resolve the tenant. If a reentrant call cached its own
+/// exchange result the normal way, its deliberately tenant-less token could win a last-write race
+/// against a sibling outer call's later, correctly tenant-scoped one - not a hypothetical: this is
+/// exactly what silently discarded a tenant switch, with no exception and no failed request anywhere,
+/// because whichever call's <c>SetToken</c> happened to run last decided the tenant for every request
+/// still in flight. A reentrant call only needs a token good enough for its own one-off request, so it
+/// attaches its exchange result directly to that request's own header instead of touching the shared
+/// store, leaving the store for an outer call - which always does know the tenant - to populate.
+/// </para>
+/// <para>
+/// <strong>Why <see cref="ITokenStore"/> is <em>also</em> resolved via <see cref="CircuitServicesAccessor"/>
+/// now, not constructor injection:</strong> the same instance-identity reasoning as
+/// <see cref="ITenantSelectionService"/> above, and just as confirmed a bug, not a theoretical one -
+/// found immediately after fixing that one, because fixing tenant resolution alone wasn't sufficient
+/// to fix the tenant switch itself. <see cref="IHttpClientFactory"/> caches each named/typed client's
+/// whole handler pipeline - including this handler's constructor-captured <see cref="ITokenStore"/> -
+/// for its <c>HandlerLifetime</c> (a couple of minutes by default), reusing that same pipeline
+/// instance across many requests. A constructor-injected <see cref="ITokenStore"/> is therefore
+/// whichever circuit's scope happened to be active the first time a given named client's pipeline was
+/// built - not necessarily the circuit making the current request. Two different API clients (e.g. one
+/// for the tenant list, another for the actual page's own data) can each have their pipelines built
+/// from two different circuits' scopes, and therefore each hold a different, independently-scoped
+/// <see cref="ITokenStore"/> - one of which can easily be a stale one left over from an earlier
+/// circuit that already cached a token for a different tenant, which this handler's own
+/// <c>tokenStore.GetToken() == null</c> check would then never even attempt to replace. Resolving it
+/// via <see cref="CircuitServicesAccessor"/> instead reaches the one, real, current circuit's own
+/// store on every call, regardless of which circuit's scope originally built this pipeline.
+/// </para>
 /// </remarks>
 public class JwtExchangeHandler(
     CircuitServicesAccessor circuitServicesAccessor,
-    ITokenStore tokenStore,
     IJwtTokenService jwtTokenService,
-    ITokenExchangeApiClient tokenExchangeClient,
-    IServiceProvider serviceProvider) : DelegatingHandler
+    ITokenExchangeApiClient tokenExchangeClient) : DelegatingHandler
 {
     private static readonly TimeSpan AssertionTokenLifetime = TimeSpan.FromMinutes(2);
     private static readonly AsyncLocal<bool> _isResolvingTenant = new();
@@ -118,6 +168,14 @@ public class JwtExchangeHandler(
                 "initialization doesn't run until the circuit is active.");
         }
 
+        // See this class's own remarks ("Why ITokenStore is also resolved via CircuitServicesAccessor")
+        // for why this can't be a constructor-injected field the way it looks like it should be.
+        var tokenStore = circuitServicesAccessor.Services?.GetService<ITokenStore>();
+        if (tokenStore == null)
+        {
+            return await base.SendAsync(request, cancellationToken);
+        }
+
         // Checked on every call, not just when ITokenStore is empty: a circuit can outlive the user's
         // login (e.g. a logout form handled by Blazor's enhanced navigation instead of a real page
         // reload never tears the circuit down). Without this, a token minted before logout would keep
@@ -137,11 +195,16 @@ public class JwtExchangeHandler(
 
             if (Guid.TryParse(userIdClaim, out var userId))
             {
+                // Captured before the tenant lookup below can flip it back to false on this same
+                // AsyncLocal, so it still reflects whether THIS call is the reentrant one once we
+                // reach the SetToken-vs-header-only decision further down.
+                var isReentrantCall = _isResolvingTenant.Value;
+
                 var username = user.Identity.Name ?? userIdClaim;
                 List<Claim>? additionalClaims = null;
 
-                var tenantSelectionService = serviceProvider.GetService<ITenantSelectionService>();
-                if (tenantSelectionService != null && !_isResolvingTenant.Value)
+                var tenantSelectionService = circuitServicesAccessor.Services?.GetService<ITenantSelectionService>();
+                if (tenantSelectionService != null && !isReentrantCall)
                 {
                     _isResolvingTenant.Value = true;
                     try
@@ -158,7 +221,19 @@ public class JwtExchangeHandler(
 
                 var assertionToken = jwtTokenService.GenerateToken(userId, username, additionalClaims, AssertionTokenLifetime);
                 var response = await tokenExchangeClient.ExchangeAsync($"Bearer {assertionToken}");
-                tokenStore.SetToken(response.Token);
+
+                if (isReentrantCall)
+                {
+                    // See this class's own remarks ("Why the reentrant call never writes to
+                    // ITokenStore") - caching this deliberately tenant-less token the normal way
+                    // could clobber a concurrent outer call's correctly tenant-scoped one. Good
+                    // enough for this one request only.
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", response.Token);
+                }
+                else
+                {
+                    tokenStore.SetToken(response.Token);
+                }
             }
         }
 

@@ -33,12 +33,30 @@ public class ServicesAccessorCircuitHandler(
     IServiceProvider services,
     CircuitServicesAccessor servicesAccessor) : CircuitHandler
 {
+    private string? _circuitId;
+
+    /// <summary>
+    /// Captures the real circuit's stable identifier once, when the circuit opens - see
+    /// <see cref="CircuitServicesAccessor.CircuitId"/>'s own remarks for why this (not
+    /// <see cref="CircuitServicesAccessor.Services"/>) is the one thing that's actually the same
+    /// across every render-mode island sharing this circuit. This handler instance is itself
+    /// constructed per-scope like any other Scoped service, but the <see cref="Circuit"/> the
+    /// framework hands every registered handler here is the one, real circuit regardless of which
+    /// scope's copy of this handler is being notified.
+    /// </summary>
+    public override Task OnCircuitOpenedAsync(Circuit circuit, CancellationToken cancellationToken)
+    {
+        _circuitId = circuit.Id;
+        return base.OnCircuitOpenedAsync(circuit, cancellationToken);
+    }
+
     /// <inheritdoc />
     public override Func<CircuitInboundActivityContext, Task> CreateInboundActivityHandler(
         Func<CircuitInboundActivityContext, Task> next) =>
         async context =>
         {
             servicesAccessor.Services = services;
+            servicesAccessor.CircuitId = _circuitId;
             try
             {
                 await next(context);
@@ -46,6 +64,7 @@ public class ServicesAccessorCircuitHandler(
             finally
             {
                 servicesAccessor.Services = null;
+                servicesAccessor.CircuitId = null;
             }
         };
 }

@@ -24,10 +24,17 @@ see <https://www.gnu.org/licenses/>.
     {
         <div class="tenant-dropdown">
             <label for="tenant-select" class="tenant-label">Organization:</label>
-            <select id="tenant-select" 
-                    class="tenant-select" 
-                    value="@_currentTenantId" 
-                    @onchange="OnTenantChanged">
+            @* Uses @bind:get/@bind:set rather than a manual value="@_currentTenantId" @onchange="..."
+               pair - confirmed by tracing (live DOM inspection plus the compiled DLL's string table)
+               that on this project's current preview .NET SDK, the manual pair silently fails to
+               compile into a real attribute/event handler on this <select> - it comes out as a
+               literal, inert "@onchange" text attribute instead, so picking a different option never
+               invokes any C# code at all. @bind:get/@bind:set takes the well-tested compiler path and
+               still lets OnTenantChanged run the same async side effects (API call, navigation). *@
+            <select id="tenant-select"
+                    class="tenant-select"
+                    @bind:get="_currentTenantId"
+                    @bind:set="OnTenantChanged">
                 @foreach (var tenant in _availableTenants)
                 {
                     <option value="@tenant.Id">@tenant.Name</option>
@@ -92,36 +99,35 @@ see <https://www.gnu.org/licenses/>.
     /// Handles the tenant selection change event from the dropdown.
     /// Sets the current tenant, invokes the callback, and reloads the page if configured.
     /// </summary>
-    /// <param name="e">The change event arguments.</param>
+    /// <param name="tenantId">The newly selected tenant's Guid, already parsed by the framework's
+    /// <c>@bind:set</c> binding (see the &lt;select&gt; markup above's remarks for why this replaced
+    /// a plain <c>value</c>/<c>@onchange</c> pair).</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    private async Task OnTenantChanged(ChangeEventArgs e)
+    private async Task OnTenantChanged(Guid tenantId)
     {
-        if (Guid.TryParse(e.Value?.ToString(), out var tenantId))
+        var success = await TenantSelection.SetCurrentTenantAsync(tenantId);
+
+        if (success)
         {
-            var success = await TenantSelection.SetCurrentTenantAsync(tenantId);
-            
-            if (success)
+            _currentTenantId = tenantId;
+
+            // Invoke callback if provided
+            if (OnTenantChangedCallback.HasDelegate)
             {
-                _currentTenantId = tenantId;
-                
-                // Invoke callback if provided
-                if (OnTenantChangedCallback.HasDelegate)
-                {
-                    await OnTenantChangedCallback.InvokeAsync(tenantId);
-                }
-                
-                // Reload page to refresh all data with new tenant context. The tenant id rides along
-                // in the URL because the reload tears down this whole circuit - including whatever
-                // in-memory selection TenantSelection.SetCurrentTenantAsync just recorded - so the
-                // fresh circuit's ITenantSelectionService has no other way to know what was just
-                // chosen. See ITenantSelectionService.TenantIdQueryParameterName's remarks.
-                if (ReloadOnChange)
-                {
-                    var separator = NavigateToUrl.Contains('?') ? '&' : '?';
-                    Navigation.NavigateTo(
-                        $"{NavigateToUrl}{separator}{ITenantSelectionService.TenantIdQueryParameterName}={tenantId}",
-                        forceLoad: true);
-                }
+                await OnTenantChangedCallback.InvokeAsync(tenantId);
+            }
+
+            // Reload page to refresh all data with new tenant context. The tenant id rides along
+            // in the URL because the reload tears down this whole circuit - including whatever
+            // in-memory selection TenantSelection.SetCurrentTenantAsync just recorded - so the
+            // fresh circuit's ITenantSelectionService has no other way to know what was just
+            // chosen. See ITenantSelectionService.TenantIdQueryParameterName's remarks.
+            if (ReloadOnChange)
+            {
+                var separator = NavigateToUrl.Contains('?') ? '&' : '?';
+                Navigation.NavigateTo(
+                    $"{NavigateToUrl}{separator}{ITenantSelectionService.TenantIdQueryParameterName}={tenantId}",
+                    forceLoad: true);
             }
         }
     }

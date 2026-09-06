@@ -284,10 +284,10 @@ public abstract class Repository<TEntity> : IRepository<TEntity> where TEntity :
     /// its own, but soft-deleted entities are still excluded - <c>JumpStartDbContext</c>'s global EF
     /// Core query filter (<c>WHERE DeletedOn IS NULL</c>, configured once in <c>OnModelCreating</c> for
     /// every <see cref="Data.Auditing.IDeletable"/> entity) applies automatically to this query too,
-    /// like every other query against the entity's <c>DbSet</c>. There is currently no built-in way to
-    /// retrieve a soft-deleted entity by ID; a custom repository method using
-    /// <c>.IgnoreQueryFilters()</c> is required, following the same approach documented for listing
-    /// soft-deleted entities, but filtering by Id instead.
+    /// like every other query against the entity's <c>DbSet</c>. To retrieve one anyway, write a custom
+    /// repository method using <see cref="Data.JumpStartQueryableExtensions.IncludingDeleted{TEntity}"/>
+    /// - it drops only the soft-delete filter, so tenant scoping still applies. A bare
+    /// <c>IgnoreQueryFilters()</c> drops both and is almost never what's wanted.
     /// </para>
     /// </remarks>
     public virtual async Task<TEntity?> GetByIdAsync(Guid id, Func<IQueryable<TEntity>, IQueryable<TEntity>>? includes)

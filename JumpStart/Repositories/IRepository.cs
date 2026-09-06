@@ -180,8 +180,11 @@ public interface IRepository<TEntity> where TEntity : class, IEntity
     /// If the entity implements <see cref="Data.Auditing.IDeletable"/> and has been soft-deleted
     /// (DeletedOn is set), this returns null - <c>JumpStartDbContext</c>'s global EF Core query filter
     /// excludes soft-deleted rows from every query against the entity's <c>DbSet</c>, including this
-    /// lookup by ID. There is currently no built-in way to retrieve a soft-deleted entity by ID; a
-    /// custom repository method using <c>.IgnoreQueryFilters()</c> is required.
+    /// lookup by ID. To retrieve one anyway, write a custom repository method using
+    /// <see cref="Data.JumpStartQueryableExtensions.IncludingDeleted{TEntity}"/>, which drops only the
+    /// soft-delete filter and leaves tenant scoping in place. Prefer it to a bare
+    /// <c>IgnoreQueryFilters()</c>, which also drops tenancy and will happily return other tenants'
+    /// deleted rows.
     /// </para>
     /// </remarks>
     /// <example>

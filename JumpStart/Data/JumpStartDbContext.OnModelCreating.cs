@@ -139,41 +139,16 @@ public abstract partial class JumpStartDbContext
                 var nullConstant = Expression.Constant(null, typeof(DateTimeOffset?));
                 var body = Expression.Equal(deletedOnProperty, nullConstant);
                 var lambda = Expression.Lambda(body, parameter);
-                ApplyCombinedQueryFilter(modelBuilder, entityType, lambda);
+
+                // Registered under a name (EF Core 10) rather than as the entity's one anonymous
+                // filter. Named filters compose - EF ANDs them together itself - which is what
+                // retired the hand-rolled expression-tree merging that used to live here, and what
+                // lets a cross-tenant query drop tenancy while keeping this one. See
+                // JumpStartQueryFilters.
+                modelBuilder.Entity(entityType.ClrType)
+                    .HasQueryFilter(JumpStartQueryFilters.SoftDelete, lambda);
             }
         }
-    }
-
-    /// <summary>
-    /// Sets <paramref name="filter"/> as an entity's query filter, AND-combined with whatever filter
-    /// is already set on it (if any) - <c>HasQueryFilter</c> replaces rather than combines on repeat
-    /// calls for the same entity type, so calling it plainly here would silently drop whichever filter
-    /// (soft-delete, tenant scoping) was applied first for any entity that qualifies for more than
-    /// one. This is exactly the bug that let a soft-deleted, tenant-scoped <c>RustServer</c> keep
-    /// reappearing in every query after being "deleted" - <see cref="ApplyGlobalSoftDeleteFilter"/>'s
-    /// filter was being silently overwritten by <see cref="ApplyGlobalTenantFilter"/>'s.
-    /// </summary>
-    private static void ApplyCombinedQueryFilter(ModelBuilder modelBuilder, IMutableEntityType entityType, LambdaExpression filter)
-    {
-        var existing = entityType.GetQueryFilter();
-        if (existing is null)
-        {
-            modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
-            return;
-        }
-
-        var parameter = existing.Parameters[0];
-        var rebasedNewBody = new ReplaceParameterVisitor(filter.Parameters[0], parameter).Visit(filter.Body);
-        var combinedBody = Expression.AndAlso(existing.Body, rebasedNewBody);
-        var combined = Expression.Lambda(combinedBody, parameter);
-        modelBuilder.Entity(entityType.ClrType).HasQueryFilter(combined);
-    }
-
-    /// <summary>Rewrites every reference to one lambda parameter to point at another, so two
-    /// independently-built predicate bodies can be AND-combined under a single shared parameter.</summary>
-    private sealed class ReplaceParameterVisitor(ParameterExpression from, ParameterExpression to) : ExpressionVisitor
-    {
-        protected override Expression VisitParameter(ParameterExpression node) => node == from ? to : base.VisitParameter(node);
     }
 
     private static readonly MethodInfo SetTenantQueryFilterMethod =
@@ -218,8 +193,7 @@ public abstract partial class JumpStartDbContext
         where TEntity : class, MultiTenant.ITenantScoped
     {
         Expression<Func<TEntity, bool>> filter = e => CurrentTenantId == null || e.TenantId == CurrentTenantId;
-        var entityType = modelBuilder.Model.FindEntityType(typeof(TEntity))!;
-        ApplyCombinedQueryFilter(modelBuilder, entityType, filter);
+        modelBuilder.Entity<TEntity>().HasQueryFilter(JumpStartQueryFilters.Tenant, filter);
     }
 
     private static readonly MethodInfo SetTenantOptionalQueryFilterMethod =
@@ -258,7 +232,10 @@ public abstract partial class JumpStartDbContext
     {
         Expression<Func<TEntity, bool>> filter = e =>
             CurrentTenantId == null || e.TenantId == null || e.TenantId == CurrentTenantId;
-        var entityType = modelBuilder.Model.FindEntityType(typeof(TEntity))!;
-        ApplyCombinedQueryFilter(modelBuilder, entityType, filter);
+
+        // Same key as ITenantScoped's filter above, deliberately: the two differ in what they let
+        // through, but both are "the tenant boundary", and AcrossAllTenants should cross either one
+        // without a caller needing to know which interface an entity happens to implement.
+        modelBuilder.Entity<TEntity>().HasQueryFilter(JumpStartQueryFilters.Tenant, filter);
     }
 }

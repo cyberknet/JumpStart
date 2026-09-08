@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using JumpStart.Authorization;
 using JumpStart.Authorization.Repositories;
 using JumpStart.MultiTenant.Repositories;
 using JumpStart.Services.Authentication;
@@ -43,7 +44,15 @@ public class TokenControllerTests
         _mockJwtTokenService = new Mock<IJwtTokenService>();
         _mockRoleRepository = new Mock<IRoleRepository>();
         _mockUserTenantRepository = new Mock<IUserTenantRepository>();
-        _controller = new TokenController(_mockJwtTokenService.Object, _mockRoleRepository.Object, _mockUserTenantRepository.Object);
+
+        // The framework's own default: nobody may act in a tenant they don't belong to. These tests
+        // are about membership, so they run against the answer every application gets unless it
+        // deliberately registers something else - see ICrossTenantAccessPolicy.
+        _controller = new TokenController(
+            _mockJwtTokenService.Object,
+            _mockRoleRepository.Object,
+            _mockUserTenantRepository.Object,
+            new DenyCrossTenantAccessPolicy());
     }
 
     private void SetUser(ClaimsPrincipal principal)
@@ -73,7 +82,7 @@ public class TokenControllerTests
         SetUser(BuildPrincipal(userId));
 
         var permissions = new List<string> { "Product.Get", "Product.List" };
-        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId, It.IsAny<Guid?>()))
             .ReturnsAsync(permissions);
 
         _mockJwtTokenService
@@ -96,7 +105,7 @@ public class TokenControllerTests
         var userId = Guid.NewGuid();
         SetUser(BuildPrincipal(userId));
 
-        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId, It.IsAny<Guid?>()))
             .ReturnsAsync(new List<string> { "Form.Get", "Form.Create" });
 
         IEnumerable<Claim>? capturedClaims = null;
@@ -126,7 +135,7 @@ public class TokenControllerTests
 
         // Assert
         Assert.IsType<UnauthorizedResult>(result.Result);
-        _mockRoleRepository.Verify(r => r.GetPermissionClaimsForUserAsync(It.IsAny<Guid>()), Times.Never);
+        _mockRoleRepository.Verify(r => r.GetPermissionClaimsForUserAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()), Times.Never);
     }
 
     [Fact]
@@ -150,7 +159,7 @@ public class TokenControllerTests
         var userId = Guid.NewGuid();
         SetUser(BuildPrincipal(userId));
 
-        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId, It.IsAny<Guid?>()))
             .ReturnsAsync(new List<string>());
 
         IEnumerable<Claim>? capturedClaims = null;
@@ -177,7 +186,7 @@ public class TokenControllerTests
         var claims = new List<Claim>(BuildPrincipal(userId).Claims) { new("tenant_id", tenantId.ToString()) };
         SetUser(new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")));
 
-        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId, It.IsAny<Guid?>()))
             .ReturnsAsync(new List<string>());
         _mockUserTenantRepository.Setup(r => r.HasAccessAsync(userId, tenantId))
             .ReturnsAsync(true);
@@ -206,7 +215,7 @@ public class TokenControllerTests
         var claims = new List<Claim>(BuildPrincipal(userId).Claims) { new("tenant_id", tenantId.ToString()) };
         SetUser(new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")));
 
-        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId, It.IsAny<Guid?>()))
             .ReturnsAsync(new List<string>());
         _mockUserTenantRepository.Setup(r => r.HasAccessAsync(userId, tenantId))
             .ReturnsAsync(false);
@@ -228,7 +237,7 @@ public class TokenControllerTests
         var userId = Guid.NewGuid();
         SetUser(BuildPrincipal(userId));
 
-        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId))
+        _mockRoleRepository.Setup(r => r.GetPermissionClaimsForUserAsync(userId, It.IsAny<Guid?>()))
             .ReturnsAsync(new List<string>());
 
         IEnumerable<Claim>? capturedClaims = null;

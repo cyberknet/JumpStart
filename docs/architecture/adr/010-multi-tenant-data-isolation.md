@@ -6,6 +6,8 @@
 
 **Decision Makers:** JumpStart Core Team
 
+**Amended by:** [ADR-018](018-fail-closed-tenant-isolation.md) - a null `CurrentTenantId` no longer matches every row.
+
 ## Context
 
 Multi-tenant SaaS applications need to isolate each tenant's data from every other tenant's data,

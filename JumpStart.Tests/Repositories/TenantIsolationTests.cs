@@ -173,28 +173,54 @@ public class TenantIsolationTests
         Assert.False(deleted);
     }
 
+    /// <summary>
+    /// ADR-018 reversed this. It was <c>NullTenantContext_SeesEntitiesFromAllTenants</c>, and it
+    /// passed - the filter began <c>CurrentTenantId == null || ...</c>, so a request that reached a
+    /// tenant-scoped entity without a tenant read across every tenant.
+    /// </summary>
+    /// <remarks>
+    /// The old assertion is worth remembering as written, because it is what a vulnerability looks
+    /// like when it has been decided on purpose: isolation was conditional on a claim being present,
+    /// and it failed in the permissive direction. Crossing the boundary is now something a caller
+    /// says out loud with <c>AcrossAllTenants()</c> - covered by the test below.
+    /// </remarks>
     [Fact]
-    public async Task NullTenantContext_SeesEntitiesFromAllTenants()
+    public async Task NullTenantContext_SeesNothing()
     {
-        var tenantA = Guid.NewGuid();
-        var tenantB = Guid.NewGuid();
+        await SeedTwoTenantsAsync();
 
-        await using (var seedContext = CreateContext(tenantA))
+        await using var noTenantContext = CreateContext(null);
+        var noTenantRepository = new TenantProductRepository(noTenantContext);
+
+        var visible = await noTenantRepository.GetAllAsync();
+
+        Assert.Empty(visible);
+    }
+
+    [Fact]
+    public async Task NullTenantContext_StillCrossesTheBoundaryWhenAskedExplicitly()
+    {
+        await SeedTwoTenantsAsync();
+
+        await using var noTenantContext = CreateContext(null);
+
+        var visible = await noTenantContext.Set<TenantProduct>().AcrossAllTenants().ToListAsync();
+
+        Assert.Equal(2, visible.Count);
+    }
+
+    private async Task SeedTwoTenantsAsync()
+    {
+        await using (var seedContext = CreateContext(Guid.NewGuid()))
         {
             var seedRepository = new TenantProductRepository(seedContext);
             await seedRepository.AddAsync(new TenantProduct { Id = Guid.NewGuid(), Name = "A-Product" });
         }
 
-        await using (var seedContext = CreateContext(tenantB))
+        await using (var seedContext = CreateContext(Guid.NewGuid()))
         {
             var seedRepository = new TenantProductRepository(seedContext);
             await seedRepository.AddAsync(new TenantProduct { Id = Guid.NewGuid(), Name = "B-Product" });
         }
-
-        await using var noTenantContext = CreateContext(null);
-        var noTenantRepository = new TenantProductRepository(noTenantContext);
-        var visibleToAll = await noTenantRepository.GetAllAsync();
-
-        Assert.Equal(2, visibleToAll.Count());
     }
 }

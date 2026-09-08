@@ -84,11 +84,60 @@ public interface IRoleRepository : IRepository<Role>
     /// and direct <see cref="UserPermission"/> grants, distinct.
     /// </summary>
     /// <param name="userId">The unique identifier of the user.</param>
+    /// <param name="tenantId">
+    /// The tenant to resolve within. Grants scoped to this tenant and global
+    /// (<c>TenantId == null</c>) grants are returned; grants the user holds in <em>other</em>
+    /// tenants are not. Pass <c>null</c> to resolve global grants only.
+    /// </param>
     /// <returns>
-    /// The distinct set of permission claim values this user should be issued (e.g. at JWT
-    /// issuance time). Automatically scoped to the current tenant plus any global grants, via the
-    /// same <see cref="Data.MultiTenant.ITenantScopedOptional"/> global query filter every other
-    /// optionally-tenant-scoped read uses - no tenant parameter is needed.
+    /// The distinct set of permission claim values this user should be issued (e.g. at JWT issuance
+    /// time) <em>for that tenant</em>.
     /// </returns>
-    Task<IReadOnlyCollection<string>> GetPermissionClaimsForUserAsync(Guid userId);
+    /// <remarks>
+    /// <para>
+    /// <strong>The tenant is a parameter, not an ambient condition.</strong> ADR-012 §7 originally
+    /// decided none was needed, on the grounds that the
+    /// <see cref="Data.MultiTenant.ITenantScopedOptional"/> global filter would scope this
+    /// automatically. That holds only while a tenant is current: the filter begins
+    /// <c>CurrentTenantId == null || ...</c>, so with no <c>tenant_id</c> claim it matches
+    /// everything and this returned the union of the user's grants across every tenant they belong
+    /// to - which a caller then minted into a token stamped for one of them. See ADR-017.
+    /// </para>
+    /// <para>
+    /// A soft-deleted <see cref="Role"/> grants nothing: resolution joins through <see cref="Role"/>
+    /// so its soft-delete filter applies. Without that join a deleted role disappears from every
+    /// listing while its permissions keep resolving indefinitely.
+    /// </para>
+    /// </remarks>
+    Task<IReadOnlyCollection<string>> GetPermissionClaimsForUserAsync(Guid userId, Guid? tenantId);
+
+    /// <summary>
+    /// Every permission a user holds anywhere - across all tenants and globally.
+    /// </summary>
+    /// <remarks>
+    /// For administrative display only: "what does this person have, platform-wide?".
+    /// <strong>Never use this to issue a token.</strong> It is the shape
+    /// <see cref="GetPermissionClaimsForUserAsync"/> accidentally had before ADR-017, and it is
+    /// separated out so that behaviour has to be asked for by name rather than arrived at.
+    /// </remarks>
+    Task<IReadOnlyCollection<string>> GetAllPermissionClaimsForUserAsync(Guid userId);
+
+    /// <summary>
+    /// Grants a permission to a role as the system, skipping the "the grantor already holds it"
+    /// rule.
+    /// </summary>
+    /// <remarks>
+    /// For startup seeding, where there is no grantor - establishing the first platform operator
+    /// cannot come from somebody who already holds the permission. ADR-019 requires this exception be
+    /// stated explicitly rather than inferred from there happening to be no current user, so it is a
+    /// separate method and greppable. Every other rule still applies: the permission must be
+    /// declared, and its scope must match.
+    /// </remarks>
+    Task<RolePermission> AddPermissionAsSystemAsync(Guid roleId, string permission);
+
+    /// <summary>
+    /// Assigns a role as the system, skipping the "the grantor already holds it" rule.
+    /// </summary>
+    /// <remarks>See <see cref="AddPermissionAsSystemAsync"/> - same exception, same reasoning.</remarks>
+    Task<UserRole> AssignUserToRoleAsSystemAsync(Guid userId, Guid roleId, Guid? tenantId);
 }

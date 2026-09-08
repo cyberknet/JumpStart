@@ -64,24 +64,42 @@ public class JwtExchangeHandlerTests
     }
 
     private JwtExchangeHandler CreateHandler(ITenantSelectionService? tenantSelectionService = null) =>
-        new(_circuitServicesAccessor, _mockTokenStore.Object, _mockJwtTokenService.Object,
-            _mockTokenExchangeClient.Object, BuildServiceProvider(tenantSelectionService))
+        new(CircuitFor(tenantSelectionService), _mockJwtTokenService.Object,
+            _mockTokenExchangeClient.Object)
         {
             InnerHandler = new TestHttpMessageHandler()
         };
 
     /// <summary>
-    /// Builds a minimal <see cref="IServiceProvider"/> to stand in for the real DI container -
-    /// <see cref="JwtExchangeHandler"/> resolves <see cref="ITenantSelectionService"/> lazily via
-    /// <see cref="IServiceProvider"/> rather than constructor injection, specifically to avoid a
-    /// circular dependency at DI-construction time (see ADR-015 / the handler's own remarks).
+    /// Builds an accessor standing in for a live circuit, containing everything
+    /// <see cref="JwtExchangeHandler"/> resolves from one.
     /// </summary>
-    private static IServiceProvider BuildServiceProvider(ITenantSelectionService? tenantSelectionService)
+    /// <remarks>
+    /// <para>
+    /// <see cref="ITokenStore"/> and <see cref="ITenantSelectionService"/> both moved out of the
+    /// constructor and behind <see cref="CircuitServicesAccessor"/>. For the token store the reason
+    /// is the same one that moved <see cref="AuthenticationStateProvider"/>: <c>IHttpClientFactory</c>
+    /// caches this handler's pipeline across requests, so a constructor-injected store would pin
+    /// whichever circuit's token happened to be current when the pipeline was first built. For the
+    /// tenant selection service the reason is the circular dependency ADR-015 describes.
+    /// </para>
+    /// <para>
+    /// Which is why these tests now supply a circuit rather than a bag of services - and why they
+    /// stopped compiling when that change landed without them.
+    /// </para>
+    /// </remarks>
+    private CircuitServicesAccessor CircuitFor(
+        ITenantSelectionService? tenantSelectionService = null,
+        ITokenStore? tokenStore = null)
     {
         var services = new ServiceCollection();
+        services.AddSingleton(_mockAuthStateProvider.Object);
+        services.AddSingleton(tokenStore ?? _mockTokenStore.Object);
+
         if (tenantSelectionService != null)
             services.AddSingleton(tenantSelectionService);
-        return services.BuildServiceProvider();
+
+        return new CircuitServicesAccessor { Services = services.BuildServiceProvider() };
     }
 
     private void SetAuthenticatedUser(Guid? userId, string? name = "testuser")
@@ -225,8 +243,7 @@ public class JwtExchangeHandlerTests
         var accessorWithNoServices = new CircuitServicesAccessor { Services = null };
 
         var handler = new JwtExchangeHandler(
-            accessorWithNoServices, _mockTokenStore.Object, _mockJwtTokenService.Object,
-            _mockTokenExchangeClient.Object, BuildServiceProvider(null))
+            accessorWithNoServices, _mockJwtTokenService.Object, _mockTokenExchangeClient.Object)
         {
             InnerHandler = new TestHttpMessageHandler()
         };
@@ -327,11 +344,10 @@ public class JwtExchangeHandlerTests
             resolved = true;
             return _mockTenantSelectionService.Object;
         });
-        var provider = services.BuildServiceProvider();
+        var accessor = new CircuitServicesAccessor { Services = services.BuildServiceProvider() };
 
         _ = new JwtExchangeHandler(
-            _circuitServicesAccessor, _mockTokenStore.Object, _mockJwtTokenService.Object,
-            _mockTokenExchangeClient.Object, provider);
+            accessor, _mockJwtTokenService.Object, _mockTokenExchangeClient.Object);
 
         Assert.False(resolved);
     }
@@ -353,8 +369,7 @@ public class JwtExchangeHandlerTests
         var accessor = new CircuitServicesAccessor { Services = services.BuildServiceProvider() };
 
         _ = new JwtExchangeHandler(
-            accessor, _mockTokenStore.Object, _mockJwtTokenService.Object,
-            _mockTokenExchangeClient.Object, BuildServiceProvider(null));
+            accessor, _mockJwtTokenService.Object, _mockTokenExchangeClient.Object);
 
         Assert.False(resolved);
     }
@@ -385,8 +400,8 @@ public class JwtExchangeHandlerTests
             });
 
         var handler = new JwtExchangeHandler(
-            _circuitServicesAccessor, fakeTokenStore, _mockJwtTokenService.Object,
-            _mockTokenExchangeClient.Object, BuildServiceProvider(_mockTenantSelectionService.Object))
+            CircuitFor(_mockTenantSelectionService.Object, fakeTokenStore),
+            _mockJwtTokenService.Object, _mockTokenExchangeClient.Object)
         {
             InnerHandler = new TestHttpMessageHandler()
         };

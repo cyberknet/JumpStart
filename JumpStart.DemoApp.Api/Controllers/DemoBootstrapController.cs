@@ -100,7 +100,10 @@ public class DemoBootstrapController : ControllerBase
 
     private async Task EnsureDemoAdminRoleAsync(Guid userId)
     {
-        var existingPermissions = await _roleRepository.GetPermissionClaimsForUserAsync(userId);
+        // "Has this user been bootstrapped at all?" is a platform-wide question, and the role this
+        // grants is itself global (see the assignment below), so it asks the deliberately unscoped
+        // read by name rather than the tenant-scoped one. See ADR-017.
+        var existingPermissions = await _roleRepository.GetAllPermissionClaimsForUserAsync(userId);
         if (existingPermissions.Count > 0)
             return;
 

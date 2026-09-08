@@ -12,8 +12,10 @@
  *  see <https://www.gnu.org/licenses/>.
  */
 
+using System;
 using JumpStart.MultiTenant.Controllers;
 using JumpStart.MultiTenant.Repositories;
+using JumpStart.MultiTenant.Services;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -44,6 +46,13 @@ public static partial class JumpStartServiceCollectionExtensions
     {
         services.TryAddScoped<ITenantRepository, TenantRepository>();
         services.TryAddScoped<IUserTenantRepository, UserTenantRepository>();
+
+        // The only way a tenant gains a member who could not already reach it. Registered alongside
+        // membership rather than behind its own flag - an application that has tenants and users has
+        // the problem this solves, whether or not it has got to it yet. It sends no mail and exposes
+        // no endpoint, so registering it costs an application that ignores it nothing.
+        services.TryAddScoped<ITenantInvitationService, TenantInvitationService>();
+        services.TryAddSingleton(TimeProvider.System);
 
         // Add JumpStart assembly as an application part so TenantsController can be discovered
         // AddControllers() is idempotent, safe to call even if already registered

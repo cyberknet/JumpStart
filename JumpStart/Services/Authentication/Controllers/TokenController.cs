@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using JumpStart.Authorization;
 using JumpStart.Authorization.Repositories;
 using JumpStart.MultiTenant.Repositories;
 using Microsoft.AspNetCore.Authorization;
@@ -53,18 +54,32 @@ namespace JumpStart.Services.Authentication.Controllers;
 [Route("api/token")]
 public class TokenController : ControllerBase
 {
+    /// <summary>
+    /// Claim stamped on a token whose tenant came from <see cref="ICrossTenantAccessPolicy"/> rather
+    /// than from membership.
+    /// </summary>
+    /// <remarks>
+    /// Present so the rest of the system can tell the two apart. A client should say so plainly on
+    /// screen - somebody administering a customer's data must never be in any doubt about whose data
+    /// they are looking at - and anything that logs is better for knowing.
+    /// </remarks>
+    public const string ActingAsClaimType = "acting_as_tenant";
+
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IRoleRepository _roleRepository;
     private readonly IUserTenantRepository _userTenantRepository;
+    private readonly ICrossTenantAccessPolicy _crossTenantAccessPolicy;
 
     public TokenController(
         IJwtTokenService jwtTokenService,
         IRoleRepository roleRepository,
-        IUserTenantRepository userTenantRepository)
+        IUserTenantRepository userTenantRepository,
+        ICrossTenantAccessPolicy crossTenantAccessPolicy)
     {
         _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
         _roleRepository = roleRepository ?? throw new ArgumentNullException(nameof(roleRepository));
         _userTenantRepository = userTenantRepository ?? throw new ArgumentNullException(nameof(userTenantRepository));
+        _crossTenantAccessPolicy = crossTenantAccessPolicy ?? throw new ArgumentNullException(nameof(crossTenantAccessPolicy));
     }
 
     /// <summary>
@@ -80,19 +95,62 @@ public class TokenController : ControllerBase
             return Unauthorized();
 
         var username = User.Identity?.Name ?? userIdClaim;
-        var permissions = await _roleRepository.GetPermissionClaimsForUserAsync(userId);
-        var claims = new List<Claim>(permissions.Select(p => new Claim("Permission", p)));
+
+        // The tenant is resolved BEFORE permissions, because it decides which permissions this token
+        // may carry. Doing it the other way round is how a token ended up stamped for one tenant
+        // while carrying the union of the user's grants in all of them - see ADR-017.
+        Guid? resolvedTenantId = null;
+        CrossTenantAccess? crossTenantAccess = null;
 
         var tenantIdClaim = User.FindFirst("tenant_id")?.Value;
         if (!string.IsNullOrEmpty(tenantIdClaim))
         {
-            if (!Guid.TryParse(tenantIdClaim, out var tenantId)
-                || !await _userTenantRepository.HasAccessAsync(userId, tenantId))
+            if (!Guid.TryParse(tenantIdClaim, out var tenantId))
             {
                 return Forbid();
             }
 
-            claims.Add(new Claim("tenant_id", tenantId.ToString()));
+            if (await _userTenantRepository.HasAccessAsync(userId, tenantId))
+            {
+                resolvedTenantId = tenantId;
+            }
+            else
+            {
+                // Not a member. The one way past that is an application policy saying this person
+                // may act inside somebody else's tenant anyway - a support administrator, typically.
+                // The framework's own answer is still no (DenyCrossTenantAccessPolicy), so nothing
+                // gains this by upgrading; see ICrossTenantAccessPolicy.
+                crossTenantAccess = await _crossTenantAccessPolicy.EvaluateAsync(userId, tenantId);
+
+                if (crossTenantAccess is null)
+                {
+                    return Forbid();
+                }
+
+                resolvedTenantId = tenantId;
+            }
+        }
+
+        // Membership of resolvedTenantId has just been verified, so the grants resolved here are
+        // ones this user genuinely holds in the tenant this token will be stamped for. A token with
+        // no tenant carries global grants only - not everything.
+        //
+        // Acting as a tenant is the exception, and the permissions come from the policy instead:
+        // the user holds nothing in a tenant they do not belong to, so resolving their grants would
+        // produce a token that authenticates but can do nothing.
+        var permissions = crossTenantAccess?.Permissions
+            ?? await _roleRepository.GetPermissionClaimsForUserAsync(userId, resolvedTenantId);
+
+        var claims = new List<Claim>(permissions.Select(p => new Claim("Permission", p)));
+
+        if (resolvedTenantId is { } verified)
+        {
+            claims.Add(new Claim("tenant_id", verified.ToString()));
+        }
+
+        if (crossTenantAccess is not null)
+        {
+            claims.Add(new Claim(ActingAsClaimType, "true"));
         }
 
         var token = _jwtTokenService.GenerateToken(userId, username!, claims);

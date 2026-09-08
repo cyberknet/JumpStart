@@ -12,6 +12,7 @@
  *  see <https://www.gnu.org/licenses/>.
  */
 
+using JumpStart.Authorization;
 using JumpStart.Authorization.Repositories;
 using JumpStart.MultiTenant.Repositories;
 using JumpStart.Services.Authentication;
@@ -74,6 +75,11 @@ public static partial class JumpStartServiceCollectionExtensions
         services.AddJwtTokenService();
         services.TryAddScoped<IRoleRepository, RoleRepository>();
         services.TryAddScoped<IUserTenantRepository, UserTenantRepository>();
+
+        // Refuses by default, and TryAdd means an application that registered its own keeps it. The
+        // framework's answer to "may this person act in a tenant they don't belong to?" is no, and
+        // an application has to say otherwise deliberately - see ICrossTenantAccessPolicy.
+        services.TryAddScoped<ICrossTenantAccessPolicy, DenyCrossTenantAccessPolicy>();
 
         // Add JumpStart assembly as an application part so TokenController can be discovered
         // AddControllers() is idempotent, safe to call even if already registered

@@ -97,10 +97,35 @@ public abstract partial class JumpStartDbContext : DbContext
     /// </summary>
     /// <value>
     /// The tenant ID returned by the <see cref="ITenantContext"/> supplied at construction, or
-    /// <c>null</c> if no tenant context was supplied (single-tenant mode, or a system-wide
-    /// operation). When <c>null</c>, the global tenant query filter is a no-op.
+    /// <c>null</c> if no tenant context was supplied.
     /// </value>
+    /// <remarks>
+    /// <strong>When <c>null</c>, tenant-scoped entities yield no rows</strong> - the filter denies
+    /// rather than admitting everything (ADR-018). An operation that legitimately runs without a
+    /// tenant says so with
+    /// <see cref="JumpStartQueryableExtensions.AcrossAllTenants{TEntity}"/>; an application with no
+    /// tenant boundary at all sets <see cref="SingleTenantMode"/>.
+    /// </remarks>
     public Guid? CurrentTenantId { get; }
+
+    /// <summary>
+    /// When <c>true</c>, the global tenant filter is a no-op and every row is visible regardless of
+    /// <see cref="CurrentTenantId"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// For applications that genuinely have no tenant boundary. This is the behaviour every
+    /// application got implicitly before ADR-018, when a null <see cref="CurrentTenantId"/> made the
+    /// filter a no-op; it is now something an application states once, deliberately, rather than
+    /// something it can arrive at by forgetting to establish a tenant.
+    /// </para>
+    /// <para>
+    /// Read from <c>JumpStartOptions.SingleTenantMode</c> via <see cref="ITenantContext"/> where one
+    /// is supplied. A multi-tenant application must leave this <c>false</c>: setting it disables
+    /// data isolation entirely.
+    /// </para>
+    /// </remarks>
+    public bool SingleTenantMode { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JumpStartDbContext"/> class.
@@ -119,6 +144,11 @@ public abstract partial class JumpStartDbContext : DbContext
     /// </remarks>
     protected JumpStartDbContext(DbContextOptions options, ITenantContext? tenantContext = null) : base(options)
     {
+        // No tenant context supplied at all means this application is not multi-tenant: absence of
+        // the mechanism is a design statement, and such applications keep exactly the behaviour they
+        // had before ADR-018. A tenant context that is present but resolves no tenant is the
+        // dangerous case - that is a request which should have had one - and it denies.
+        SingleTenantMode = tenantContext is null || tenantContext.SingleTenantMode;
         CurrentTenantId = tenantContext?.GetCurrentTenantIdAsync().GetAwaiter().GetResult();
     }
 
@@ -187,6 +217,11 @@ public abstract partial class JumpStartDbContext : DbContext
     /// Gets or sets the UserTenants DbSet.
     /// </summary>
     public DbSet<UserTenant> UserTenants { get; set; } = null!;
+
+    /// <summary>
+    /// Gets or sets the TenantInvitations DbSet - offers of membership not yet taken up.
+    /// </summary>
+    public DbSet<TenantInvitation> TenantInvitations { get; set; } = null!;
 
     /// <summary>
     /// Gets or sets the Roles DbSet.

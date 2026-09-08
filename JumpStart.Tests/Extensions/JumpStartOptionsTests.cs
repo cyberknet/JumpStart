@@ -213,7 +213,7 @@ public class JumpStartOptionsTests
             .ToArray();
 
         // Act & Assert
-        Assert.Equal(8, publicMethods.Length); // 8 fluent methods (added RegisterTenantContext)
+        Assert.Equal(9, publicMethods.Length); // 9 fluent methods (added DeclarePermissions - ADR-019)
     }
 
     #endregion
@@ -312,8 +312,8 @@ public class JumpStartOptionsTests
                 .ToArray();
 
             // Assert
-            Assert.Equal(10, publicProperties.Length); // 10 properties (added RegisterFormsController, RegisterAuthorizationController, RegisterTokenController, RegisterTenantsController, AutoDiscoverApiClients, ApiClientLifetime, ApiBaseUrl)
-            Assert.Equal(8, publicMethods.Length); // 8 methods (added RegisterTenantContext)
+            Assert.Equal(13, publicProperties.Length); // 13 properties (added AllowCrossTenantSelection - see ICrossTenantAccessPolicy)
+            Assert.Equal(9, publicMethods.Length); // 9 methods (added DeclarePermissions - ADR-019)
         }
 
     [Fact]

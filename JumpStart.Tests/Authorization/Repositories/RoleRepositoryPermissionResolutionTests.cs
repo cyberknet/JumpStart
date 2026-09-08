@@ -51,10 +51,11 @@ public class RoleRepositoryPermissionResolutionTests
     [Fact]
     public async Task GetPermissionClaimsForUserAsync_ReturnsEmpty_ForUserWithNoRolesOrGrants()
     {
-        await using var context = CreateContext(Guid.NewGuid());
+        var tenantId = Guid.NewGuid();
+        await using var context = CreateContext(tenantId);
         var repository = new RoleRepository(context, null);
 
-        var permissions = await repository.GetPermissionClaimsForUserAsync(Guid.NewGuid());
+        var permissions = await repository.GetPermissionClaimsForUserAsync(Guid.NewGuid(), tenantId);
 
         Assert.Empty(permissions);
     }
@@ -73,7 +74,7 @@ public class RoleRepositoryPermissionResolutionTests
         await repository.AddPermissionAsync(role.Id, "Form.Update");
         await repository.AssignUserToRoleAsync(userId, role.Id, tenantId);
 
-        var permissions = await repository.GetPermissionClaimsForUserAsync(userId);
+        var permissions = await repository.GetPermissionClaimsForUserAsync(userId, tenantId);
 
         Assert.Equal(2, permissions.Count);
         Assert.Contains("Form.Get", permissions);
@@ -91,7 +92,7 @@ public class RoleRepositoryPermissionResolutionTests
         context.UserPermissions.Add(new UserPermission { UserId = userId, Permission = "Product.Delete", TenantId = tenantId });
         await context.SaveChangesAsync();
 
-        var permissions = await repository.GetPermissionClaimsForUserAsync(userId);
+        var permissions = await repository.GetPermissionClaimsForUserAsync(userId, tenantId);
 
         var permission = Assert.Single(permissions);
         Assert.Equal("Product.Delete", permission);
@@ -115,7 +116,7 @@ public class RoleRepositoryPermissionResolutionTests
         context.UserPermissions.Add(new UserPermission { UserId = userId, Permission = "Product.List", TenantId = tenantId });
         await context.SaveChangesAsync();
 
-        var permissions = await repository.GetPermissionClaimsForUserAsync(userId);
+        var permissions = await repository.GetPermissionClaimsForUserAsync(userId, tenantId);
 
         Assert.Equal(2, permissions.Count);
         Assert.Contains("Product.Get", permissions);
@@ -140,7 +141,7 @@ public class RoleRepositoryPermissionResolutionTests
         await using var tenantBContext = CreateContext(tenantB);
         var tenantBRepository = new RoleRepository(tenantBContext, null);
 
-        var permissions = await tenantBRepository.GetPermissionClaimsForUserAsync(userId);
+        var permissions = await tenantBRepository.GetPermissionClaimsForUserAsync(userId, tenantB);
 
         Assert.Empty(permissions);
     }
@@ -159,13 +160,132 @@ public class RoleRepositoryPermissionResolutionTests
         }
 
         // The global role/assignment should still be visible from within any specific tenant's context
-        await using var tenantContext = CreateContext(Guid.NewGuid());
+        var otherTenantId = Guid.NewGuid();
+        await using var tenantContext = CreateContext(otherTenantId);
         var tenantRepository = new RoleRepository(tenantContext, null);
 
-        var permissions = await tenantRepository.GetPermissionClaimsForUserAsync(userId);
+        var permissions = await tenantRepository.GetPermissionClaimsForUserAsync(userId, otherTenantId);
 
         var permission = Assert.Single(permissions);
         Assert.Equal("Product.Delete", permission);
+    }
+
+    /// <summary>
+    /// The regression for ADR-017. Before it, resolution had no tenant parameter and leaned on the
+    /// <c>ITenantScopedOptional</c> filter - which begins <c>CurrentTenantId == null || ...</c> and
+    /// so matched everything whenever no tenant was current. A caller in that state (JumpStart mints
+    /// tenant-less tokens itself) received the union of the user's grants across every tenant.
+    /// </summary>
+    [Fact]
+    public async Task GetPermissionClaimsForUserAsync_ExcludesOtherTenantsGrants_WhenNoTenantIsCurrent()
+    {
+        var tenantA = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        await using (var seedContext = CreateContext(tenantA))
+        {
+            var seedRepository = new RoleRepository(seedContext, null);
+            var role = await seedRepository.AddAsync(new Role { Name = "TenantA Admin", TenantId = tenantA });
+            await seedRepository.AddPermissionAsync(role.Id, "Product.Delete");
+            await seedRepository.AssignUserToRoleAsync(userId, role.Id, tenantA);
+        }
+
+        // No current tenant at all - the exact condition that used to disable the filter.
+        await using var noTenantContext = CreateContext(null);
+        var repository = new RoleRepository(noTenantContext, null);
+
+        var permissions = await repository.GetPermissionClaimsForUserAsync(userId, tenantId: null);
+
+        Assert.Empty(permissions);
+    }
+
+    /// <summary>
+    /// The same defect from the other side: asking for tenant B must not return tenant A's grants,
+    /// even when the ambient context is tenant A.
+    /// </summary>
+    [Fact]
+    public async Task GetPermissionClaimsForUserAsync_ScopesToRequestedTenant_NotAmbientOne()
+    {
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        await using var context = CreateContext(tenantA);
+        var repository = new RoleRepository(context, null);
+
+        var role = await repository.AddAsync(new Role { Name = "TenantA Admin", TenantId = tenantA });
+        await repository.AddPermissionAsync(role.Id, "Product.Delete");
+        await repository.AssignUserToRoleAsync(userId, role.Id, tenantA);
+
+        var permissions = await repository.GetPermissionClaimsForUserAsync(userId, tenantB);
+
+        Assert.Empty(permissions);
+    }
+
+    /// <summary>
+    /// The regression for ADR-017's second defect. <see cref="Role"/> is <c>IDeletable</c>, so
+    /// deletion is a soft delete - and resolution used to join <c>UserRole</c> straight to
+    /// <c>RolePermission</c>, never consulting <see cref="Role"/>. The role vanished from every
+    /// listing while its permissions kept resolving indefinitely.
+    /// </summary>
+    [Fact]
+    public async Task GetPermissionClaimsForUserAsync_ExcludesGrantsFromASoftDeletedRole()
+    {
+        var tenantId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        await using var context = CreateContext(tenantId);
+        var repository = new RoleRepository(context, null);
+
+        var role = await repository.AddAsync(new Role { Name = "Moderator", TenantId = tenantId });
+        await repository.AddPermissionAsync(role.Id, "Product.Delete");
+        await repository.AssignUserToRoleAsync(userId, role.Id, tenantId);
+
+        Assert.Single(await repository.GetPermissionClaimsForUserAsync(userId, tenantId));
+
+        // Soft delete - the row survives with DeletedOn set, and the UserRole grant survives with it.
+        Assert.True(await repository.DeleteAsync(role.Id));
+
+        var permissions = await repository.GetPermissionClaimsForUserAsync(userId, tenantId);
+
+        Assert.Empty(permissions);
+    }
+
+    /// <summary>
+    /// The deliberately unscoped read still works, because administrative screens need it - it is
+    /// separated so the behaviour has to be asked for by name rather than arrived at.
+    /// </summary>
+    [Fact]
+    public async Task GetAllPermissionClaimsForUserAsync_ReturnsGrantsFromEveryTenant()
+    {
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+
+        await using (var a = CreateContext(tenantA))
+        {
+            var repo = new RoleRepository(a, null);
+            var role = await repo.AddAsync(new Role { Name = "A Admin", TenantId = tenantA });
+            await repo.AddPermissionAsync(role.Id, "Product.Delete");
+            await repo.AssignUserToRoleAsync(userId, role.Id, tenantA);
+        }
+
+        await using (var b = CreateContext(tenantB))
+        {
+            var repo = new RoleRepository(b, null);
+            var role = await repo.AddAsync(new Role { Name = "B Viewer", TenantId = tenantB });
+            await repo.AddPermissionAsync(role.Id, "Product.Get");
+            await repo.AssignUserToRoleAsync(userId, role.Id, tenantB);
+        }
+
+        await using var context = CreateContext(tenantA);
+        var repository = new RoleRepository(context, null);
+
+        var permissions = await repository.GetAllPermissionClaimsForUserAsync(userId);
+
+        Assert.Equal(2, permissions.Count);
+        Assert.Contains("Product.Delete", permissions);
+        Assert.Contains("Product.Get", permissions);
     }
 
     [Fact]

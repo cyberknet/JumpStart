@@ -6,6 +6,8 @@
 
 **Decision Makers:** JumpStart Core Team
 
+**Amended by:** [ADR-017](017-tenant-scoped-permission-resolution.md) (§7 - resolution takes an explicit tenant and honours `Role`'s soft delete) and [ADR-019](019-declared-permissions-and-grant-rules.md) (§9 - grants are validated against a declared registry; repository registration is split from controller exposure).
+
 ## Context
 
 [ADR-011](011-entity-authorization.md) requires every API call to carry a `Permission` claim

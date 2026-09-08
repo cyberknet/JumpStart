@@ -6,6 +6,8 @@
 
 **Decision Makers:** JumpStart Core Team
 
+**Amended by:** [ADR-019](019-declared-permi§ions-and-grant-rules.md) - the `{Entity}.{Action}` convention is retained as a naming helper, not as the shape a permi§ion must take.
+
 ## Context
 
 `ApiControllerBase<TEntity, ...>` provides full CRUD for any entity with almost no code written by

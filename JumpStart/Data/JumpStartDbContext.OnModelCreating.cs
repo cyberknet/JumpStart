@@ -189,10 +189,32 @@ public abstract partial class JumpStartDbContext
         }
     }
 
+    /// <summary>
+    /// Restricts rows to the current tenant, denying when there is no current tenant.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>Fails closed (ADR-018).</strong> This filter used to begin
+    /// <c>CurrentTenantId == null || ...</c>, so a request that reached a tenant-scoped entity
+    /// without a <c>tenant_id</c> claim read across every tenant - silently, successfully, and
+    /// indistinguishably from correct operation. That made isolation conditional on a claim being
+    /// present, and it failed in the permissive direction.
+    /// </para>
+    /// <para>
+    /// Operations that legitimately run without a tenant - seeders, background sweeps, cross-tenant
+    /// administration - say so at the call site with
+    /// <see cref="JumpStartQueryableExtensions.AcrossAllTenants{TEntity}"/>, which already existed
+    /// and is already greppable for audit. A genuinely single-tenant application sets
+    /// <c>JumpStartOptions.SingleTenantMode</c>, which is an explicit statement made once rather
+    /// than an accident that looks like correct operation.
+    /// </para>
+    /// </remarks>
     private void SetTenantQueryFilter<TEntity>(ModelBuilder modelBuilder)
         where TEntity : class, MultiTenant.ITenantScoped
     {
-        Expression<Func<TEntity, bool>> filter = e => CurrentTenantId == null || e.TenantId == CurrentTenantId;
+        Expression<Func<TEntity, bool>> filter = e =>
+            SingleTenantMode || e.TenantId == CurrentTenantId;
+
         modelBuilder.Entity<TEntity>().HasQueryFilter(JumpStartQueryFilters.Tenant, filter);
     }
 
@@ -227,11 +249,17 @@ public abstract partial class JumpStartDbContext
         }
     }
 
+    /// <remarks>
+    /// Fails closed like its <see cref="MultiTenant.ITenantScoped"/> sibling (ADR-018), with the one
+    /// difference this interface exists for: a row belonging to no tenant at all
+    /// (<c>TenantId == null</c>) stays visible without a current tenant, because it genuinely
+    /// belongs to none - a platform-wide role has to be readable before a tenant is chosen.
+    /// </remarks>
     private void SetTenantOptionalQueryFilter<TEntity>(ModelBuilder modelBuilder)
         where TEntity : class, MultiTenant.ITenantScopedOptional
     {
         Expression<Func<TEntity, bool>> filter = e =>
-            CurrentTenantId == null || e.TenantId == null || e.TenantId == CurrentTenantId;
+            SingleTenantMode || e.TenantId == null || e.TenantId == CurrentTenantId;
 
         // Same key as ITenantScoped's filter above, deliberately: the two differ in what they let
         // through, but both are "the tenant boundary", and AcrossAllTenants should cross either one

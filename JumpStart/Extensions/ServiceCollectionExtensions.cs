@@ -210,6 +210,12 @@ public static partial class JumpStartServiceCollectionExtensions
         // Apply configuration
         configure?.Invoke(options);
 
+        // The few settings a service has to consult while handling a request, rather than facts it
+        // can be wired with once. Copied into a small type instead of registering the options bag
+        // itself - see TenantSelectionOptions.
+        services.TryAddSingleton(new JumpStart.Services.TenantSelectionOptions(
+            options.AllowCrossTenantSelection));
+
         // Register core JumpStart services
         RegisterCoreServices(services, options);
 
@@ -236,10 +242,12 @@ public static partial class JumpStartServiceCollectionExtensions
             RegisterFormsServices(services);
         }
 
-        // Register role/permission-administration module services if configured
-        if (options.RegisterAuthorizationController)
+        // Register role/permission-administration module services if configured. Either flag brings
+        // the services in; only RegisterAuthorizationController publishes the endpoints - see
+        // ADR-019 §5, and RegisterAuthorizationRepositories' own remarks.
+        if (options.RegisterAuthorizationController || options.RegisterAuthorizationRepositories)
         {
-            RegisterAuthorizationServices(services);
+            RegisterAuthorizationServices(services, options);
         }
 
         // Register JWT token-exchange module services if configured

@@ -240,6 +240,27 @@ public class JumpStartOptions
     public bool AutoDiscoverApiClients { get; set; } = false;
 
     /// <summary>
+    /// Gets or sets whether a client may select a tenant the signed-in user does not belong to.
+    /// </summary>
+    /// <value><c>false</c> by default, which is the behaviour every application had before this existed.</value>
+    /// <remarks>
+    /// <para>
+    /// Only meaningful alongside an <see cref="Authorization.ICrossTenantAccessPolicy"/> that
+    /// actually admits somebody - typically a support administrator opening a customer's data. It
+    /// relaxes a <em>client-side</em> convenience check in
+    /// <see cref="Services.ApiTenantSelectionService"/>, which would otherwise redirect such a person
+    /// back to their own tenant before the server was ever asked.
+    /// </para>
+    /// <para>
+    /// <strong>It grants nothing on its own.</strong> <c>TokenController</c> re-validates the tenant
+    /// on every exchange, so with the default deny-everything policy in place this flag lets a user
+    /// select a tenant and then fail to get a token for it. The authority is the policy; this only
+    /// stops the client from second-guessing it.
+    /// </para>
+    /// </remarks>
+    public bool AllowCrossTenantSelection { get; set; } = false;
+
+    /// <summary>
     /// Gets the list of assemblies to scan for repository and API client implementations.
     /// </summary>
     /// <value>
@@ -746,6 +767,52 @@ public class JumpStartOptions
         /// </code>
         /// </example>
         public bool RegisterAuthorizationController { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets whether to register the role/permission services <em>without</em> publishing
+        /// the <c>/api/roles</c> and <c>/api/userpermissions</c> endpoints.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Split out from <see cref="RegisterAuthorizationController"/> per ADR-019 §5. The two used
+        /// to share one flag, so an application needing <c>IRoleRepository</c> to seed roles at
+        /// startup had to expose a full CRUD surface it never wanted. Registering a service should
+        /// never publish an endpoint.
+        /// </para>
+        /// <para>
+        /// Implied by <see cref="RegisterAuthorizationController"/>; set this one instead when the
+        /// application serves role administration from its own controllers, with its own rules.
+        /// </para>
+        /// </remarks>
+        public bool RegisterAuthorizationRepositories { get; set; } = false;
+
+        /// <summary>
+        /// The permissions this application supports. See <see cref="Authorization.IPermissionRegistry"/>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A grant of any permission not declared here is refused (ADR-019). Leaving it empty is not
+        /// a way to opt out of validation - it means nothing can be granted at all, which is
+        /// deliberate: a permissive default would leave exactly the applications that have not
+        /// thought about this without the guarantee.
+        /// </para>
+        /// <para>
+        /// The framework never parses a permission name. <c>"Product.Delete"</c> and
+        /// <c>"Billing"</c> are the same kind of object to it.
+        /// </para>
+        /// </remarks>
+        public List<Authorization.PermissionDescriptor> DeclaredPermissions { get; } = new();
+
+        /// <summary>
+        /// Declares the permissions this application supports, in one call.
+        /// </summary>
+        public JumpStartOptions DeclarePermissions(
+            params Authorization.PermissionDescriptor[] permissions)
+        {
+            ArgumentNullException.ThrowIfNull(permissions);
+            DeclaredPermissions.AddRange(permissions);
+            return this;
+        }
 
         /// <summary>
         /// Gets or sets whether to register the JWT token-exchange endpoint.

@@ -6,6 +6,8 @@
 
 **Decision Makers:** JumpStart Core Team
 
+**Amended by:** [ADR-017](017-tenant-scoped-permi§ion-resolution.md) - claims are resolved for the tenant the exchange verified.
+
 ## Context
 
 [ADR-012](012-role-based-permission-management.md) gives applications a real way to determine which

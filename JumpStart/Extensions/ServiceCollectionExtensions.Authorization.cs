@@ -12,6 +12,8 @@
  *  see <https://www.gnu.org/licenses/>.
  */
 
+using JumpStart;
+using JumpStart.Authorization;
 using JumpStart.Authorization.Controllers;
 using JumpStart.Authorization.Repositories;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -40,15 +42,60 @@ public static partial class JumpStartServiceCollectionExtensions
     /// <c>RegisterApiClients</c> when <see cref="JumpStartOptions.AutoDiscoverApiClients"/> is enabled.
     /// </para>
     /// </remarks>
-    private static void RegisterAuthorizationServices(IServiceCollection services)
+    private static void RegisterAuthorizationServices(IServiceCollection services, JumpStartOptions options)
     {
-        services.TryAddScoped<IRoleRepository, RoleRepository>();
-        services.TryAddScoped<IUserPermissionRepository, UserPermissionRepository>();
+        RegisterAuthorizationRepositories(services, options);
+
+        if (!options.RegisterAuthorizationController)
+        {
+            return;
+        }
 
         // Add JumpStart assembly as an application part so RolesController and
         // UserPermissionsController can be discovered
         // AddControllers() is idempotent, safe to call even if already registered
         services.AddControllers()
             .AddApplicationPart(typeof(RolesController).Assembly);
+    }
+
+    /// <summary>
+    /// Registers the authorization services without publishing any HTTP surface.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Split out from controller registration per ADR-019 §5. The two used to share one flag, so an
+    /// application that wanted <see cref="IRoleRepository"/> in order to seed roles at startup had no
+    /// way to get it without also exposing <c>/api/roles</c> and <c>/api/userpermissions</c> as a
+    /// live CRUD surface. Registering a service should never publish an endpoint.
+    /// </para>
+    /// <para>
+    /// The permission registry defaults to <see cref="EmptyPermissionRegistry"/>, which grants
+    /// nothing: an application that has not declared its permissions finds that granting stops
+    /// working loudly, rather than that validation silently does nothing.
+    /// </para>
+    /// </remarks>
+    private static void RegisterAuthorizationRepositories(IServiceCollection services, JumpStartOptions options)
+    {
+        services.TryAddScoped<IRoleRepository, RoleRepository>();
+        services.TryAddScoped<IUserPermissionRepository, UserPermissionRepository>();
+
+        // The declared set of permissions. Singleton: it is immutable and built once at startup.
+        if (options.DeclaredPermissions.Count > 0)
+        {
+            services.TryAddSingleton<IPermissionRegistry>(
+                _ => new PermissionRegistry(options.DeclaredPermissions));
+        }
+        else
+        {
+            services.TryAddSingleton<IPermissionRegistry, EmptyPermissionRegistry>();
+        }
+
+        // The application overrides this to gate role management on its own rules (a subscription
+        // tier, a feature flag). The default permits whatever the registry already marks delegable.
+        services.TryAddScoped<IRoleManagementPolicy, PermissiveRoleManagementPolicy>();
+
+        services.TryAddScoped<PermissionResolver>();
+        services.TryAddScoped<IPermissionEvaluator, DatabasePermissionEvaluator>();
+        services.TryAddScoped<PermissionGrantValidator>();
     }
 }

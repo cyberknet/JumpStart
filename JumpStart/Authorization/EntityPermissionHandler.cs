@@ -24,7 +24,25 @@ public class EntityPermissionHandler : AuthorizationHandler<EntityPermissionRequ
 
             if (actionDescriptor != null)
             {
-                // 2. Look for our custom attribute
+                // 2a. A directly-named permission takes precedence. RequirePermission is how an
+                // endpoint that is not shaped like an entity - a report, a capability spanning
+                // several tables - states its requirement without inventing a second mechanism.
+                // Checked first because an endpoint carrying both is being explicit about which one
+                // it means. See ADR-019.
+                var named = actionDescriptor.MethodInfo.GetCustomAttribute<RequirePermissionAttribute>()
+                            ?? actionDescriptor.ControllerTypeInfo.GetCustomAttribute<RequirePermissionAttribute>();
+
+                if (named != null)
+                {
+                    if (context.User.HasClaim("Permission", named.Permission))
+                    {
+                        context.Succeed(requirement);
+                    }
+
+                    return Task.CompletedTask;
+                }
+
+                // 2b. Otherwise derive it from the controller's entity type, per ADR-011.
                 var attr = actionDescriptor.MethodInfo.GetCustomAttribute<EntityAuthorizeAttribute>()
                            ?? actionDescriptor.ControllerTypeInfo.GetCustomAttribute<EntityAuthorizeAttribute>();
 

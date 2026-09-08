@@ -37,7 +37,18 @@ public class ApiTenantSelectionServiceTests
     {
         _mockTenantsClient = new Mock<ITenantsApiClient>();
         _mockTokenStore = new Mock<ITokenStore>();
-        _service = new ApiTenantSelectionService(_mockTenantsClient.Object, _mockTokenStore.Object);
+
+        // No circuit: CircuitServicesAccessor.CircuitId is null and Services is null, which is the
+        // documented "called outside any circuit activity" path - the service resolves directly
+        // instead of going through the per-circuit cache, and finds no NavigationManager to read a
+        // tenant from the URL. That is exactly the shape these tests want, since they are about
+        // tenant selection itself rather than about circuit plumbing.
+        _service = new ApiTenantSelectionService(
+            _mockTenantsClient.Object,
+            _mockTokenStore.Object,
+            new CircuitServicesAccessor(),
+            new CircuitTenantCache(),
+            new TenantSelectionOptions());
     }
 
     private static TenantDto MakeTenantDto(string name) => new()

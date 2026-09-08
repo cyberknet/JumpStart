@@ -226,6 +226,29 @@ namespace JumpStart.Repositories;
 public interface ITenantContext
 {
     /// <summary>
+    /// Whether this application has no tenant boundary at all, making the global tenant query
+    /// filter a no-op.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Defaults to <c>false</c>, so existing implementations need no change and remain isolated.
+    /// </para>
+    /// <para>
+    /// Since ADR-018 a null current tenant <em>denies</em> rather than admitting every row, which is
+    /// what makes isolation structural instead of conditional on a claim being present. An
+    /// application that genuinely is not multi-tenant - and would otherwise see nothing - overrides
+    /// this to <c>true</c>. It is a deliberate, one-line statement about the application, not
+    /// something reachable by forgetting to establish a tenant.
+    /// </para>
+    /// <para>
+    /// Registering no <see cref="ITenantContext"/> at all already implies this; the property exists
+    /// for applications that supply one (to resolve a tenant when there is one) and still want
+    /// unfiltered reads when there is not.
+    /// </para>
+    /// </remarks>
+    bool SingleTenantMode => false;
+
+    /// <summary>
     /// Asynchronously retrieves the unique identifier of the current tenant.
     /// </summary>
     /// <returns>

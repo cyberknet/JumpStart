@@ -62,7 +62,8 @@ public class ApiTenantSelectionService(
     ITenantsApiClient tenantsClient,
     ITokenStore tokenStore,
     CircuitServicesAccessor circuitServicesAccessor,
-    CircuitTenantCache circuitTenantCache) : ITenantSelectionService
+    CircuitTenantCache circuitTenantCache,
+    TenantSelectionOptions options) : ITenantSelectionService
 {
     private List<Tenant>? _cachedTenants;
     private Task<List<Tenant>>? _cachedTenantsTask;
@@ -95,9 +96,26 @@ public class ApiTenantSelectionService(
         var tenants = await GetAvailableTenantsAsync();
 
         var requestedTenantId = await GetTenantIdFromUrlAsync();
-        if (requestedTenantId.HasValue && tenants.Any(t => t.Id == requestedTenantId.Value))
+
+        if (requestedTenantId.HasValue)
         {
-            return requestedTenantId.Value;
+            if (tenants.Any(t => t.Id == requestedTenantId.Value))
+            {
+                return requestedTenantId.Value;
+            }
+
+            // A tenant the user does not belong to. Normally that is somebody editing the URL, and
+            // ignoring it is right. But an application with an ICrossTenantAccessPolicy has a
+            // legitimate case - an administrator opening a customer's data - and this check would
+            // silently redirect them to their own tenant before the server ever got to decide.
+            //
+            // Honoured only when the application opts in, and it grants nothing on its own:
+            // TokenController re-validates every exchange, so a caller the policy refuses simply
+            // fails to get a token rather than gaining access to anything.
+            if (options.AllowCrossTenantSelection)
+            {
+                return requestedTenantId.Value;
+            }
         }
 
         return tenants.Count > 0 ? tenants[0].Id : null;

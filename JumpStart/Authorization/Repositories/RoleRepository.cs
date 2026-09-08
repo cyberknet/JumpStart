@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using JumpStart.Data;
 using JumpStart.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,16 +26,54 @@ namespace JumpStart.Authorization.Repositories;
 /// Repository implementation for managing <see cref="Role"/> entities, the permissions they grant,
 /// and user assignments to them. See ADR-012.
 /// </summary>
-public class RoleRepository(DbContext context, IUserContext? userContext)
+/// <remarks>
+/// <para>
+/// <strong>Grant validation lives here, not in a controller</strong> (ADR-019): seeders and
+/// background jobs never reach a controller, and a rule enforced only at the edge is a rule with a
+/// hole in it.
+/// </para>
+/// <para>
+/// <paramref name="validator"/> is optional only so a test can construct this repository directly
+/// without standing up a registry. Dependency injection always supplies one - see
+/// <c>ServiceCollectionExtensions.AddJumpStartAuthorization</c> - so the unvalidated shape is not
+/// reachable from a running application.
+/// </para>
+/// </remarks>
+public class RoleRepository(
+    DbContext context,
+    IUserContext? userContext,
+    PermissionGrantValidator? validator = null)
     : Repository<Role>(context, userContext), IRoleRepository
 {
+    private readonly PermissionResolver _resolver = new(context);
+
     /// <inheritdoc />
-    public async Task<RolePermission> AddPermissionAsync(Guid roleId, string permission)
+    public Task<RolePermission> AddPermissionAsync(Guid roleId, string permission) =>
+        AddPermissionCoreAsync(roleId, permission, asSystem: false);
+
+    /// <inheritdoc />
+    public Task<RolePermission> AddPermissionAsSystemAsync(Guid roleId, string permission) =>
+        AddPermissionCoreAsync(roleId, permission, asSystem: true);
+
+    private async Task<RolePermission> AddPermissionCoreAsync(Guid roleId, string permission, bool asSystem)
     {
         var existing = await _context.Set<RolePermission>()
             .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.Permission == permission);
         if (existing != null)
             return existing;
+
+        if (validator is not null)
+        {
+            // The role's own tenancy decides which rules apply - a grant into a tenant-owned role is
+            // a tenant grant, whoever happens to be making it.
+            var roleTenantId = await _context.Set<Role>()
+                .AcrossAllTenants()
+                .Where(r => r.Id == roleId)
+                .Select(r => r.TenantId)
+                .FirstOrDefaultAsync();
+
+            await validator.ValidateAsync(permission, roleTenantId, asSystem);
+        }
 
         var grant = new RolePermission { RoleId = roleId, Permission = permission };
         await _context.Set<RolePermission>().AddAsync(grant);
@@ -65,12 +104,29 @@ public class RoleRepository(DbContext context, IUserContext? userContext)
     }
 
     /// <inheritdoc />
-    public async Task<UserRole> AssignUserToRoleAsync(Guid userId, Guid roleId, Guid? tenantId)
+    public Task<UserRole> AssignUserToRoleAsync(Guid userId, Guid roleId, Guid? tenantId) =>
+        AssignUserToRoleCoreAsync(userId, roleId, tenantId, asSystem: false);
+
+    /// <inheritdoc />
+    public Task<UserRole> AssignUserToRoleAsSystemAsync(Guid userId, Guid roleId, Guid? tenantId) =>
+        AssignUserToRoleCoreAsync(userId, roleId, tenantId, asSystem: true);
+
+    private async Task<UserRole> AssignUserToRoleCoreAsync(
+        Guid userId, Guid roleId, Guid? tenantId, bool asSystem)
     {
         var existing = await _context.Set<UserRole>()
             .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.TenantId == tenantId);
         if (existing != null)
             return existing;
+
+        if (validator is not null)
+        {
+            // Handing somebody a role grants them everything in it. Validating only AddPermissionAsync
+            // would leave rule 4 walked around by assigning an existing role that already contains the
+            // permission - see PermissionGrantValidator.ValidateAssignmentAsync.
+            var granted = await _resolver.ResolveRolePermissionsAsync(roleId);
+            await validator.ValidateAssignmentAsync(granted, tenantId, asSystem);
+        }
 
         var assignment = new UserRole { UserId = userId, RoleId = roleId, TenantId = tenantId };
         await _context.Set<UserRole>().AddAsync(assignment);
@@ -102,16 +158,10 @@ public class RoleRepository(DbContext context, IUserContext? userContext)
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyCollection<string>> GetPermissionClaimsForUserAsync(Guid userId)
-    {
-        var fromRoles = _context.Set<UserRole>()
-            .Where(ur => ur.UserId == userId)
-            .Join(_context.Set<RolePermission>(), ur => ur.RoleId, rp => rp.RoleId, (ur, rp) => rp.Permission);
+    public Task<IReadOnlyCollection<string>> GetPermissionClaimsForUserAsync(Guid userId, Guid? tenantId) =>
+        _resolver.ResolveAsync(userId, tenantId);
 
-        var direct = _context.Set<UserPermission>()
-            .Where(up => up.UserId == userId)
-            .Select(up => up.Permission);
-
-        return await fromRoles.Union(direct).Distinct().ToListAsync();
-    }
+    /// <inheritdoc />
+    public Task<IReadOnlyCollection<string>> GetAllPermissionClaimsForUserAsync(Guid userId) =>
+        _resolver.ResolveAllAsync(userId);
 }

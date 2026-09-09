@@ -144,9 +144,17 @@ controllers). Registering a service never publishes an endpoint.
   registry configured has no valid grants and role administration stops working until it declares
   one. This is a deliberate hard failure: a permissive default would leave exactly the applications
   that most need the guarantee without it.
-- Rule 4 makes bootstrapping explicit and slightly awkward: the first platform operator's grant
-  cannot come from a grantor who holds it. The framework provides a sanctioned seeding path; that
-  path is, by design, the one place the rule does not apply, and it is worth reviewing accordingly.
+- Rules 3 and 4 make bootstrapping explicit and slightly awkward: the first platform operator's
+  grant cannot come from a grantor who holds it, and a founder's built-in role is handed to them
+  inside an organization whose plan may not permit administering roles at all. The framework
+  provides a sanctioned seeding path (`asSystem`); that path is, by design, the one place those two
+  rules do not apply, and it is worth reviewing accordingly.
+
+  Rules 1 and 2 still apply there, which is what keeps the exception narrow: even the platform
+  cannot store an undeclared permission or place a platform-wide one inside a tenant. The line is
+  that rules 3 and 4 are questions about *a tenant administrator delegating* — whether they hold it,
+  whether it may be delegated, whether their plan allows it — and none of those has an answer when
+  nobody is delegating.
 - `IPermissionEvaluator` adds indirection that buys nothing today. It is accepted on the judgement
   that adding it later costs a rewrite of every call site.
 

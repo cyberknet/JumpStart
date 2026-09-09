@@ -159,7 +159,7 @@ public class PermissionGrantValidatorTests
     }
 
     [Fact]
-    public async Task AsSystem_SkipsOnlyTheGrantorRule()
+    public async Task AsSystem_SkipsTheDelegationRules()
     {
         var validator = Create(new StubEvaluator()); // holds nothing
 
@@ -170,6 +170,53 @@ public class PermissionGrantValidatorTests
         // Still refused, because rule 1 is not waived by being the system.
         await Assert.ThrowsAsync<PermissionGrantException>(
             () => validator.ValidateAsync("Invented.Permission", tenantId: null, asSystem: true));
+    }
+
+    /// <summary>
+    /// Sign-up, and the reason rule 3 has to be waived along with rule 4.
+    /// </summary>
+    /// <remarks>
+    /// A founder receives the built-in role inside a brand-new organization whose plan does not
+    /// include role separation, so the policy correctly answers "this organization may not
+    /// administer its own roles" - true, and beside the point, because nobody in the organization is
+    /// administering anything. Refusing here made registration fail outright: no organization, no
+    /// owner, no account.
+    /// </remarks>
+    [Fact]
+    public async Task AsSystem_GrantsInsideATenantWhosePolicyRefusesDelegation()
+    {
+        var validator = Create(new StubEvaluator(), new RefusingPolicy());
+
+        await validator.ValidateAsync(TenantPermission, Guid.NewGuid(), asSystem: true);
+
+        // ...including one a tenant administrator could never hand out themselves, which is exactly
+        // what a built-in owner role contains.
+        await validator.ValidateAsync(NonDelegable, Guid.NewGuid(), asSystem: true);
+    }
+
+    /// <summary>
+    /// The waiver is for the system alone - an ordinary caller still meets the full set.
+    /// </summary>
+    [Fact]
+    public async Task APersonIsStillRefusedWhereTheSystemIsAllowed()
+    {
+        var validator = Create(new StubEvaluator(TenantPermission, NonDelegable), new RefusingPolicy());
+
+        await Assert.ThrowsAsync<PermissionGrantException>(
+            () => validator.ValidateAsync(TenantPermission, Guid.NewGuid()));
+    }
+
+    /// <summary>
+    /// Scope survives the waiver: the system cannot put a platform permission inside a tenant, which
+    /// is the shape an escalation would take.
+    /// </summary>
+    [Fact]
+    public async Task AsSystem_StillCannotGrantAPlatformPermissionInsideATenant()
+    {
+        var validator = Create(new StubEvaluator());
+
+        await Assert.ThrowsAsync<PermissionGrantException>(
+            () => validator.ValidateAsync(PlatformPermission, Guid.NewGuid(), asSystem: true));
     }
 
     // Assignment - a role hands over everything in it.

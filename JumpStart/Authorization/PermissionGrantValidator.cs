@@ -54,10 +54,26 @@ public class PermissionGrantValidator(
     /// The tenant the grant is scoped to, or <c>null</c> for a platform-wide grant.
     /// </param>
     /// <param name="asSystem">
-    /// When <c>true</c>, skips the "grantor already holds it" rule because there is no grantor - a
-    /// startup seeder establishing the first platform operator, for example. The one sanctioned
-    /// exception, and callers say so explicitly: ADR-019 requires it be expressed rather than
-    /// arrived at by there happening to be no current user.
+    /// <para>
+    /// When <c>true</c>, the platform itself is making the grant rather than a person: a startup
+    /// seeder establishing the first operator, or sign-up giving a founder the built-in role that
+    /// makes their new organization usable. The one sanctioned exception, and callers say so
+    /// explicitly - ADR-019 requires it be expressed rather than arrived at by there happening to be
+    /// no current user.
+    /// </para>
+    /// <para>
+    /// It skips rules 3 and 4, which are both questions about <em>a tenant administrator delegating
+    /// a permission</em>: whether the grantor holds it, whether it may be delegated at all, and
+    /// whether this organization's plan lets it administer roles. None of those has a meaningful
+    /// answer when nobody is delegating - a founder receiving Owner on a plan with no role
+    /// separation is not that organization administering its own roles, it is the platform giving
+    /// them the standing every organization's founder gets.
+    /// </para>
+    /// <para>
+    /// Rules 1 and 2 still apply, which is what keeps system grants honest: the platform cannot
+    /// store a permission nobody declared, and cannot put a platform-wide permission inside a
+    /// tenant.
+    /// </para>
     /// </param>
     /// <exception cref="PermissionGrantException">Thrown when any rule is broken.</exception>
     public async Task ValidateAsync(
@@ -94,7 +110,13 @@ public class PermissionGrantValidator(
                 $"'{permission}' is a tenant permission and cannot be granted globally.");
         }
 
-        if (tenantId is { } tenant)
+        // Rule 3 is about a tenant administrator delegating, so it is skipped when the platform
+        // itself is granting - see the asSystem parameter. Without that exclusion the founder of a
+        // brand-new organization cannot be given the built-in Owner role, because sign-up starts
+        // them on a plan with no role separation and the policy check below correctly answers "this
+        // organization may not administer its own roles" - true, and beside the point, since nobody
+        // in the organization is administering anything.
+        if (tenantId is { } tenant && !asSystem)
         {
             // Rule 3: delegable, and permitted by the application's own policy. Intersected with the
             // registry rather than taken from the policy alone, so a policy cannot widen the set.
@@ -118,7 +140,8 @@ public class PermissionGrantValidator(
             }
         }
 
-        // Rule 4: the grantor holds it themselves.
+        // Rule 4: the grantor holds it themselves. Skipped for a system grant for the same reason as
+        // rule 3 above - there is no grantor to measure.
         if (asSystem)
         {
             return;

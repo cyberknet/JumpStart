@@ -84,6 +84,66 @@ public class ApiTenantSelectionServiceTests
     }
 
     [Fact]
+    public async Task GetAvailableTenantsAsync_WithACircuit_CachesThroughCircuitTenantCache_NotOnThisInstance()
+    {
+        // The bug RefreshAvailableTenantsAsync exists to fix: an earlier version of this class cached
+        // on the instance unconditionally, so a second, separately-scoped instance sharing the same
+        // circuit (exactly what every render-mode island gets - see the class remarks) held its own,
+        // independently stale copy forever. Routing through CircuitTenantCache instead means two
+        // instances that agree on the circuit id share one cache entry, not two.
+        var mockTenantsClient = new Mock<ITenantsApiClient>();
+        mockTenantsClient.Setup(c => c.GetMineAsync()).ReturnsAsync(new List<TenantDto> { MakeTenantDto("Acme") });
+
+        var accessor = new CircuitServicesAccessor { CircuitId = "circuit-1" };
+        var sharedCache = new CircuitTenantCache();
+
+        var islandA = new ApiTenantSelectionService(
+            mockTenantsClient.Object, new Mock<ITokenStore>().Object, accessor, sharedCache,
+            new TenantSelectionOptions());
+        var islandB = new ApiTenantSelectionService(
+            mockTenantsClient.Object, new Mock<ITokenStore>().Object, accessor, sharedCache,
+            new TenantSelectionOptions());
+
+        await islandA.GetAvailableTenantsAsync();
+        await islandB.GetAvailableTenantsAsync();
+
+        mockTenantsClient.Verify(c => c.GetMineAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshAvailableTenantsAsync_InvalidatesTheCircuitCache_SoTheNextCallRefetches()
+    {
+        var mockTenantsClient = new Mock<ITenantsApiClient>();
+        mockTenantsClient.SetupSequence(c => c.GetMineAsync())
+            .ReturnsAsync(new List<TenantDto> { MakeTenantDto("Acme") })
+            .ReturnsAsync(new List<TenantDto> { MakeTenantDto("Acme Holdings") });
+
+        var accessor = new CircuitServicesAccessor { CircuitId = "circuit-1" };
+        var service = new ApiTenantSelectionService(
+            mockTenantsClient.Object, new Mock<ITokenStore>().Object, accessor, new CircuitTenantCache(),
+            new TenantSelectionOptions());
+
+        var before = await service.GetAvailableTenantsAsync();
+        await service.RefreshAvailableTenantsAsync();
+        var after = await service.GetAvailableTenantsAsync();
+
+        Assert.Equal("Acme", before[0].Name);
+        Assert.Equal("Acme Holdings", after[0].Name);
+        mockTenantsClient.Verify(c => c.GetMineAsync(), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task RefreshAvailableTenantsAsync_RaisesAvailableTenantsChanged()
+    {
+        var raised = false;
+        _service.AvailableTenantsChanged += () => raised = true;
+
+        await _service.RefreshAvailableTenantsAsync();
+
+        Assert.True(raised);
+    }
+
+    [Fact]
     public async Task GetCurrentTenantIdAsync_AutoSelectsFirstAvailableTenant()
     {
         var tenant = MakeTenantDto("Acme");

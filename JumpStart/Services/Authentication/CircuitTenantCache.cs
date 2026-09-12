@@ -13,6 +13,7 @@
  */
 
 using System.Collections.Concurrent;
+using JumpStart.Data;
 
 namespace JumpStart.Services.Authentication;
 
@@ -47,6 +48,14 @@ public class CircuitTenantCache
 {
     private readonly ConcurrentDictionary<string, Task<Guid?>> _resolutions = new();
 
+    // A second, independently-keyed cache rather than folding the tenant list into _resolutions:
+    // the two answer different questions ("which tenant is selected" vs. "what tenants exist and what
+    // are they called") and are invalidated on different triggers - a real tenant switch always
+    // updates the first, but never needs to touch the second, while editing a tenant's own name (see
+    // InvalidateTenants) needs the opposite. Cleared together in Clear, since both are meaningless
+    // once nothing is known about the circuit's user any more (e.g. logout).
+    private readonly ConcurrentDictionary<string, Task<List<Tenant>>> _tenantLists = new();
+
     /// <summary>
     /// Returns the cached resolution for <paramref name="circuitId"/> if one is already in flight or
     /// complete; otherwise starts <paramref name="resolver"/> exactly once and caches its task so every
@@ -79,5 +88,28 @@ public class CircuitTenantCache
     /// <see cref="ITokenStore.ClearToken"/> on logout, so a later sign-in on a reused circuit doesn't
     /// see a stale tenant left over from the previous session.
     /// </summary>
-    public void Clear(string circuitId) => _resolutions.TryRemove(circuitId, out _);
+    public void Clear(string circuitId)
+    {
+        _resolutions.TryRemove(circuitId, out _);
+        _tenantLists.TryRemove(circuitId, out _);
+    }
+
+    /// <summary>
+    /// Same shape as <see cref="GetOrResolveAsync"/>, for the caller's available-tenants list rather
+    /// than their current selection - the same in-flight-task-sharing reasoning applies, and for the
+    /// same reason: every island on a circuit needs the same answer, not each resolving (and possibly
+    /// caching) its own independently.
+    /// </summary>
+    public Task<List<Tenant>> GetOrResolveTenantsAsync(string circuitId, Func<Task<List<Tenant>>> resolver) =>
+        _tenantLists.GetOrAdd(circuitId, static (_, r) => r(), resolver);
+
+    /// <summary>
+    /// Discards the cached tenant list for <paramref name="circuitId"/>, so the next
+    /// <see cref="GetOrResolveTenantsAsync"/> call re-fetches instead of returning what may now be
+    /// stale data - call this after a tenant's own details (most visibly its name) are edited from
+    /// anywhere in the app, via <see cref="ITenantSelectionService.RefreshAvailableTenantsAsync"/>.
+    /// Deliberately does not touch <see cref="GetOrResolveAsync"/>'s cache: which tenant is selected
+    /// hasn't changed just because one tenant's name did.
+    /// </summary>
+    public void InvalidateTenants(string circuitId) => _tenantLists.TryRemove(circuitId, out _);
 }

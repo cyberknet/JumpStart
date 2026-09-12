@@ -106,6 +106,23 @@ public interface ITenantSelectionService
     event Action<Guid?>? TenantChanged;
 
     /// <summary>
+    /// Occurs when <see cref="RefreshAvailableTenantsAsync"/> is called on <em>this instance</em>.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="TenantChanged"/>: nothing about which tenant is selected has changed
+    /// here, only (possibly) how one of them displays - most commonly, a tenant's own name was just
+    /// edited. A Blazor Server component sharing a circuit with the one that called
+    /// <see cref="RefreshAvailableTenantsAsync"/> but living in a different render-mode island's DI
+    /// scope will not observe this event, since it is raised on a different instance of this Scoped
+    /// service - see <c>Authentication.CircuitServicesAccessor.Services</c>'s remarks. Such a component
+    /// (e.g. <see cref="JumpStart.Components.TenantSwitcher"/>) should instead re-fetch on its own trigger (that
+    /// component re-fetches on navigation) and rely on <see cref="RefreshAvailableTenantsAsync"/>
+    /// having invalidated whatever circuit-wide cache backs <see cref="GetAvailableTenantsAsync"/>, so
+    /// that re-fetch actually returns fresh data instead of a stale cached copy.
+    /// </remarks>
+    event Action? AvailableTenantsChanged;
+
+    /// <summary>
     /// Gets the currently selected tenant ID.
     /// </summary>
     /// <returns>
@@ -209,6 +226,16 @@ public interface ITenantSelectionService
     /// </code>
     /// </example>
     Task<List<Tenant>> GetAvailableTenantsAsync();
+
+    /// <summary>
+    /// Discards whatever cached answer <see cref="GetAvailableTenantsAsync"/> has been returning, so
+    /// its next call re-fetches - call this after editing a tenant's own details (most visibly its
+    /// name) from anywhere in the app, so a display backed by the cached list (e.g.
+    /// <see cref="Components.TenantSwitcher"/>) is not left showing stale data for the rest of the
+    /// circuit's life. See <see cref="AvailableTenantsChanged"/>'s remarks for the one thing this does
+    /// <em>not</em> do on its own - notify a different render-mode island's own component synchronously.
+    /// </summary>
+    Task RefreshAvailableTenantsAsync();
 
     /// <summary>
     /// Checks if the current user has access to a specific tenant.

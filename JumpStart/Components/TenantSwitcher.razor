@@ -15,6 +15,7 @@ see <https://www.gnu.org/licenses/>.
 
 @using JumpStart.Data
 @using JumpStart.Services
+@using Microsoft.AspNetCore.Components.Routing
 @inject ITenantSelectionService TenantSelection
 @inject NavigationManager Navigation
 @implements IDisposable
@@ -80,6 +81,8 @@ see <https://www.gnu.org/licenses/>.
     protected override async Task OnInitializedAsync()
     {
         TenantSelection.TenantChanged += HandleTenantChanged;
+        TenantSelection.AvailableTenantsChanged += HandleAvailableTenantsChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
         await LoadTenantsAsync();
     }
 
@@ -147,11 +150,63 @@ see <https://www.gnu.org/licenses/>.
     }
 
     /// <summary>
+    /// Re-fetches the tenant list on every navigation, so an edit made to a tenant's own record - its
+    /// name, most visibly - is reflected here the next time the user goes anywhere, not left stale for
+    /// the rest of the circuit's life.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This component is mounted once in the host app's layout (e.g. <c>MainLayout</c>) with its own
+    /// explicit <c>@rendermode</c>, so - unlike a normal page component - it survives every in-app
+    /// navigation for as long as the circuit lives; <see cref="LoadTenantsAsync"/> otherwise runs
+    /// exactly once, in <see cref="OnInitializedAsync"/>, and never again. There is no cross-component
+    /// event for "a tenant's own data changed" the way <see cref="ITenantSelectionService.TenantChanged"/>
+    /// exists for "the selection changed" - adding one would mean plumbing a new event through every
+    /// <see cref="ITenantSelectionService"/> implementation and, per <c>CircuitServicesAccessor.Services</c>'s
+    /// remarks, a cross-DI-scope-safe way to raise it. Reacting to navigation instead needs neither:
+    /// <see cref="NavigationManager"/> is itself circuit-wide already, and "the user went somewhere"
+    /// is a good-enough proxy for "whatever might have changed since the list was last loaded" - the
+    /// extra query this adds is one scoped to the caller's own handful of tenant memberships.
+    /// </para>
+    /// <para>
+    /// Blazor's <c>InteractiveServer</c> event dispatch is already properly synchronized - see
+    /// <see cref="HandleTenantChanged"/>'s identical <see cref="InvokeAsync{TResult}"/> use - so this
+    /// does not skip a render even though <see cref="NavigationManager.LocationChanged"/> is not itself
+    /// a Blazor lifecycle callback.
+    /// </para>
+    /// </remarks>
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e) =>
+        InvokeAsync(async () =>
+        {
+            await LoadTenantsAsync();
+            StateHasChanged();
+        });
+
+    /// <summary>
+    /// Refreshes immediately when <see cref="ITenantSelectionService.RefreshAvailableTenantsAsync"/>
+    /// was called on <em>this same instance</em> - the common case being a page that (like this
+    /// component) does not declare its own <c>@rendermode</c> and so shares this component's DI scope,
+    /// or a caller that happens to have been resolved from the same scope some other way. A page that
+    /// declares its own explicit <c>@rendermode</c> - the more common shape in this app, and why
+    /// <see cref="HandleLocationChanged"/> above exists at all - is a different island with its own
+    /// separate instance and will not raise this event on this one; that gap is what the
+    /// navigation-triggered refresh covers instead.
+    /// </summary>
+    private void HandleAvailableTenantsChanged() =>
+        InvokeAsync(async () =>
+        {
+            await LoadTenantsAsync();
+            StateHasChanged();
+        });
+
+    /// <summary>
     /// Disposes the component and unsubscribes from tenant change events.
     /// </summary>
     public void Dispose()
     {
         TenantSelection.TenantChanged -= HandleTenantChanged;
+        TenantSelection.AvailableTenantsChanged -= HandleAvailableTenantsChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
     }
 }
 

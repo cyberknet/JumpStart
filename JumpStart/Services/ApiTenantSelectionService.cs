@@ -65,11 +65,21 @@ public class ApiTenantSelectionService(
     CircuitTenantCache circuitTenantCache,
     TenantSelectionOptions options) : ITenantSelectionService
 {
-    private List<Tenant>? _cachedTenants;
+    // Only the no-circuit fallback path uses this - see GetAvailableTenantsAsync's remarks. The
+    // circuit-bearing path caches through CircuitTenantCache instead, exactly like
+    // GetCurrentTenantIdAsync/ResolveCurrentTenantIdAsync already do, and for the identical reason:
+    // an earlier version of this class cached tenants on this instance unconditionally, which meant
+    // every render-mode island's own separately-scoped instance of this class cached (and could go
+    // stale relative to) its own independent copy - confirmed the same real bug, not theoretical, as
+    // the tenant-id one the class remarks above describe, the first time GetAvailableTenantsAsync was
+    // asked to reflect a tenant's name having just been edited on a different island's instance.
     private Task<List<Tenant>>? _cachedTenantsTask;
 
     /// <inheritdoc />
     public event Action<Guid?>? TenantChanged;
+
+    /// <inheritdoc />
+    public event Action? AvailableTenantsChanged;
 
     /// <inheritdoc />
     public Task<Guid?> GetCurrentTenantIdAsync()
@@ -221,27 +231,56 @@ public class ApiTenantSelectionService(
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Caches through <see cref="CircuitTenantCache"/>, keyed by the real circuit - not on this
+    /// instance - for the same reason <see cref="GetCurrentTenantIdAsync"/> does: every render-mode
+    /// island sharing a page has its own separate instance of this Scoped service (see
+    /// <see cref="CircuitServicesAccessor.Services"/>'s remarks), so an instance-level cache here would
+    /// mean each island could hold its own, independently stale copy of the tenant list - confirmed the
+    /// same class of bug as the tenant-id one, not theoretical, the first time a tenant's name was
+    /// edited from one island (e.g. an "Organization details" page) and a different island (e.g.
+    /// <see cref="JumpStart.Components.TenantSwitcher"/>, mounted once in the host app's layout) kept
+    /// showing the old name for the rest of the circuit's life. <see cref="RefreshAvailableTenantsAsync"/>
+    /// is what invalidates this cache. The no-circuit branch is the same defensive fallback
+    /// <see cref="GetCurrentTenantIdAsync"/> takes - not the expected path - and keeps its own
+    /// instance-level cache since there is no circuit-wide store to share it through anyway.
+    /// </remarks>
     public Task<List<Tenant>> GetAvailableTenantsAsync()
     {
-        if (_cachedTenants != null)
+        if (circuitServicesAccessor.CircuitId is not { } circuitId)
         {
-            return Task.FromResult(_cachedTenants);
+            // Memoizing the in-flight/completed Task itself (not a separate result field) is enough on
+            // its own: awaiting an already-completed Task<T> repeatedly is cheap and returns the same
+            // result every time, with no separate field that RefreshAvailableTenantsAsync and a
+            // concurrent in-flight fetch could race to write.
+            return _cachedTenantsTask ??= FetchAvailableTenantsAsync();
         }
 
-        // Same in-flight-task-caching reasoning as GetCurrentTenantIdAsync's own remarks: concurrent
-        // callers on a fresh circuit would otherwise each kick off their own redundant GetMineAsync
-        // call before any of them has cached a result yet. Not a correctness bug the way the tenant
-        // resolution one was (every caller would still get the same, correct data eventually), but
-        // worth avoiding the duplicate round-trips the same way.
-        _cachedTenantsTask ??= FetchAvailableTenantsAsync();
-        return _cachedTenantsTask;
+        return circuitTenantCache.GetOrResolveTenantsAsync(circuitId, FetchAvailableTenantsAsync);
     }
 
+    /// <inheritdoc />
+    public Task RefreshAvailableTenantsAsync()
+    {
+        _cachedTenantsTask = null;
+
+        if (circuitServicesAccessor.CircuitId is { } circuitId)
+        {
+            circuitTenantCache.InvalidateTenants(circuitId);
+        }
+
+        AvailableTenantsChanged?.Invoke();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// The actual API call, with no caching of its own - <see cref="GetAvailableTenantsAsync"/> is what
+    /// decides whether, and where, the result gets cached.
+    /// </summary>
     private async Task<List<Tenant>> FetchAvailableTenantsAsync()
     {
         var dtos = await tenantsClient.GetMineAsync();
-        _cachedTenants = dtos.Select(MapToTenant).OrderBy(t => t.Name).ToList();
-        return _cachedTenants;
+        return dtos.Select(MapToTenant).OrderBy(t => t.Name).ToList();
     }
 
     /// <inheritdoc />

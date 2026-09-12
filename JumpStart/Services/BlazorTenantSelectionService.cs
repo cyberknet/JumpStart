@@ -117,6 +117,9 @@ public class BlazorTenantSelectionService(
     public event Action<Guid?>? TenantChanged;
 
     /// <inheritdoc />
+    public event Action? AvailableTenantsChanged;
+
+    /// <inheritdoc />
     public Task<Guid?> GetCurrentTenantIdAsync()
     {
         // If tenant already selected, return it
@@ -238,6 +241,18 @@ public class BlazorTenantSelectionService(
             .Select(ut => ut.Tenant)
             .OrderBy(t => t.Name)
             .ToListAsync();
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// A no-op beyond raising <see cref="AvailableTenantsChanged"/>: unlike <see cref="ApiTenantSelectionService"/>,
+    /// <see cref="GetAvailableTenantsAsync"/> here never caches - it queries the database fresh on
+    /// every call - so there is nothing to invalidate.
+    /// </remarks>
+    public Task RefreshAvailableTenantsAsync()
+    {
+        AvailableTenantsChanged?.Invoke();
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

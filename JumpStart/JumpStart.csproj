@@ -33,12 +33,20 @@
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="16.2.0" />
     <PackageReference Include="Correlate.AspNetCore" Version="6.1.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="Refit" Version="13.1.0" />
-    <PackageReference Include="Refit.HttpClientFactory" Version="13.1.0" />
+    <PackageReference Include="Refit" Version="15.2.0" />
+    <PackageReference Include="Refit.HttpClientFactory" Version="15.2.0" />
+    <!-- Refit 15 split the old runtime-reflection-based client generator out of the core package in
+         favor of defaulting toward compile-time source generation - AddRefitClient<T>/AddApiClient<T>
+         below still use the reflection path, and without this throws NotSupportedException the first
+         time a client is actually resolved (confirmed live: RustArchon.Panel 500'd on its very first
+         page load after the Refit 13->15 bump, since App.razor's own component tree resolves one via
+         DI immediately). Migrating every Refit interface in this codebase to the source-generated
+         model instead is a real option later, but out of scope for a package-version bump. -->
+    <PackageReference Include="Refit.Reflection" Version="15.2.0" />
     <PackageReference Include="RestEase" Version="1.6.4" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.2" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
   </ItemGroup>
 </Project>

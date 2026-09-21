@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using JumpStart.Data;
 using JumpStart.MultiTenant.Clients;
@@ -23,6 +24,7 @@ using JumpStart.Services.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.JSInterop;
 
 namespace JumpStart.Services;
 
@@ -75,6 +77,18 @@ public class ApiTenantSelectionService(
     // asked to reflect a tenant's name having just been edited on a different island's instance.
     private Task<List<Tenant>>? _cachedTenantsTask;
 
+    /// <summary>
+    /// The browser's own memory of which organization was last chosen, so a plain reload (F5, a new tab, coming back tomorrow) lands where the
+    /// person left off instead of on whichever organization sorts first. The URL parameter (see
+    /// <see cref="ITenantSelectionService.TenantIdQueryParameterName"/>) only survives the one reload a switch itself triggers; the moment the
+    /// person navigates anywhere it is gone, and the next reload used to fall back to "first". It is a hint and never a grant: it is used only if
+    /// the person is still a member of that organization (or, for an administrator acting as a customer, is never stored at all).
+    /// </summary>
+    public const string StorageKey = "jumpstart.selectedTenantId";
+
+    // How long the browser gets to answer. A circuit whose browser has gone quiet must not hold up resolving the tenant.
+    private static readonly TimeSpan StorageTimeout = TimeSpan.FromSeconds(2);
+
     /// <inheritdoc />
     public event Action<Guid?>? TenantChanged;
 
@@ -111,6 +125,8 @@ public class ApiTenantSelectionService(
         {
             if (tenants.Any(t => t.Id == requestedTenantId.Value))
             {
+                // What the URL asked for is now also what a plain reload should come back to.
+                await StoreSelectionAsync(requestedTenantId.Value);
                 return requestedTenantId.Value;
             }
 
@@ -128,7 +144,61 @@ public class ApiTenantSelectionService(
             }
         }
 
+        // No (usable) request in the URL: the organization the person last chose in this browser, if they still belong to it.
+        var stored = await ReadStoredSelectionAsync();
+        if (stored.HasValue && tenants.Any(t => t.Id == stored.Value))
+        {
+            return stored.Value;
+        }
+
         return tenants.Count > 0 ? tenants[0].Id : null;
+    }
+
+    private async Task<Guid?> ReadStoredSelectionAsync()
+    {
+        var js = circuitServicesAccessor.Services?.GetService<IJSRuntime>();
+        if (js is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(StorageTimeout);
+            var raw = await js.InvokeAsync<string?>("localStorage.getItem", timeout.Token, StorageKey);
+            return Guid.TryParse(raw, out var id) ? id : null;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or JSException or JSDisconnectedException or OperationCanceledException)
+        {
+            // Not in a place JavaScript can be reached (before the browser has connected), or storage is blocked: no memory, so no hint.
+            return null;
+        }
+    }
+
+    private async Task StoreSelectionAsync(Guid? tenantId)
+    {
+        var js = circuitServicesAccessor.Services?.GetService<IJSRuntime>();
+        if (js is null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(StorageTimeout);
+            if (tenantId.HasValue)
+            {
+                await js.InvokeVoidAsync("localStorage.setItem", timeout.Token, StorageKey, tenantId.Value.ToString());
+            }
+            else
+            {
+                await js.InvokeVoidAsync("localStorage.removeItem", timeout.Token, StorageKey);
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or JSException or JSDisconnectedException or OperationCanceledException)
+        {
+            // Remembering is a convenience; failing to remember never fails the switch.
+        }
     }
 
     /// <summary>
@@ -212,22 +282,24 @@ public class ApiTenantSelectionService(
             circuitTenantCache.SetResolved(circuitId, tenantId);
         }
 
+        await StoreSelectionAsync(tenantId);
         tokenStore.ClearToken();
         TenantChanged?.Invoke(tenantId);
         return true;
     }
 
     /// <inheritdoc />
-    public Task ClearCurrentTenantAsync()
+    public async Task ClearCurrentTenantAsync()
     {
         if (circuitServicesAccessor.CircuitId is { } circuitId)
         {
             circuitTenantCache.Clear(circuitId);
         }
 
+        // Signing out: the next person to use this browser must not inherit this one's organization.
+        await StoreSelectionAsync(null);
         tokenStore.ClearToken();
         TenantChanged?.Invoke(null);
-        return Task.CompletedTask;
     }
 
     /// <inheritdoc />
